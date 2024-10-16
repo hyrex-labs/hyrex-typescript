@@ -65,23 +65,37 @@ type EnsureSingleObjectArg<T> = T extends (arg: infer A) => any
         : never
     : never;
 
-class TaskWrapper<T extends HyrexCallable<U>, U extends object> {
+class TaskWrapper<U extends object> {
+    // constructor(private taskFunction: (arg: U) => any) {
+    //     const callable = (context: U, config?: TaskConfig) => {
+    //         console.log("Sending off async...");
+    //
+    //         const result = this.taskFunction(context);
+    //
+    //         console.log("...function has been executed");
+    //     };
+    //
+    //     return Object.assign(callable, this);
+    // }
+    constructor(private taskFunction: (arg: U) => any) {}
 
-    constructor(private taskFunction: T) {
-        const callable = (context: U, config?: TaskConfig) => {
-            console.log("Sending off async...");
+    call(context: U, config?: TaskConfig) {
+        console.log("Sending off async...");
 
-            const result = this.taskFunction(context);
+        const result = this.taskFunction(context);
 
-            console.log("...function has been executed");
-        };
+        console.log("...function has been executed");
 
-        return Object.assign(callable, this);
+        return result;
     }
 }
 
-type CallableTaskWrapper<T extends (arg: object) => any, U extends object> =
-    TaskWrapper<T, U> & ((context: U, config?: TaskConfig) => ReturnType<T>);
+
+// type CallableTaskWrapper<U extends object> =
+//     TaskWrapper<U> & ((context: U, config?: TaskConfig) => any);
+
+type CallableTaskWrapper<U extends object> = TaskWrapper<U> & ((context: U, config?: TaskConfig) => any);
+
 
 
 interface HyrexCore {
@@ -133,18 +147,16 @@ export class Hyrex {
         this.appTaskRegistry = new TaskRegistry()
     }
 
-    // task<T extends HyrexCallable<U>, U extends object>(taskFunction: T): CallableTaskWrapper<T, U> {
-    //     return new TaskWrapper(taskFunction) as unknown as CallableTaskWrapper<T, U>;
-    // }
+    task<U extends object>(taskFunction: (arg: U) => any): CallableTaskWrapper<U> {
+        const wrapper = new TaskWrapper(taskFunction);
 
-    // task<T extends (arg: U) => any, U extends object>(taskFunction: T): CallableTaskWrapper<T, U> {
-    //     // TaskWrapper and CallableTaskWrapper both use T and U consistently
-    //     return new TaskWrapper(taskFunction) as unknown as CallableTaskWrapper<T, U>;
-    // }
+        const callableFunction = (context: U, config?: TaskConfig) => {
+            return wrapper.call(context, config);
+        };
 
-    task<T extends (arg: U) => any, U extends object>(taskFunction: T): CallableTaskWrapper<T, U> {
-        // Safely create the TaskWrapper with inferred types and return the correct type
-        return new TaskWrapper(taskFunction) as unknown as CallableTaskWrapper<T, U>;
+        const combined = Object.assign(callableFunction, wrapper);
+
+        return combined as CallableTaskWrapper<U>;
     }
 
     addRegistry(taskRegistry: TaskRegistry) {

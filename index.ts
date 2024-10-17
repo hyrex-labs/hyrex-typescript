@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { v5 as uuidv5 } from 'uuid';
+import {
+    CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, TaskConfig,
+} from "./utils";
+import { SerializedTask, HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
+import { ConsoleDispatcher } from "./dispatchers/ConsoleDispatcher";
+import { PostgresDispatcher } from "./dispatchers/PostgresDispatcher";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -9,30 +14,10 @@ const AppConfigSchema = z.object({
 })
 type AppConfig = z.infer<typeof AppConfigSchema>
 
-const CallableSchema = z.function().args().returns(z.any());
-type Callable = z.infer<typeof CallableSchema>
-
-type UUID = string
-
-const JsonSerializable = z.object({}).passthrough().refine(
-    (obj) => {
-        try {
-            JSON.stringify(obj);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    },
-    {
-        message: "The object is not JSON-serializable",
-    }
-);
 
 const InternalTaskRegistrySchema = z.record(z.string(), CallableSchema)
 type InternalTaskRegistry = z.infer<typeof InternalTaskRegistrySchema>
 
-const TaskConfigSchema = z.record(z.string(), z.any()) // TODO: Update this to be a config
-type TaskConfig = z.infer<typeof TaskConfigSchema>
 
 export class TaskRegistry {
     public internalTaskRegistry: InternalTaskRegistry
@@ -57,17 +42,10 @@ export class TaskRegistry {
     }
 }
 
-const HyrexCallableSchema = z.function()
-    .args(JsonSerializable)  // Accepts any object as the argument
-    .returns(z.any());
-
-interface JsonSerializableObject {
-    [key: string]: any; // Allows any property with any value
-}
-
 
 class TaskWrapper<U extends JsonSerializableObject> {
-    constructor(private dispatcher: HyrexDispatcher, private taskFunction: (arg: U) => any) {}
+    constructor(private dispatcher: HyrexDispatcher, private taskFunction: (arg: U) => any) {
+    }
 
     call(context: U, config: TaskConfig = {}) {
         // console.log("Sending off async...");
@@ -90,65 +68,12 @@ class TaskWrapper<U extends JsonSerializableObject> {
     }
 }
 
-type CallableTaskWrapper<U extends JsonSerializableObject> = TaskWrapper<U> & ((context: U, config?: TaskConfig) => any);
-
-type SerializedTask = {
-    "name": string,
-    "context": JsonSerializableObject,
-    "config": TaskConfig
-}
+type CallableTaskWrapper<U extends JsonSerializableObject> =
+    TaskWrapper<U>
+    & ((context: U, config?: TaskConfig) => any);
 
 
-interface HyrexDispatcher {
-    enqueue: (serializedTask: SerializedTask) => UUID
-    dequeue: (...args: any[]) => any
-}
 
-type HyrexPostgresDispatcherConfig = {
-    conn: string
-}
-
-type HyrexConsoleDispatcherConfig = {
-    randomSeed?: string
-}
-
-class HyrexConsoleDispatcher implements HyrexDispatcher {
-    private nonce: number
-    private namespace: string
-
-    constructor(private config?: HyrexConsoleDispatcherConfig) {
-        console.log("HyrexConsoleDispatcher set.")
-        this.namespace = "00000000-0000-0000-0000-000000000000"
-        this.nonce = 0
-    }
-
-    private generateUUID(): UUID {
-        return uuidv5(`${this.nonce++}`, this.namespace)
-    }
-
-    enqueue(serializedTask: SerializedTask): UUID {
-        console.log(`Sent ${JSON.stringify(serializedTask)}`)
-        return this.generateUUID()
-    }
-
-    dequeue() {
-
-    }
-}
-
-class HyrexPostgresDispatcher implements HyrexDispatcher {
-    constructor(private config: HyrexPostgresDispatcherConfig) {
-
-    }
-
-    enqueue(serializedTask: SerializedTask): UUID {
-        return ""
-    }
-
-    dequeue() {
-        throw new Error("Not Implemented");
-    }
-}
 
 
 export class Hyrex {
@@ -158,9 +83,9 @@ export class Hyrex {
     constructor(private appConfig: AppConfig) {
         AppConfigSchema.parse(appConfig)
         if (appConfig.conn) {
-            this.dispatcher = new HyrexPostgresDispatcher({ conn: appConfig.conn });
+            this.dispatcher = new PostgresDispatcher({ conn: appConfig.conn });
         } else {
-            this.dispatcher = new HyrexConsoleDispatcher()
+            this.dispatcher = new ConsoleDispatcher()
         }
 
         this.appTaskRegistry = new TaskRegistry()

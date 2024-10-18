@@ -6,6 +6,7 @@ import { SerializedTask, TaskConfig, HyrexDispatcher } from "./dispatchers/Hyrex
 import { ConsoleDispatcher } from "./dispatchers/ConsoleDispatcher";
 import { PostgresDispatcher } from "./dispatchers/PostgresDispatcher";
 import { LocalTSVDispatcher } from "./dispatchers/LocalTSVDispatcher";
+import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -91,7 +92,7 @@ export class Hyrex {
         // } else {
         //     this.dispatcher = new ConsoleDispatcher()
         // }
-        this.dispatcher = new LocalTSVDispatcher()
+        this.dispatcher = new Sqlite3Dispatcher("tasks.db")
 
         this.appTaskRegistry = new TaskRegistry()
     }

@@ -116,11 +116,11 @@ export class Hyrex {
 
     async runWorker(workerConfig: WorkerConfig = { queue: "default", logLevel: "INFO", numThreads: 8 }) {
         let i = 0
-        const limit = 10
+        const limit = 5
         while (i < limit) {
             i++
             await sleep(1000)
-            await this.dispatcher.dequeue({ numTask: 2 })
+            await this.dispatcher.dequeue({ numTasks: 1 })
         }
 
     }

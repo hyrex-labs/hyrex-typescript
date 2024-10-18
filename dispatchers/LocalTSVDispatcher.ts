@@ -1,9 +1,10 @@
 import { v5 as uuidv5, v4 as uuidv4 } from "uuid";
 import { HyrexDispatcher, SerializedTask } from "./HyrexDispatcher";
 import { UUID } from "../utils";
-import { writeFileSync, appendFileSync, readFileSync, createReadStream, createWriteStream, renameSync} from 'fs';
+import { writeFileSync, appendFileSync, readFileSync, createReadStream, createWriteStream, renameSync } from 'fs';
 import * as readline from 'readline';
 import * as path from 'path';
+import * as lockfile from 'proper-lockfile';
 
 
 type status = "QUEUED" | "RUNNING" | "SUCCESS" | "FAILED"
@@ -15,39 +16,46 @@ export class LocalTSVDispatcher implements HyrexDispatcher {
         this.fileName = "./tasks.tsv"
     }
 
-    async updateAndWriteQueuedTasks(n: number) {
+    private async updateAndWriteQueuedTasks(n: number) {
+
+
         const tempFilePath = path.join(__dirname, 'temp_tasks.tsv');
-        const fileStream = createReadStream(this.fileName);
-        const tempFileStream = createWriteStream(tempFilePath);
 
-        const rl = readline.createInterface({
-            input: fileStream,
-            crlfDelay: Infinity
-        });
+        const release = await lockfile.lock(this.fileName);
+        try {
+            const fileStream = createReadStream(this.fileName);
+            const tempFileStream = createWriteStream(tempFilePath);
 
-        let queuedCount = 0;
+            const rl = readline.createInterface({
+                input: fileStream,
+                crlfDelay: Infinity
+            });
 
-        // Process each line of the original file
-        for await (const line of rl) {
-            const columns = line.split('\t'); // Split the line into columns by tab
-            const status = columns[2]; // Assuming the status is in the 3rd column
+            let queuedCount = 0;
 
-            // Update status if it is QUEUED and within the first 'n' tasks
-            if (status === 'QUEUED' && queuedCount < n) {
-                columns[2] = 'RUNNING'; // Change status from QUEUED to RUNNING
-                queuedCount++;
+            // Process each line of the original file
+            for await (const line of rl) {
+                const columns = line.split('\t'); // Split the line into columns by tab
+                const status = columns[2]; // Assuming the status is in the 3rd column
+
+                // Update status if it is QUEUED and within the first 'n' tasks
+                if (status === 'QUEUED' && queuedCount < n) {
+                    columns[2] = 'RUNNING'; // Change status from QUEUED to RUNNING
+                    queuedCount++;
+                }
+
+                // Write the modified (or unmodified) line to the temporary file
+                tempFileStream.write(columns.join('\t') + '\n');
             }
 
-            // Write the modified (or unmodified) line to the temporary file
-            tempFileStream.write(columns.join('\t') + '\n');
+            tempFileStream.end();
+
+            // Replace the original file with the updated file
+            renameSync(tempFilePath, this.fileName);
+        } finally {
+            await release();
+            console.log(`Updated the status of the first ${n} QUEUED tasks to RUNNING and wrote back to the file.`);
         }
-
-        tempFileStream.end();
-
-        // Replace the original file with the updated file
-        renameSync(tempFilePath, this.fileName);
-
-        console.log(`Updated the status of the first ${n} QUEUED tasks to RUNNING and wrote back to the file.`);
     }
 
 
@@ -76,6 +84,9 @@ export class LocalTSVDispatcher implements HyrexDispatcher {
         // const data = fileContent
         //     .trim() // Remove any trailing newlines or spaces
         //     .split('\n') // Split into rows
+        if (!numTasks) {
+            throw new Error("numTask is undefined")
+        }
         await this.updateAndWriteQueuedTasks(numTasks)
     }
 }

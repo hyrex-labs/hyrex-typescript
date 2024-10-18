@@ -9,10 +9,12 @@
   "private": true,
   "dependencies": {
     "@types/node": "^22.7.6",
+    "proper-lockfile": "^4.1.2",
     "uuid": "^10.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/proper-lockfile": "^4.1.4",
     "@types/uuid": "^10.0.0"
   }
 }

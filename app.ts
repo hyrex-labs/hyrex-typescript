@@ -17,7 +17,7 @@ const submitFraudToPersona = ({email}: {email: string }) => {
 
 const sendSubmitFraud = hyrex.task(submitFraudToPersona)
 
-// for (const i of range(10)) {
+// for (const i of range(20)) {
 //     sendSubmitFraud({email: "mark@markdawson.io"}, {retries: true})
 // }
 

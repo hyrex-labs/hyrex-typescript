@@ -20,9 +20,12 @@ export class ConsoleDispatcher implements HyrexDispatcher {
         return uuidv5(`${this.nonce++}`, this.namespace)
     }
 
-    enqueue(serializedTask: SerializedTask): UUID {
-        console.log(`Sent ${JSON.stringify(serializedTask)}`)
-        return this.generateUUID()
+    async enqueue(serializedTasks: SerializedTask[]): Promise<UUID[]> {
+        for (const task of serializedTasks) {
+            console.log(`Sent ${JSON.stringify(task)}`)
+        }
+
+        return [this.generateUUID()]
     }
 
     dequeue() {

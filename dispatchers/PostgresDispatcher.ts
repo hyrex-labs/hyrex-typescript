@@ -11,8 +11,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     }
 
-    enqueue(serializedTask: SerializedTask): UUID {
-        return ""
+    async enqueue(serializedTasks: SerializedTask[]): Promise<UUID[]> {
+        return [""]
     }
 
     dequeue() {

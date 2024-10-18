@@ -1,12 +1,16 @@
-import { UUID, TaskConfig, JsonSerializableObject } from "../utils";
+import { UUID, JsonSerializableObject } from "../utils";
+
+import { z } from "zod";
+export const TaskConfigSchema = z.record(z.string(), z.any()) // TODO: Update this to be a config
+export type TaskConfig = z.infer<typeof TaskConfigSchema>
 
 export type SerializedTask = {
-    "name": string,
-    "context": JsonSerializableObject,
-    "config": TaskConfig
+    name: string,
+    context: JsonSerializableObject,
+    config: TaskConfig
 }
 
 export interface HyrexDispatcher {
-    enqueue: (serializedTask: SerializedTask) => UUID
+    enqueue: (serializedTasks: SerializedTask[]) => Promise<UUID[]>
     dequeue: (...args: any[]) => any
 }

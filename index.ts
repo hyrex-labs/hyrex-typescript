@@ -1,10 +1,11 @@
 import { z } from 'zod'
 import {
-    CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, TaskConfig,
+    CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, sleep,
 } from "./utils";
-import { SerializedTask, HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
+import { SerializedTask, TaskConfig, HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import { ConsoleDispatcher } from "./dispatchers/ConsoleDispatcher";
 import { PostgresDispatcher } from "./dispatchers/PostgresDispatcher";
+import { LocalTSVDispatcher } from "./dispatchers/LocalTSVDispatcher";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -59,7 +60,7 @@ class TaskWrapper<U extends JsonSerializableObject> {
             "config": config
         }
 
-        this.dispatcher.enqueue(serializedTask)
+        this.dispatcher.enqueue([serializedTask])
         // const result = this.taskFunction(context);
 
         // console.log("...function has been executed");
@@ -73,8 +74,11 @@ type CallableTaskWrapper<U extends JsonSerializableObject> =
     & ((context: U, config?: TaskConfig) => any);
 
 
-
-
+type WorkerConfig = {
+    numThreads: number
+    queue: string
+    logLevel: string
+}
 
 export class Hyrex {
     private dispatcher: HyrexDispatcher
@@ -82,11 +86,12 @@ export class Hyrex {
 
     constructor(private appConfig: AppConfig) {
         AppConfigSchema.parse(appConfig)
-        if (appConfig.conn) {
-            this.dispatcher = new PostgresDispatcher({ conn: appConfig.conn });
-        } else {
-            this.dispatcher = new ConsoleDispatcher()
-        }
+        // if (appConfig.conn) {
+        //     this.dispatcher = new PostgresDispatcher({ conn: appConfig.conn });
+        // } else {
+        //     this.dispatcher = new ConsoleDispatcher()
+        // }
+        this.dispatcher = new LocalTSVDispatcher()
 
         this.appTaskRegistry = new TaskRegistry()
     }
@@ -107,6 +112,17 @@ export class Hyrex {
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
             this.appTaskRegistry.addFunction(key, taskRegistry.internalTaskRegistry[key])
         }
+    }
+
+    async runWorker(workerConfig: WorkerConfig = { queue: "default", logLevel: "INFO", numThreads: 8 }) {
+        let i = 0
+        const limit = 10
+        while (i < limit) {
+            i++
+            await sleep(1000)
+            await this.dispatcher.dequeue({ numTask: 2 })
+        }
+
     }
 
 }

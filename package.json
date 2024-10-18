@@ -8,6 +8,7 @@
   },
   "private": true,
   "dependencies": {
+    "@types/node": "^22.7.6",
     "uuid": "^10.0.0",
     "zod": "^3.23.8"
   },

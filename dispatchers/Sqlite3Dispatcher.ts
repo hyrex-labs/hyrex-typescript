@@ -1,5 +1,5 @@
 import sqlite3 from 'sqlite3';
-import { HyrexDispatcher, SerializedTask } from "./HyrexDispatcher";
+import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "./HyrexDispatcher";
 import { UUID } from "../utils";
 import { v4 as uuidv4 } from "uuid";
 import { promisify } from 'util';
@@ -30,6 +30,7 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
             CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
                 name TEXT,
+                queue, TEXT,
                 status TEXT,
                 config TEXT,
                 context TEXT
@@ -69,9 +70,9 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
     }
 
 
-    async enqueue(serializedTasks: SerializedTask[]): Promise<UUID[]> {
+    async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
         const ids: UUID[] = [];
-        const query = `INSERT INTO tasks (id, name, status, config, context) VALUES (?, ?, ?, ?, ?)`;
+        const query = `INSERT INTO tasks (id, name, queue, status, config, context) VALUES (?, ?, ?, ?, ?, ?)`;
 
         await new Promise<void>((resolve, reject) => {
             this.db.serialize(async () => {
@@ -81,6 +82,7 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
                         await this.runAsync(query, [
                             id,
                             task.name,
+                            "DEFAULT",
                             "QUEUED",
                             JSON.stringify(task.config),
                             JSON.stringify(task.context)
@@ -96,8 +98,8 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
         return ids;
     }
 
-    async dequeue({ numTasks }: { numTasks: number }) {
-        const selectQuery = `SELECT id, name, config, context FROM tasks WHERE status = 'QUEUED' LIMIT ?`;
+    async dequeue({ numTasks }: { numTasks: number }): Promise<SerializedTask[]> {
+        const selectQuery = `SELECT id, name, queue, config, context FROM tasks WHERE status = 'QUEUED' LIMIT ?`;
         const updateQuery = `UPDATE tasks SET status = 'RUNNING' WHERE id = ?`;
 
         // Get the queued tasks
@@ -125,8 +127,29 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
         return tasks.map(task => ({
             id: task.id,
             name: task.name,
+            queue: task.queue,
             config: JSON.parse(task.config),
             context: JSON.parse(task.context)
         }));
+    }
+
+    async markTaskSuccess(taskId:UUID) {
+        const updateQuery = `UPDATE tasks SET status = 'SUCCESS' WHERE id = ?`;
+
+        await this.runAsync(updateQuery, [taskId]);
+
+        if (this.verbose) {
+            console.log(`Task ${taskId} marked as SUCCESS`);
+        }
+    }
+
+    async markTaskFailed(taskId:UUID) {
+        const updateQuery = `UPDATE tasks SET status = 'FAILED' WHERE id = ?`;
+
+        await this.runAsync(updateQuery, [taskId]);
+
+        if (this.verbose) {
+            console.log(`Task ${taskId} marked as FAILED`);
+        }
     }
 }

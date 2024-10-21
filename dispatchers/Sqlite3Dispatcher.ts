@@ -8,13 +8,17 @@ import { promisify } from 'util';
 
 export class Sqlite3Dispatcher implements HyrexDispatcher {
     private db: sqlite3.Database;
+    private verbose: boolean;
 
-    constructor(fileName: string) {
+    constructor(fileName: string, verbose: boolean = false) {
+        this.verbose = verbose
         this.db = new sqlite3.Database(fileName, (err) => {
             if (err) {
                 console.error('Error opening database', err);
             } else {
-                console.log('Database opened');
+                if (verbose) {
+                    console.log('Database opened');
+                }
                 this.initialize();
             }
         });
@@ -35,7 +39,9 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
             if (err) {
                 console.error('Error creating table:', err);
             } else {
-                console.log('Table created or already exists');
+                if (this.verbose) {
+                    console.log('Table created or already exists');
+                }
             }
         });
     }

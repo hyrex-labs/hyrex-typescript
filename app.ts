@@ -1,4 +1,4 @@
-import { Hyrex } from "./index";
+import { Hyrex } from "./HyrexApp";
 import { range } from "./utils";
 
 const hyrex = new Hyrex({ appId: "My first app" })

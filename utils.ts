@@ -24,6 +24,9 @@ export const JsonSerializable = z.object({}).passthrough().refine(
     }
 );
 
+export const InternalTaskRegistrySchema = z.record(z.string(), CallableSchema)
+export type InternalTaskRegistry = z.infer<typeof InternalTaskRegistrySchema>
+
 const HyrexCallableSchema = z.function()
     .args(JsonSerializable)  // Accepts any object as the argument
     .returns(z.any());

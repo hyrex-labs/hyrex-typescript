@@ -1,15 +1,23 @@
-import { parentPort, workerData } from 'worker_threads';
+import { TaskRegistry } from "../TaskRegistry";
+import { HyrexDispatcher } from "../dispatchers/HyrexDispatcher";
+
+type HyrexWorkerConfig = {
+    name: string
+    queue: string
+    taskRegistry: TaskRegistry
+    dispatcher: HyrexDispatcher
+}
 
 export class HyrexWorker {
+    private config: HyrexWorkerConfig
 
+    constructor(config: HyrexWorkerConfig) {
+        const defaultConfig = {}
+        this.config = { ...defaultConfig, ...config }
+    }
 
-    // processTask(taskData: any) {
-    //     // Simulate a task that takes time, e.g., heavy computation
-    //     return `Processed task with data: ${taskData}`;
-    // }
-    //
-    // if (parentPort: any) {
-    //     const result = this.processTask(workerData);
-    //     parentPort.postMessage(result); // Send the result back to the parent thread
-    // }
+    runWorker() {
+        console.log("TaskRegistry", this.config.taskRegistry)
+    }
+
 }

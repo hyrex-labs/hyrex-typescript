@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import {
-    CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, sleep,
+    CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, sleep, range, InternalTaskRegistry
 } from "./utils";
 import { SerializedTask, TaskConfig, HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
-import { ConsoleDispatcher } from "./dispatchers/ConsoleDispatcher";
-import { PostgresDispatcher } from "./dispatchers/PostgresDispatcher";
-import { LocalTSVDispatcher } from "./dispatchers/LocalTSVDispatcher";
 import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
+import { HyrexWorker } from "./worker/HyrexWorker";
+import { TaskRegistry } from "./TaskRegistry";
+
+
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -16,44 +17,15 @@ const AppConfigSchema = z.object({
 })
 type AppConfig = z.infer<typeof AppConfigSchema>
 
-
-const InternalTaskRegistrySchema = z.record(z.string(), CallableSchema)
-type InternalTaskRegistry = z.infer<typeof InternalTaskRegistrySchema>
-
-
-export class TaskRegistry {
-    public internalTaskRegistry: InternalTaskRegistry
-
-    constructor() {
-        this.internalTaskRegistry = {}
-    }
-
-    addFunction(key: string, value: Callable) {
-        if (this.internalTaskRegistry[key]) {
-            throw new Error(`Function with key "${key}" is already in the registry.`);
-        }
-        this.internalTaskRegistry[key] = value
-    }
-
-    getFunction(key: string): Callable {
-        const func = this.internalTaskRegistry[key]
-        if (!func) {
-            throw new Error(`Function with key "${key}" is not in the registry.`);
-        }
-        return func
-    }
-}
-
+const stringSchema = z.string()
 
 class TaskWrapper<U extends JsonSerializableObject> {
     constructor(private dispatcher: HyrexDispatcher, private taskFunction: (arg: U) => any) {
     }
 
     call(context: U, config: TaskConfig = {}) {
-        // console.log("Sending off async...");
 
         JsonSerializable.parse(context)
-        // console.log("Function name", this.taskFunction.name)
 
         const serializedTask = {
             "name": this.taskFunction.name,
@@ -62,11 +34,6 @@ class TaskWrapper<U extends JsonSerializableObject> {
         }
 
         this.dispatcher.enqueue([serializedTask])
-        // const result = this.taskFunction(context);
-
-        // console.log("...function has been executed");
-
-        // return result;
     }
 }
 
@@ -97,12 +64,23 @@ export class Hyrex {
         this.appTaskRegistry = new TaskRegistry()
     }
 
+    private addFunctionToRegistry(taskFunction: Callable) {
+        const stringValidation = stringSchema.safeParse(taskFunction.name)
+        if (!stringValidation) {
+            throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
+        }
+
+        this.appTaskRegistry.addFunction(taskFunction.name, taskFunction)
+    }
+
     task<U extends JsonSerializableObject>(taskFunction: (arg: U) => any): CallableTaskWrapper<U> {
         const wrapper = new TaskWrapper(this.dispatcher, taskFunction);
 
         const callableFunction = (context: U, config?: TaskConfig) => {
             return wrapper.call(context, config);
         };
+
+        this.addFunctionToRegistry(taskFunction as Callable);
 
         const combined = Object.assign(callableFunction, wrapper);
 
@@ -115,13 +93,17 @@ export class Hyrex {
         }
     }
 
-    async runWorker(workerConfig: WorkerConfig = { queue: "default", logLevel: "INFO", numThreads: 8 }) {
-        let i = 0
-        const limit = 5
-        while (i < limit) {
-            i++
-            await sleep(1000)
-            await this.dispatcher.dequeue({ numTasks: 1 })
+    async runWorker({ queue, logLevel, numThreads }: WorkerConfig = { queue: "default", logLevel: "INFO", numThreads: 1 }) {
+
+        for (const i in range(numThreads)) {
+            const worker = new HyrexWorker({
+                name: `Worker${i}`,
+                queue,
+                taskRegistry: this.appTaskRegistry,
+                dispatcher: this.dispatcher
+            })
+
+            worker.runWorker()
         }
 
     }

@@ -30,10 +30,13 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
             CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
                 name TEXT,
-                queue, TEXT,
+                queue TEXT,
                 status TEXT,
                 config TEXT,
-                context TEXT
+                context TEXT,
+                queued TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                started TIMESTAMP,
+                finished TIMESTAMP
             )
         `;
         this.db.run(createTableQuery, (err) => {
@@ -82,7 +85,7 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
                         await this.runAsync(query, [
                             id,
                             task.name,
-                            "DEFAULT",
+                            "default",
                             "QUEUED",
                             JSON.stringify(task.config),
                             JSON.stringify(task.context)
@@ -100,7 +103,7 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
 
     async dequeue({ numTasks }: { numTasks: number }): Promise<SerializedTask[]> {
         const selectQuery = `SELECT id, name, queue, config, context FROM tasks WHERE status = 'QUEUED' LIMIT ?`;
-        const updateQuery = `UPDATE tasks SET status = 'RUNNING' WHERE id = ?`;
+        const updateQuery = `UPDATE tasks SET status = 'RUNNING', started = CURRENT_TIMESTAMP WHERE id = ?`;
 
         // Get the queued tasks
         const tasks = await this.allAsync(selectQuery, [numTasks]);
@@ -134,7 +137,7 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
     }
 
     async markTaskSuccess(taskId:UUID) {
-        const updateQuery = `UPDATE tasks SET status = 'SUCCESS' WHERE id = ?`;
+        const updateQuery = `UPDATE tasks SET status = 'SUCCESS', finished = CURRENT_TIMESTAMP WHERE id = ?`;
 
         await this.runAsync(updateQuery, [taskId]);
 
@@ -144,7 +147,7 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
     }
 
     async markTaskFailed(taskId:UUID) {
-        const updateQuery = `UPDATE tasks SET status = 'FAILED' WHERE id = ?`;
+        const updateQuery = `UPDATE tasks SET status = 'FAILED', finished = CURRENT_TIMESTAMP WHERE id = ?`;
 
         await this.runAsync(updateQuery, [taskId]);
 

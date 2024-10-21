@@ -27,13 +27,14 @@ class TaskWrapper<U extends JsonSerializableObject> {
 
         JsonSerializable.parse(context)
 
-        const serializedTask = {
+        const serializedTaskRequest = {
+            "queue": "default",
             "name": this.taskFunction.name,
             "context": context,
             "config": config
         }
 
-        this.dispatcher.enqueue([serializedTask])
+        this.dispatcher.enqueue([serializedTaskRequest])
     }
 }
 

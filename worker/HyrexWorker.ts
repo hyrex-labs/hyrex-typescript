@@ -1,6 +1,7 @@
 import { TaskRegistry } from "../TaskRegistry";
 import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher";
-import { UUID } from "../utils";
+import { sleep, UUID } from "../utils";
+import {ExpBackoff} from "./ExpBackoff";
 
 type HyrexWorkerConfig = {
     name: string
@@ -14,6 +15,7 @@ export class HyrexWorker {
     private taskRegistry: TaskRegistry
     private name: string
     private queue: string
+    private backoff: ExpBackoff
 
     constructor(config: HyrexWorkerConfig) {
         const defaultConfig = {}
@@ -23,6 +25,8 @@ export class HyrexWorker {
         this.taskRegistry = taskRegistry
         this.name = name
         this.queue = queue
+
+        this.backoff = new ExpBackoff()
     }
 
     private async processTask(task: SerializedTask): Promise<void> {
@@ -36,18 +40,29 @@ export class HyrexWorker {
     async runWorker() {
         console.log("TaskRegistry", this.taskRegistry)
 
-        // Process
-        const tasks = await this.dispatcher.dequeue({ numTasks: 1 })
-        const task = tasks[0]
-        try {
-            await this.processTask(task)
-            await this.dispatcher.markTaskSuccess(task.id)
-            console.log(`Successfully processed ${task.id}`)
-        } catch (error) {
-            console.error(error)
-            await this.dispatcher.markTaskFailed(task.id)
-            console.log(`Failed processing on ${task.id}`)
-        }
+        while (true) {
 
+            // Process
+            const tasks = await this.dispatcher.dequeue({ numTasks: 1 })
+            if (tasks.length === 0) {
+                console.log("No tasks found... going to sleep", new Date())
+                await this.backoff.wait()
+                continue
+            } else {
+                this.backoff.clear()
+            }
+            const task = tasks[0]
+
+            try {
+                await this.processTask(task)
+                await this.dispatcher.markTaskSuccess(task.id)
+                console.log(`Successfully processed ${task.id}`)
+            } catch (error) {
+                console.error(error)
+                await this.dispatcher.markTaskFailed(task.id)
+                console.log(`Failed processing on ${task.id}`)
+            }
+
+        }
     }
 }

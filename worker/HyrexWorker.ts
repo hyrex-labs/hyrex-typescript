@@ -39,8 +39,17 @@ export class HyrexWorker {
 
     async runWorker() {
         console.log("TaskRegistry", this.taskRegistry)
+        let shouldStop = false
 
-        while (true) {
+        const handleShutdown = (signal: string) => {
+            console.log(`\nReceived ${signal}. Stopping worker...`);
+            shouldStop = true; // Set flag to stop the loop
+        };
+
+        process.on('SIGINT', handleShutdown);
+        process.on('SIGTERM', handleShutdown);
+
+        while (!shouldStop) {
 
             // Process
             const tasks = await this.dispatcher.dequeue({ numTasks: 1 })
@@ -64,5 +73,7 @@ export class HyrexWorker {
             }
 
         }
+
+        console.log(`Worker ${this.name} stopped.`)
     }
 }

@@ -2,7 +2,6 @@ import sqlite3 from 'sqlite3';
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "./HyrexDispatcher";
 import { UUID } from "../utils";
 import { v4 as uuidv4 } from "uuid";
-import { promisify } from 'util';
 
 
 
@@ -154,5 +153,8 @@ export class Sqlite3Dispatcher implements HyrexDispatcher {
         if (this.verbose) {
             console.log(`Task ${taskId} marked as FAILED`);
         }
+    }
+
+    async cancelTask(taskId:UUID) {
     }
 }

@@ -25,4 +25,6 @@ export interface HyrexDispatcher {
     dequeue: ({ numTasks }: { numTasks: number }) => Promise<SerializedTask[]>
     markTaskSuccess(taskId: UUID): Promise<void>
     markTaskFailed(taskId: UUID): Promise<void>
+    cancelTask(taskId: UUID): Promise<void>
+
 }

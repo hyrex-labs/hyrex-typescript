@@ -1,17 +1,27 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "./HyrexDispatcher";
 import { UUID } from "../utils";
+import { createClient, RedisClientType } from 'redis';
 
-type HyrexPostgresDispatcherConfig = {
+
+type HyrexRedisDispatcherConfig = {
     conn: string
 }
 
 
-export class PostgresDispatcher implements HyrexDispatcher {
-    constructor(private config: HyrexPostgresDispatcherConfig) {
+export class RedisDispatcher implements HyrexDispatcher {
+    private client: RedisClientType
 
+    constructor(private config: HyrexRedisDispatcherConfig) {
+        const conn =
+        this.client = createClient() as RedisClientType
+        this.client.on('error', err => console.log('Redis Client Error', err));
+        this.client.connect().then(() => {
+            console.log("Client connected!")
+        })
     }
 
     async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
+        // this.client.
         return [""]
     }
 

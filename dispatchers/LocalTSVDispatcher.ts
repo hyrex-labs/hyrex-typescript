@@ -1,5 +1,5 @@
 import { v5 as uuidv5, v4 as uuidv4 } from "uuid";
-import { HyrexDispatcher, SerializedTask } from "./HyrexDispatcher";
+import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "./HyrexDispatcher";
 import { UUID } from "../utils";
 import { writeFileSync, appendFileSync, readFileSync, createReadStream, createWriteStream, renameSync } from 'fs';
 import * as readline from 'readline';
@@ -59,7 +59,7 @@ export class LocalTSVDispatcher implements HyrexDispatcher {
     }
 
 
-    async enqueue(serializedTasks: SerializedTask[]): Promise<UUID[]> {
+    async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
         const data = serializedTasks.map((task => [
             uuidv4(),
             task.name,
@@ -88,5 +88,16 @@ export class LocalTSVDispatcher implements HyrexDispatcher {
             throw new Error("numTask is undefined")
         }
         await this.updateAndWriteQueuedTasks(numTasks)
+        return []
+    }
+
+    async markTaskFailed(taskId: UUID): Promise<void> {
+    }
+
+    async markTaskSuccess(taskId: UUID): Promise<void> {
+    }
+
+    async cancelTask(taskId: UUID): Promise<void> {
+
     }
 }

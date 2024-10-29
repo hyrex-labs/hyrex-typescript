@@ -3,6 +3,7 @@ import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { UPDATE_TASK_ID } from "./worker/HyrexSynchronousWorker";
 
 // Store references to all spawned workers
 let isShuttingDown = false;
@@ -89,7 +90,7 @@ function spawnWorker(scriptPath: string, workerNumber: number) {
         }
 
         // Optionally, respawn the worker if it exited unexpectedly
-        if (!isShuttingDown && code !== 0) {
+        if (!isShuttingDown) {
             console.log(`Respawning Worker ${workerNumber}...`);
             spawnWorker(scriptPath, workerNumber);
         }
@@ -101,9 +102,9 @@ function spawnWorker(scriptPath: string, workerNumber: number) {
 }
 
 function handleWorkerMessage(worker: ChildProcess, message: any) {
-    if (message && message.type === 'updateTaskId') {
-        const { taskId } = message;
-        console.log(`Worker PID ${worker.pid} is working on Task ID ${taskId}`);
+    if (message && message.type === UPDATE_TASK_ID) {
+        const { taskId, name } = message;
+        console.log(`${name} (Worker PID ${worker.pid}) is working on Task ID ${taskId}`);
 
         // Remove any existing mapping of this worker to a task ID
         for (const [existingTaskId, existingWorker] of taskIdToWorker.entries()) {
@@ -114,6 +115,7 @@ function handleWorkerMessage(worker: ChildProcess, message: any) {
         }
 
         // Map the new task ID to the worker
+        console.log("Setting taskId", taskId)
         taskIdToWorker.set(taskId, worker);
     }
 }
@@ -129,6 +131,7 @@ function killTask(taskId: string) {
         taskIdToWorker.delete(taskId);
     } else {
         console.warn(`No worker found handling Task ID ${taskId}`);
+        console.log(`Options are ${Array.from(taskIdToWorker.keys()).join(', ')}`);
     }
 }
 
@@ -148,7 +151,7 @@ const shutdown = () => {
         worker.kill('SIGTERM');
     }
 
-    const timeout = 10000; // Timeout in milliseconds (e.g., 10 seconds)
+    const timeout = 15_000;
 
     // Forcefully kill workers that don't exit within the timeout
     const timeoutHandle = setTimeout(() => {

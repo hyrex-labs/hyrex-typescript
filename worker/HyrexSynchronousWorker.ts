@@ -1,7 +1,9 @@
 import { TaskRegistry } from "../TaskRegistry";
 import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher";
 import { sleep, UUID } from "../utils";
-import {ExpBackoff} from "./ExpBackoff";
+import { ExpBackoff } from "./ExpBackoff";
+
+export const UPDATE_TASK_ID = "updateTaskId"
 
 type HyrexWorkerConfig = {
     name: string
@@ -36,6 +38,14 @@ export class HyrexSynchronousWorker {
         return
     }
 
+    private updateTaskId(taskId: string) {
+        if (process.send) {
+            process.send({ type: UPDATE_TASK_ID, taskId, name: this.name });
+        } else {
+            console.error('process.send is undefined. IPC channel might not be set up.');
+        }
+    }
+
 
     async runWorker() {
         console.log("TaskRegistry", this.taskRegistry)
@@ -64,6 +74,7 @@ export class HyrexSynchronousWorker {
 
             try {
                 console.log(`Starting to process task ${task.id}`)
+                this.updateTaskId(task.id)
                 await this.processTask(task)
                 await this.dispatcher.markTaskSuccess(task.id)
                 console.log(`Successfully processed ${task.id}`)

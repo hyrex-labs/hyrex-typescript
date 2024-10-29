@@ -5,7 +5,8 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "worker": "tsx cli.ts run-worker"
+    "worker": "ts-node cli.ts run-worker",
+    "workerjs": "node dist/cli.js run-worker"
   },
   "private": true,
   "dependencies": {

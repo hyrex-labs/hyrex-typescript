@@ -63,7 +63,7 @@ const argv = yargs(hideBin(process.argv))
  * @param workerNumber Identifier for the worker.
  */
 function spawnWorker(scriptPath: string, workerNumber: number) {
-    const workerScriptPath = path.resolve(__dirname, './worker/worker-runner.ts');
+    // const workerScriptPath = path.resolve(__dirname, './worker/worker-runner.ts');
     const worker: ChildProcess = spawn('ts-node', [scriptPath, '--worker'], {
         env: {
             ...process.env,

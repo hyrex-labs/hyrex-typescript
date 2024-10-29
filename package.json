@@ -4,20 +4,25 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "worker": "tsx cli.ts run-worker"
   },
   "private": true,
   "dependencies": {
-    "@types/node": "^22.7.6",
     "proper-lockfile": "^4.1.2",
     "redis": "^4.7.0",
     "sqlite3": "^5.1.7",
+    "tsx": "^4.19.2",
     "uuid": "^10.0.0",
+    "yargs": "^17.7.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/node": "^22.8.2",
     "@types/proper-lockfile": "^4.1.4",
     "@types/sqlite3": "^3.1.11",
-    "@types/uuid": "^10.0.0"
+    "@types/uuid": "^10.0.0",
+    "@types/yargs": "^17.0.33",
+    "ts-node": "^10.9.2"
   }
 }

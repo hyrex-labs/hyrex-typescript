@@ -6,14 +6,12 @@ import { SerializedTask, TaskConfig, HyrexDispatcher } from "./dispatchers/Hyrex
 import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
 import { HyrexSynchronousWorker } from "./worker/HyrexSynchronousWorker";
 import { TaskRegistry } from "./TaskRegistry";
-import { HyrexThreadsWorker } from "./worker/HyrexThreadsWorker";
 
 
 const AppConfigSchema = z.object({
     appId: z.string(),
     conn: z.string().optional(),
     apiKey: z.string().optional(),
-    subProcessWorkerMode: z.boolean(),
     errorCallback: z.function().optional(),
 }).strict()
 
@@ -54,7 +52,6 @@ type WorkerConfig = {
 export class Hyrex {
     private dispatcher: HyrexDispatcher
     private appTaskRegistry: TaskRegistry
-    private subProcessWorkerMode: boolean
     private appId: string
     private conn?: string
     private apiKey?: string
@@ -65,14 +62,12 @@ export class Hyrex {
                     conn,
                     apiKey,
                     errorCallback,
-                    subProcessWorkerMode = false
                 }: AppConfig) {
 
         const appConfig = {
             appId,
             conn,
             apiKey,
-            subProcessWorkerMode,
             errorCallback
         }
 
@@ -82,7 +77,6 @@ export class Hyrex {
         this.conn = conn
         this.apiKey = apiKey
         this.errorCallback = errorCallback
-        this.subProcessWorkerMode = subProcessWorkerMode
         // if (appConfig.conn) {
         //     this.dispatcher = new PostgresDispatcher({ conn: appConfig.conn });
         // } else {
@@ -128,29 +122,16 @@ export class Hyrex {
         numThreads: 1
     }) {
 
-        if (this.subProcessWorkerMode) {
-            const worker = new HyrexSynchronousWorker({
-                name: this.appId,
-                queue,
-                taskRegistry: this.appTaskRegistry,
-                dispatcher: this.dispatcher
-            })
+        const worker = new HyrexSynchronousWorker({
+            name: this.appId,
+            queue,
+            taskRegistry: this.appTaskRegistry,
+            dispatcher: this.dispatcher
+        })
 
-            worker.runWorker()
-        }
-
-        for (const i in range(numThreads)) {
-            const worker = new Hyrex({
-                appId: `${this.appId}-Worker${i}`,
-                conn: this.conn,
-                apiKey: this.apiKey,
-                errorCallback: this.errorCallback
-            })
-
-            worker.runWorker()
-        }
-
+        worker.runWorker()
     }
+
 
 }
 

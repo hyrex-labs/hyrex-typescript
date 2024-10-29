@@ -27,4 +27,3 @@ if (process.argv.includes('--worker')) {
 } else {
     console.log("Worker flag not provided. Skipping hyrex.runWorker().");
 }
-

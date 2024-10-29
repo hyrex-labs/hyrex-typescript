@@ -1,5 +1,5 @@
 import { v5 as uuidv5 } from "uuid";
-import { HyrexDispatcher, SerializedTask } from "./HyrexDispatcher";
+import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "./HyrexDispatcher";
 import { UUID } from "../utils";
 
 type HyrexConsoleDispatcherConfig = {
@@ -20,7 +20,7 @@ export class ConsoleDispatcher implements HyrexDispatcher {
         return uuidv5(`${this.nonce++}`, this.namespace)
     }
 
-    async enqueue(serializedTasks: SerializedTask[]): Promise<UUID[]> {
+    async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
         for (const task of serializedTasks) {
             console.log(`Sent ${JSON.stringify(task)}`)
         }
@@ -28,7 +28,15 @@ export class ConsoleDispatcher implements HyrexDispatcher {
         return [this.generateUUID()]
     }
 
-    dequeue() {
-
+    async dequeue({ numTasks }: { numTasks: number }): Promise<SerializedTask[]> {
+        throw new Error("Not Implemented");
     }
+
+    async markTaskFailed(taskId: UUID): Promise<void> {
+    }
+
+    async markTaskSuccess(taskId: UUID): Promise<void> {
+    }
+
+    async cancelTask(taskId: UUID): Promise<void> {}
 }

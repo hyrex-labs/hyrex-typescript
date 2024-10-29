@@ -121,9 +121,13 @@ export class Hyrex {
         logLevel: "INFO",
         numThreads: 1
     }) {
+        const workerName = process.env.HYREX_WORKER_NAME
+        if (!workerName) {
+            throw new Error("No HYREX_WORKER_NAME Found. Ensure this command is being executed via the CLI.")
+        }
 
         const worker = new HyrexSynchronousWorker({
-            name: this.appId,
+            name: workerName,
             queue,
             taskRegistry: this.appTaskRegistry,
             dispatcher: this.dispatcher

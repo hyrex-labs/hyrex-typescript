@@ -63,6 +63,7 @@ export class HyrexSynchronousWorker {
             const task = tasks[0]
 
             try {
+                console.log(`Starting to process task ${task.id}`)
                 await this.processTask(task)
                 await this.dispatcher.markTaskSuccess(task.id)
                 console.log(`Successfully processed ${task.id}`)

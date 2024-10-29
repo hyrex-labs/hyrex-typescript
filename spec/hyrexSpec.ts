@@ -7,11 +7,12 @@ const iso8601UtcRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 const ZeroToNineSchema = z.number().int().min(0).max(9);
 
 const CanonicalTaskRunStatusSchema = z.enum([
+    "WAITING",
     "QUEUED",
     "RUNNING",
+    "UP_FOR_CANCEL",
     "CANCELLED",
     "FAILED",
-    "WAITING",
     "SUCCESS",
 ]);
 
@@ -35,7 +36,6 @@ const CanonicalTaskRunSchema = z.object({
 });
 
 const CanonicalTaskRunRequest = z.object({
-
     cron: CronExpressionSchema
 })
 

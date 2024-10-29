@@ -10,7 +10,7 @@ type HyrexWorkerConfig = {
     dispatcher: HyrexDispatcher
 }
 
-export class HyrexWorker {
+export class HyrexSynchronousWorker {
     private dispatcher: HyrexDispatcher
     private taskRegistry: TaskRegistry
     private name: string

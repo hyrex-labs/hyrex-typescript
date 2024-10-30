@@ -14,8 +14,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
         this.connectionString = config.conn
-        // this.client = new Client({ connectionString: config.conn })
-        // this.client.connect()
     }
 
     async initPostgresDB() {

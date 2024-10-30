@@ -6,6 +6,7 @@ import { SerializedTask, TaskConfig, HyrexDispatcher } from "./dispatchers/Hyrex
 import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
 import { HyrexSynchronousWorker } from "./worker/HyrexSynchronousWorker";
 import { TaskRegistry } from "./TaskRegistry";
+import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 
 
 const AppConfigSchema = z.object({
@@ -74,7 +75,7 @@ export class Hyrex {
         AppConfigSchema.parse(appConfig)
 
         this.appId = appId
-        this.conn = conn
+        this.conn = conn || process.env.HYREX_DATABASE_URL
         this.apiKey = apiKey
         this.errorCallback = errorCallback
         // if (appConfig.conn) {
@@ -82,7 +83,12 @@ export class Hyrex {
         // } else {
         //     this.dispatcher = new ConsoleDispatcher()
         // }
-        this.dispatcher = new Sqlite3Dispatcher("tasks.db")
+        if (this.conn) {
+            this.dispatcher = new PostgresDispatcher({ conn: this.conn })
+        } else {
+            this.dispatcher = new Sqlite3Dispatcher("tasks.db")
+        }
+
 
         this.appTaskRegistry = new TaskRegistry()
     }
@@ -136,6 +142,20 @@ export class Hyrex {
         worker.runWorker()
     }
 
+    async initDB() {
+        if (!this.conn) {
+            throw new Error(
+                "To initialize the DB, you must first set the connection string by " +
+                "passing it to Hyrex or setting the env var HYREX_DATABASE_URL"
+            )
+        }
+
+        if (this.dispatcher instanceof PostgresDispatcher) {
+            await this.dispatcher.initPostgresDB();
+        } else {
+            throw new Error("Dispatcher does not support initPostgresDB");
+        }
+    }
 
 }
 

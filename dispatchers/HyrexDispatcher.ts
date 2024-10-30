@@ -6,23 +6,23 @@ export const TaskConfigSchema = z.record(z.string(), z.any()) // TODO: Update th
 export type TaskConfig = z.infer<typeof TaskConfigSchema>
 
 export type SerializedTaskRequest = {
-    name: string,
+    id: UUID,
+    task_name: string,
+    args: JsonSerializableObject,
     queue: string,
-    context: JsonSerializableObject,
-    config: TaskConfig
+    max_retries: number,
+    priority: number,
 }
 
 export type SerializedTask = {
     id: string
-    name: string,
-    queue: string,
-    context: JsonSerializableObject,
-    config: TaskConfig
+    task_name: string,
+    args: JsonSerializableObject,
 }
 
 export interface HyrexDispatcher {
     enqueue: (serializedTasks: SerializedTaskRequest[]) => Promise<UUID[]>
-    dequeue: ({ numTasks }: { numTasks: number }) => Promise<SerializedTask[]>
+    dequeue: ({ numTasks, workerId, queue }: { numTasks: number, workerId: string, queue: string }) => Promise<SerializedTask[]>
     markTaskSuccess(taskId: UUID): Promise<void>
     markTaskFailed(taskId: UUID): Promise<void>
     cancelTask(taskId: UUID): Promise<void>

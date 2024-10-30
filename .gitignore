@@ -1,0 +1,6 @@
+.dist/
+.env*
+.idea/
+*.db
+*.tsv
+

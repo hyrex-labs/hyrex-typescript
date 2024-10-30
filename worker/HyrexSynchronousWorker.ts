@@ -2,6 +2,7 @@ import { TaskRegistry } from "../TaskRegistry";
 import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher";
 import { sleep, UUID } from "../utils";
 import { ExpBackoff } from "./ExpBackoff";
+import { randomUUID } from "node:crypto";
 
 export const UPDATE_TASK_ID = "updateTaskId"
 
@@ -18,6 +19,7 @@ export class HyrexSynchronousWorker {
     private name: string
     private queue: string
     private backoff: ExpBackoff
+    private workerId: UUID
 
     constructor(config: HyrexWorkerConfig) {
         const defaultConfig = {}
@@ -28,13 +30,14 @@ export class HyrexSynchronousWorker {
         this.name = name
         this.queue = queue
 
+        this.workerId = randomUUID()
         this.backoff = new ExpBackoff()
     }
 
     private async processTask(task: SerializedTask): Promise<void> {
-        const { name, context, config } = task
-        const func = this.taskRegistry.getFunction(name)
-        const result = await func(context)
+        const { task_name, args } = task
+        const func = this.taskRegistry.getFunction(task_name)
+        const result = await func(args)
         return
     }
 
@@ -62,7 +65,7 @@ export class HyrexSynchronousWorker {
         while (!shouldStop) {
 
             // Process
-            const tasks = await this.dispatcher.dequeue({ numTasks: 1 })
+            const tasks = await this.dispatcher.dequeue({ numTasks: 1, workerId: this.workerId, queue: "*" })
             if (tasks.length === 0) {
                 console.log("No tasks found... going to sleep", new Date())
                 await this.backoff.wait()

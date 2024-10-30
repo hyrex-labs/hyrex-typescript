@@ -1,15 +1,17 @@
 {
-  "name": "hyrex-typescript",
-  "version": "1.0.0",
-  "description": "",
+  "name": "hyrex",
+  "version": "0.2.0",
+  "description": "The modern, open-source task orchestration framework.",
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "worker": "ts-node cli.ts run-worker",
-    "workerjs": "node dist/cli.js run-worker"
+    "workerjs": "node dist/cli.js run-worker",
+    "init-db": "ts-node cli.ts init-db"
   },
-  "private": true,
   "dependencies": {
+    "@types/pg": "^8.11.10",
+    "pg": "^8.13.1",
     "proper-lockfile": "^4.1.2",
     "redis": "^4.7.0",
     "sqlite3": "^5.1.7",
@@ -24,6 +26,7 @@
     "@types/sqlite3": "^3.1.11",
     "@types/uuid": "^10.0.0",
     "@types/yargs": "^17.0.33",
+    "dotenv": "^16.4.5",
     "ts-node": "^10.9.2"
   }
 }

@@ -4,6 +4,7 @@ import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { UPDATE_TASK_ID } from "./worker/HyrexSynchronousWorker";
+import { COMMANDS } from "./commands";
 
 // Store references to all spawned workers
 let isShuttingDown = false;
@@ -34,23 +35,42 @@ const argv = yargs(hideBin(process.argv))
 
             for (let i = 0; i < count; i++) {
                 spawnWorker(scriptPath, i + 1);
-                // const worker = spawn('ts-node', [scriptPath, '--worker'], {
-                //     stdio: ['ignore', 'inherit', 'inherit'],
-                //     env: process.env,
-                // });
-                //
-                // worker.on('exit', (code) => {
-                //     if (code !== 0) {
-                //         console.error(`Worker ${i + 1} exited with code ${code}`);
-                //     } else {
-                //         console.log(`Worker ${i + 1} exited successfully.`);
-                //     }
-                // });
-                //
-                // worker.on('error', (err) => {
-                //     console.error(`Worker ${i + 1} encountered an error:`, err);
-                // });
             }
+        }
+    )
+    .command(
+        'init-db <script>',
+        'Initialize the database for Postgres mode',
+        (yargs) => {
+            yargs.positional('script', {
+                describe: 'Path to the script that initializes the database',
+                type: 'string',
+            });
+        },
+        async (args) => {
+            const scriptPath = path.resolve(process.cwd(), args.script as string);
+            const worker: ChildProcess = spawn('ts-node', [scriptPath, '--initDB'], {
+                env: {
+                    ...process.env,
+                    [COMMANDS.INIT_DB]: "1",
+                },
+                stdio: ['ignore', 'inherit', 'inherit', "ipc"],
+            });
+
+            worker.on('exit', (code) => {
+                if (code === 0) {
+                    console.log('Database initialized successfully.');
+                    process.exit(code);
+                } else {
+                    console.error(`Database initialization failed with exit code ${code}.`);
+                    process.exit(code || 1);
+                }
+            });
+
+            worker.on('error', (err) => {
+                console.error('Error during database initialization:', err);
+                process.exit(1);
+            });
         }
     )
     .demandCommand(1, 'You need to specify a command.')
@@ -64,10 +84,11 @@ const argv = yargs(hideBin(process.argv))
  */
 function spawnWorker(scriptPath: string, workerNumber: number) {
     // const workerScriptPath = path.resolve(__dirname, './worker/worker-runner.ts');
-    const worker: ChildProcess = spawn('ts-node', [scriptPath, '--worker'], {
+    const worker: ChildProcess = spawn('ts-node', [scriptPath], {
         env: {
             ...process.env,
-            HYREX_WORKER_NAME: `W${workerNumber}`
+            [COMMANDS.RUN_WORKER]: "1",
+            HYREX_WORKER_NAME: `W${workerNumber}`,
         },
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     });
@@ -180,20 +201,20 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 // Simulate receiving a kill task signal via command-line input
-import readline from 'readline';
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
-
-console.log('Type "kill <taskId>" to terminate a task.');
-
-rl.on('line', (input) => {
-    const [command, taskId] = input.trim().split(' ');
-    if (command === 'kill' && taskId) {
-        killTask(taskId);
-    } else {
-        console.log('Invalid command. Use "kill <taskId>".');
-    }
-});
+// import readline from 'readline';
+//
+// const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout,
+// });
+//
+// console.log('Type "kill <taskId>" to terminate a task.');
+//
+// rl.on('line', (input) => {
+//     const [command, taskId] = input.trim().split(' ');
+//     if (command === 'kill' && taskId) {
+//         killTask(taskId);
+//     } else {
+//         console.log('Invalid command. Use "kill <taskId>".');
+//     }
+// });

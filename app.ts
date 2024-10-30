@@ -29,5 +29,5 @@ if (process.argv.includes('--worker')) {
 
 if (process.argv.includes('--initDB')) {
     console.log("Initing DB...");
-    hyrex.runWorker();
+    hyrex.initDB();
 }

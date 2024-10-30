@@ -38,7 +38,7 @@ const argv = yargs(hideBin(process.argv))
         }
     )
     .command(
-        'init-db',
+        'init-db <script>',
         'Initialize the database for Postgres mode',
         (yargs) => {
             yargs.positional('script', {
@@ -58,6 +58,7 @@ const argv = yargs(hideBin(process.argv))
             worker.on('exit', (code) => {
                 if (code === 0) {
                     console.log('Database initialized successfully.');
+                    process.exit(code);
                 } else {
                     console.error(`Database initialization failed with exit code ${code}.`);
                     process.exit(code || 1);

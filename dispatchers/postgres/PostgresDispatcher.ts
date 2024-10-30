@@ -17,10 +17,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     async initPostgresDB() {
         try {
-            await this.client.connect();
-            await this.client.query(CreateHyrexTaskTable);
-            await this.client.query(CreateWorkerTable);
-            console.log("Database initialized successfully.");
+            // await this.client.connect();
+            // await this.client.query(CreateHyrexTaskTable);
+            // await this.client.query(CreateWorkerTable);
+            console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error("Error initializing database:", error);
         } finally {

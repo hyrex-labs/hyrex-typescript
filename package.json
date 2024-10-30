@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "worker": "ts-node cli.ts run-worker",
-    "workerjs": "node dist/cli.js run-worker"
+    "workerjs": "node dist/cli.js run-worker",
+    "init-db": "ts-node cli.ts init-db"
   },
   "dependencies": {
     "@types/pg": "^8.11.10",

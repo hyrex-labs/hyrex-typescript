@@ -11,16 +11,19 @@ create table if not exists public.hyrextask
 (
     id              uuid       not null
 primary key,
+    root_id         uuid       not null,
     task_name       varchar    not null,
-    status          statusenum not null,
+    args            json       not null,
     queue           varchar    not null,
+    max_retries     smallint   not null,
+    priority        smallint   not null,
+    status          statusenum not null,
+    attempt_number  smallint   not null,
     scheduled_start timestamp with time zone,
     worker_id       uuid,
     queued          timestamp with time zone,
     started         timestamp with time zone,
-    finished        timestamp with time zone,
-    retried         integer    not null,
-    args            json
+    finished        timestamp with time zone
 );
 
 create index if not exists ix_hyrextask_task_name
@@ -49,4 +52,19 @@ primary key,
     started timestamp,
     stopped timestamp
 );
+`
+
+export const ENQUEUE_TASKS = `
+INSERT INTO hyrextask (
+    id,
+    root_id,
+    task_name,
+    args,
+    queue,
+    max_retries,
+    priority,
+    status,
+    attempt_number,
+    queued
+) VALUES ($1, $2, $3, $4, $5, $6, $7, 'queued', 0, CURRENT_TIMESTAMP);
 `

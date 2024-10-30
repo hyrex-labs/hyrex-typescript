@@ -1,7 +1,7 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
 import { UUID } from "../../utils";
 import { Client } from 'pg';
-import { CreateHyrexTaskTable, CreateWorkerTable } from "./sql";
+import * as sql from "./sql"
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -9,28 +9,56 @@ type HyrexPostgresDispatcherConfig = {
 
 
 export class PostgresDispatcher implements HyrexDispatcher {
-    private client: Client
+    private connectionString: string
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
-        this.client = new Client({ connectionString: config.conn })
+        this.connectionString = config.conn
+        // this.client = new Client({ connectionString: config.conn })
+        // this.client.connect()
     }
 
     async initPostgresDB() {
+        const client = new Client({ connectionString: this.connectionString })
         try {
-            // await this.client.connect();
-            // await this.client.query(CreateHyrexTaskTable);
-            // await this.client.query(CreateWorkerTable);
+            await client.connect();
+            await client.query(sql.CreateHyrexTaskTable);
+            await client.query(sql.CreateWorkerTable);
             console.log("initPostgresDB finished successfully.");
-        } catch (error) {
-            console.error("Error initializing database:", error);
         } finally {
-            await this.client.end();
+            await client.end();
         }
     }
 
     async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
-        return [""]
+        const client = new Client({ connectionString: this.connectionString })
+        try {
+            await client.connect()
+            await client.query('BEGIN');
+
+            for (const task of serializedTasks) {
+                const { id, task_name, args, queue, max_retries, priority } = task;
+                await client.query(sql.ENQUEUE_TASKS, [
+                    id,
+                    id,
+                    task_name,
+                    args,
+                    queue,
+                    max_retries,
+                    priority,
+                ]);
+            }
+
+            await client.query('COMMIT');
+            return serializedTasks.map(st => st.id);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error("Error enqueuing tasks:", error);
+            throw error;
+        } finally {
+            await client.end();
+        }
     }
+
 
     async dequeue({ numTasks }: { numTasks: number }): Promise<SerializedTask[]> {
         throw new Error("Not Implemented");

@@ -2,12 +2,13 @@ import { z } from 'zod'
 import {
     CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, sleep, range, InternalTaskRegistry
 } from "./utils";
-import { SerializedTask, TaskConfig, HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
-import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
+import { SerializedTask, TaskConfig, HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispatcher";
+// import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
 import { HyrexSynchronousWorker } from "./worker/HyrexSynchronousWorker";
 import { TaskRegistry } from "./TaskRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
+import { randomUUID } from "node:crypto";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -28,11 +29,13 @@ class TaskWrapper<U extends JsonSerializableObject> {
 
         JsonSerializable.parse(context)
 
-        const serializedTaskRequest = {
-            "queue": "default",
-            "name": this.taskFunction.name,
-            "context": context,
-            "config": config
+        const serializedTaskRequest: SerializedTaskRequest = {
+            id: randomUUID(),
+            queue: "default",
+            task_name: this.taskFunction.name,
+            args: context,
+            max_retries: 3,
+            priority: 3
         }
 
         this.dispatcher.enqueue([serializedTaskRequest])
@@ -82,7 +85,8 @@ export class Hyrex {
         if (this.conn) {
             this.dispatcher = new PostgresDispatcher({ conn: this.conn })
         } else {
-            this.dispatcher = new Sqlite3Dispatcher("tasks.db")
+            throw new Error("Could not find conn...")
+            // this.dispatcher = new Sqlite3Dispatcher("tasks.db")
         }
 
         this.appTaskRegistry = new TaskRegistry()

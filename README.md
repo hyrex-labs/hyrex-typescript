@@ -1,5 +1,9 @@
 # Hyrex Typescript SDK
 
+## Configuration
+
+`HYREX_DATABASE_URL` - For postgres mode.
+
 ## Commands
 
 ```typescript

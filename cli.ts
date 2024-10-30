@@ -201,20 +201,20 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 // Simulate receiving a kill task signal via command-line input
-import readline from 'readline';
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
-
-console.log('Type "kill <taskId>" to terminate a task.');
-
-rl.on('line', (input) => {
-    const [command, taskId] = input.trim().split(' ');
-    if (command === 'kill' && taskId) {
-        killTask(taskId);
-    } else {
-        console.log('Invalid command. Use "kill <taskId>".');
-    }
-});
+// import readline from 'readline';
+//
+// const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout,
+// });
+//
+// console.log('Type "kill <taskId>" to terminate a task.');
+//
+// rl.on('line', (input) => {
+//     const [command, taskId] = input.trim().split(' ');
+//     if (command === 'kill' && taskId) {
+//         killTask(taskId);
+//     } else {
+//         console.log('Invalid command. Use "kill <taskId>".');
+//     }
+// });

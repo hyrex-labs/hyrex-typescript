@@ -15,21 +15,9 @@ const sendSubmitFraud = hyrex.task(submitFraudToPersona)
 
 if (process.argv.includes('--submit')) {
     console.log("Submitting tasks...");
-    for (const i of range(200)) {
+    for (const i of range(10)) {
         sendSubmitFraud({email: "mark@markdawson.io"}, {retries: true})
     }
 }
 
 hyrex.init()
-
-// if (process.argv.includes('--worker')) {
-//     console.log("Running worker...");
-//     hyrex.runWorker();
-// } else {
-//     console.log("Worker flag not provided. Skipping hyrex.runWorker().");
-// }
-//
-// if (process.argv.includes('--initDB')) {
-//     console.log("Initing DB...");
-//     hyrex.initDB();
-// }

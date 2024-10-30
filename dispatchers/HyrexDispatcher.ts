@@ -6,10 +6,12 @@ export const TaskConfigSchema = z.record(z.string(), z.any()) // TODO: Update th
 export type TaskConfig = z.infer<typeof TaskConfigSchema>
 
 export type SerializedTaskRequest = {
-    name: string,
+    id: UUID,
+    task_name: string,
+    args: JsonSerializableObject,
     queue: string,
-    context: JsonSerializableObject,
-    config: TaskConfig
+    max_retries: number,
+    priority: number,
 }
 
 export type SerializedTask = {

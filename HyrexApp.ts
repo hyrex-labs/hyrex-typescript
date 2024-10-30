@@ -25,7 +25,7 @@ class TaskWrapper<U extends JsonSerializableObject> {
     constructor(private dispatcher: HyrexDispatcher, private taskFunction: (arg: U) => any) {
     }
 
-    call(context: U, config: TaskConfig = {}) {
+    async call(context: U, config: TaskConfig = {}): Promise<UUID> {
 
         JsonSerializable.parse(context)
 
@@ -38,13 +38,13 @@ class TaskWrapper<U extends JsonSerializableObject> {
             priority: 3
         }
 
-        this.dispatcher.enqueue([serializedTaskRequest])
+        return (await this.dispatcher.enqueue([serializedTaskRequest]))[0]
     }
 }
 
 type CallableTaskWrapper<U extends JsonSerializableObject> =
     TaskWrapper<U>
-    & ((context: U, config?: TaskConfig) => any);
+    & ((context: U, config?: TaskConfig) => Promise<UUID>);
 
 
 type WorkerConfig = {

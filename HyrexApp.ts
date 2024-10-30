@@ -7,7 +7,7 @@ import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
 import { HyrexSynchronousWorker } from "./worker/HyrexSynchronousWorker";
 import { TaskRegistry } from "./TaskRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
-
+import { COMMANDS } from "./commands";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -78,19 +78,22 @@ export class Hyrex {
         this.conn = conn || process.env.HYREX_DATABASE_URL
         this.apiKey = apiKey
         this.errorCallback = errorCallback
-        // if (appConfig.conn) {
-        //     this.dispatcher = new PostgresDispatcher({ conn: appConfig.conn });
-        // } else {
-        //     this.dispatcher = new ConsoleDispatcher()
-        // }
+
         if (this.conn) {
             this.dispatcher = new PostgresDispatcher({ conn: this.conn })
         } else {
             this.dispatcher = new Sqlite3Dispatcher("tasks.db")
         }
 
-
         this.appTaskRegistry = new TaskRegistry()
+    }
+
+    async init() {
+        if (process.env[COMMANDS.INIT_DB]) {
+            await this.initDB()
+        } else if (process.env[COMMANDS.RUN_WORKER]) {
+            await this.runWorker()
+        }
     }
 
     private addFunctionToRegistry(taskFunction: Callable) {

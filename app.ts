@@ -20,14 +20,16 @@ if (process.argv.includes('--submit')) {
     }
 }
 
-if (process.argv.includes('--worker')) {
-    console.log("Running worker...");
-    hyrex.runWorker();
-} else {
-    console.log("Worker flag not provided. Skipping hyrex.runWorker().");
-}
+hyrex.init()
 
-if (process.argv.includes('--initDB')) {
-    console.log("Initing DB...");
-    hyrex.initDB();
-}
+// if (process.argv.includes('--worker')) {
+//     console.log("Running worker...");
+//     hyrex.runWorker();
+// } else {
+//     console.log("Worker flag not provided. Skipping hyrex.runWorker().");
+// }
+//
+// if (process.argv.includes('--initDB')) {
+//     console.log("Initing DB...");
+//     hyrex.initDB();
+// }

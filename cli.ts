@@ -4,6 +4,7 @@ import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { UPDATE_TASK_ID } from "./worker/HyrexSynchronousWorker";
+import { COMMANDS } from "./commands";
 
 // Store references to all spawned workers
 let isShuttingDown = false;
@@ -51,6 +52,7 @@ const argv = yargs(hideBin(process.argv))
             const worker: ChildProcess = spawn('ts-node', [scriptPath, '--initDB'], {
                 env: {
                     ...process.env,
+                    [COMMANDS.INIT_DB]: "1",
                 },
                 stdio: ['ignore', 'inherit', 'inherit', "ipc"],
             });
@@ -82,10 +84,11 @@ const argv = yargs(hideBin(process.argv))
  */
 function spawnWorker(scriptPath: string, workerNumber: number) {
     // const workerScriptPath = path.resolve(__dirname, './worker/worker-runner.ts');
-    const worker: ChildProcess = spawn('ts-node', [scriptPath, '--worker'], {
+    const worker: ChildProcess = spawn('ts-node', [scriptPath], {
         env: {
             ...process.env,
-            HYREX_WORKER_NAME: `W${workerNumber}`
+            [COMMANDS.RUN_WORKER]: "1",
+            HYREX_WORKER_NAME: `W${workerNumber}`,
         },
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     });

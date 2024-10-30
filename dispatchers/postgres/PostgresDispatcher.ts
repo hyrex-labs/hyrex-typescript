@@ -2,6 +2,7 @@ import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../Hyrex
 import { UUID } from "../../utils";
 import { Client } from 'pg';
 import * as sql from "./sql"
+import { string } from "zod";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -60,14 +61,51 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
 
-    async dequeue({ numTasks }: { numTasks: number }): Promise<SerializedTask[]> {
-        throw new Error("Not Implemented");
+    async dequeue(
+        { numTasks, workerId, queue }: { numTasks: number, workerId: string, queue: string }
+            = { numTasks: 1, workerId: "UnknownWorker", queue: "*" }
+    ): Promise<SerializedTask[]> {
+        if (numTasks !== 1) {
+            throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
+        }
+
+        const client = new Client({ connectionString: this.connectionString })
+        const dequeuedTasks: SerializedTask[] = []
+        try {
+            await client.connect();
+            let result
+            if (queue === "*") {
+                result = await client.query<SerializedTask>(sql.FETCH_TASK_FROM_ANY_QUEUE, [workerId])
+            } else {
+                result = await client.query<SerializedTask>(sql.FETCH_TASK, [queue, workerId])
+            }
+
+            dequeuedTasks.push(...result.rows);
+            return dequeuedTasks
+
+        } finally {
+            await client.end();
+        }
     }
 
     async markTaskFailed(taskId: UUID): Promise<void> {
+        const client = new Client({ connectionString: this.connectionString })
+        try {
+            await client.connect();
+            await client.query(sql.MARK_TASK_FAILED, [taskId])
+        } finally {
+            await client.end();
+        }
     }
 
     async markTaskSuccess(taskId: UUID): Promise<void> {
+        const client = new Client({ connectionString: this.connectionString })
+        try {
+            await client.connect();
+            await client.query(sql.MARK_TASK_SUCCESS, [taskId])
+        } finally {
+            await client.end();
+        }
     }
 
     async cancelTask(taskId: UUID): Promise<void> {

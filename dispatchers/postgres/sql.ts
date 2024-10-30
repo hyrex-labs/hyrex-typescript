@@ -68,3 +68,49 @@ INSERT INTO hyrextask (
     queued
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'queued', 0, CURRENT_TIMESTAMP);
 `
+
+export const FETCH_TASK = `
+WITH next_task AS (
+    SELECT id
+FROM hyrextask
+WHERE
+queue = $1 AND
+status = 'queued'
+ORDER BY priority DESC, id
+FOR UPDATE SKIP LOCKED
+LIMIT 1
+)
+UPDATE hyrextask
+SET status = 'running', started = CURRENT_TIMESTAMP, worker_id = $2
+FROM next_task
+WHERE hyrextask.id = next_task.id
+RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;
+`
+
+export const FETCH_TASK_FROM_ANY_QUEUE = `
+WITH next_task AS (
+    SELECT id
+FROM hyrextask
+WHERE status = 'queued'
+ORDER BY priority DESC, id
+FOR UPDATE SKIP LOCKED
+LIMIT 1
+)
+UPDATE hyrextask
+SET status = 'running', started = CURRENT_TIMESTAMP, worker_id = $1
+FROM next_task
+WHERE hyrextask.id = next_task.id
+RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;
+`
+
+export const MARK_TASK_FAILED = `
+UPDATE hyrextask
+SET status = 'failed', finished = CURRENT_TIMESTAMP
+WHERE id = $1
+`
+
+export const MARK_TASK_SUCCESS = `
+UPDATE hyrextask
+SET status = 'success', finished = CURRENT_TIMESTAMP
+WHERE id = $1
+`

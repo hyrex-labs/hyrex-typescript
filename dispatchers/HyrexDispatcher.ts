@@ -16,15 +16,13 @@ export type SerializedTaskRequest = {
 
 export type SerializedTask = {
     id: string
-    name: string,
-    queue: string,
-    context: JsonSerializableObject,
-    config: TaskConfig
+    task_name: string,
+    args: JsonSerializableObject,
 }
 
 export interface HyrexDispatcher {
     enqueue: (serializedTasks: SerializedTaskRequest[]) => Promise<UUID[]>
-    dequeue: ({ numTasks }: { numTasks: number }) => Promise<SerializedTask[]>
+    dequeue: ({ numTasks, workerId, queue }: { numTasks: number, workerId: string, queue: string }) => Promise<SerializedTask[]>
     markTaskSuccess(taskId: UUID): Promise<void>
     markTaskFailed(taskId: UUID): Promise<void>
     cancelTask(taskId: UUID): Promise<void>

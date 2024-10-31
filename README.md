@@ -3,6 +3,7 @@
 ## Configuration
 
 `HYREX_DATABASE_URL` - For postgres mode.
+`HYREX_API_KEY` - For usage with Hyrex Cloud.
 
 ## Commands
 

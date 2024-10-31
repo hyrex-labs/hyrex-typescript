@@ -1,4 +1,4 @@
-import { TaskRegistry } from "../TaskRegistry";
+import { HyrexRegistry } from "../HyrexRegistry";
 import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher";
 import { sleep, UUID } from "../utils";
 import { ExpBackoff } from "./ExpBackoff";
@@ -9,13 +9,13 @@ export const UPDATE_TASK_ID = "updateTaskId"
 type HyrexWorkerConfig = {
     name: string
     queue: string
-    taskRegistry: TaskRegistry
+    taskRegistry: HyrexRegistry
     dispatcher: HyrexDispatcher
 }
 
 export class HyrexSynchronousWorker {
     private dispatcher: HyrexDispatcher
-    private taskRegistry: TaskRegistry
+    private taskRegistry: HyrexRegistry
     private name: string
     private queue: string
     private backoff: ExpBackoff

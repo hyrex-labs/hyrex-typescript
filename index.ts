@@ -1,3 +1,4 @@
-import { Hyrex } from "./HyrexApp";
+import { HyrexWorker } from "./HyrexWorker";
+import { HyrexRegistry } from "./HyrexRegistry";
 
-export { Hyrex }
+export { HyrexWorker, HyrexRegistry }

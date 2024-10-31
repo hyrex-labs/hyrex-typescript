@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { TaskConfig } from "./dispatchers/HyrexDispatcher";
+import { TaskWrapper } from "./TaskWrapper";
 
 export const CallableSchema = z.function().args().returns(z.any());
 export type Callable = z.infer<typeof CallableSchema>
@@ -38,3 +40,7 @@ export function range(n: number): number[] {
 export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+export type CallableTaskWrapper<U extends JsonSerializableObject> =
+    TaskWrapper<U>
+    & ((context: U, config?: TaskConfig) => Promise<UUID>);

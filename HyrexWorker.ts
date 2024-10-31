@@ -5,7 +5,7 @@ import {
 import { SerializedTask, TaskConfig, HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispatcher";
 // import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
 import { HyrexSynchronousWorker } from "./worker/HyrexSynchronousWorker";
-import { TaskRegistry } from "./TaskRegistry";
+import { HyrexRegistry } from "./HyrexRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
 import { randomUUID } from "node:crypto";
@@ -21,31 +21,6 @@ type AppConfig = z.infer<typeof AppConfigSchema>
 
 const stringSchema = z.string()
 
-class TaskWrapper<U extends JsonSerializableObject> {
-    constructor(private dispatcher: HyrexDispatcher, private taskFunction: (arg: U) => any) {
-    }
-
-    async call(context: U, config: TaskConfig = {}): Promise<UUID> {
-
-        JsonSerializable.parse(context)
-
-        const serializedTaskRequest: SerializedTaskRequest = {
-            id: randomUUID(),
-            queue: "default",
-            task_name: this.taskFunction.name,
-            args: context,
-            max_retries: 3,
-            priority: 3
-        }
-
-        return (await this.dispatcher.enqueue([serializedTaskRequest]))[0]
-    }
-}
-
-type CallableTaskWrapper<U extends JsonSerializableObject> =
-    TaskWrapper<U>
-    & ((context: U, config?: TaskConfig) => Promise<UUID>);
-
 
 type WorkerConfig = {
     numThreads: number
@@ -53,9 +28,9 @@ type WorkerConfig = {
     logLevel: string
 }
 
-export class Hyrex {
+export class HyrexWorker {
     private dispatcher: HyrexDispatcher
-    private appTaskRegistry: TaskRegistry
+    private appTaskRegistry: HyrexRegistry
     private appId: string
     private conn?: string
     private apiKey?: string
@@ -89,7 +64,7 @@ export class Hyrex {
             // this.dispatcher = new Sqlite3Dispatcher("tasks.db")
         }
 
-        this.appTaskRegistry = new TaskRegistry()
+        this.appTaskRegistry = new HyrexRegistry()
     }
 
     async init() {
@@ -100,30 +75,7 @@ export class Hyrex {
         }
     }
 
-    private addFunctionToRegistry(taskFunction: Callable) {
-        const stringValidation = stringSchema.safeParse(taskFunction.name)
-        if (!stringValidation) {
-            throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
-        }
-
-        this.appTaskRegistry.addFunction(taskFunction.name, taskFunction)
-    }
-
-    task<U extends JsonSerializableObject>(taskFunction: (arg: U) => any): CallableTaskWrapper<U> {
-        const wrapper = new TaskWrapper(this.dispatcher, taskFunction);
-
-        const callableFunction = (context: U, config?: TaskConfig) => {
-            return wrapper.call(context, config);
-        };
-
-        this.addFunctionToRegistry(taskFunction as Callable);
-
-        const combined = Object.assign(callableFunction, wrapper);
-
-        return combined as CallableTaskWrapper<U>;
-    }
-
-    addRegistry(taskRegistry: TaskRegistry) {
+    addRegistry(taskRegistry: HyrexRegistry) {
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
             this.appTaskRegistry.addFunction(key, taskRegistry.internalTaskRegistry[key])
         }
@@ -162,6 +114,15 @@ export class Hyrex {
         } else {
             throw new Error("Dispatcher does not support initPostgresDB");
         }
+    }
+
+    private addFunctionToRegistry(taskFunction: Callable) {
+        const stringValidation = stringSchema.safeParse(taskFunction.name)
+        if (!stringValidation) {
+            throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
+        }
+
+        this.appTaskRegistry.addFunction(taskFunction.name, taskFunction)
     }
 
 }

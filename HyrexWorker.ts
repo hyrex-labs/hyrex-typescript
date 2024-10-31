@@ -80,7 +80,6 @@ export class HyrexWorker {
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
             this.appTaskRegistry.addFunction(key, taskRegistry.internalTaskRegistry[key])
         }
-        this.appTaskRegistry.print()
     }
 
     async runWorker({ queue, logLevel, numThreads }: WorkerConfig = {

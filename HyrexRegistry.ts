@@ -24,6 +24,10 @@ export class HyrexRegistry {
 
     }
 
+    print() {
+        console.log("Task Registry:", Object.entries(this.internalTaskRegistry));
+    }
+
     task<U extends JsonSerializableObject>(taskFunction: (arg: U) => any): CallableTaskWrapper<U> {
         const wrapper = new TaskWrapper(this.dispatcher, taskFunction);
 

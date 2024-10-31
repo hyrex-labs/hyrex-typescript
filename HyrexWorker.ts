@@ -76,9 +76,11 @@ export class HyrexWorker {
     }
 
     addRegistry(taskRegistry: HyrexRegistry) {
+        console.log("Calling add Registry!")
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
             this.appTaskRegistry.addFunction(key, taskRegistry.internalTaskRegistry[key])
         }
+        this.appTaskRegistry.print()
     }
 
     async runWorker({ queue, logLevel, numThreads }: WorkerConfig = {

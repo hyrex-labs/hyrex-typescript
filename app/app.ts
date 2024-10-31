@@ -1,11 +1,9 @@
-import { HyrexWorker } from "../HyrexWorker";
 import { range, sleep } from "../utils";
 import { HyrexRegistry } from "../HyrexRegistry";
 import 'dotenv/config';
 
-const hyrexWorker = new HyrexWorker({ appId: "My first app" })
 
-const hy = new HyrexRegistry()
+export const hy = new HyrexRegistry()
 
 const submitFraudToPersona = async ({ email }: { email: string }) => {
     console.log(`Submitted fraud info to persona for ${email}`)
@@ -26,6 +24,3 @@ const submitFraudToPersona = async ({ email }: { email: string }) => {
         console.timeEnd("Submission time");
     }
 })()
-
-
-hyrexWorker.init()

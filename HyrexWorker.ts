@@ -3,12 +3,10 @@ import {
     CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, sleep, range, InternalTaskRegistry
 } from "./utils";
 import { SerializedTask, TaskConfig, HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispatcher";
-// import { Sqlite3Dispatcher } from "./dispatchers/Sqlite3Dispatcher";
 import { HyrexSynchronousWorker } from "./worker/HyrexSynchronousWorker";
 import { HyrexRegistry } from "./HyrexRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
-import { randomUUID } from "node:crypto";
 
 const AppConfigSchema = z.object({
     appId: z.string(),

@@ -3,7 +3,7 @@ export const CreateHyrexTaskTable = `
 DO $$
 BEGIN
 IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statusenum' AND typnamespace = 'public'::regnamespace) THEN
-CREATE TYPE public.statusenum AS ENUM ('success', 'failed', 'up_for_retry', 'running', 'queued');
+CREATE TYPE public.statusenum AS ENUM ('success', 'failed', 'up_for_retry', 'running', 'queued', 'up_for_cancel', 'canceled', 'waiting');
 END IF;
 END $$;
 
@@ -110,7 +110,12 @@ WHERE id = $1
 `
 
 export const MARK_TASK_SUCCESS = `
-UPDATE hyrextask
-SET status = 'success', finished = CURRENT_TIMESTAMP
-WHERE id = $1
+    UPDATE hyrextask
+    SET status   = CASE
+                       WHEN status = 'running' THEN 'success'::statusenum
+                       WHEN status = 'up_for_cancel' THEN 'canceled'::statusenum
+        END,
+        finished = CURRENT_TIMESTAMP
+    WHERE id = $1
+      AND status IN ('running', 'up_for_cancel')
 `

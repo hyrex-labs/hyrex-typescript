@@ -1,10 +1,13 @@
 {
   "name": "hyrex",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "The modern, open-source task orchestration framework.",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "hyrex": "./dist/cli.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",

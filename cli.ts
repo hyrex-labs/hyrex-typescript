@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // src/cli.ts
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';

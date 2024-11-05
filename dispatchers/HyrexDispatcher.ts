@@ -2,7 +2,14 @@ import { UUID, JsonSerializableObject } from "../utils";
 
 import { z } from "zod";
 
-export const TaskConfigSchema = z.record(z.string(), z.any()) // TODO: Update this to be a config
+export const TaskConfigSchema = z.object({
+    queue: z.string().optional(),
+    priority: z.number().min(1).max(10).optional(),
+    maxRetries: z.number().min(0).max(10).optional(),
+    cron: z.string().optional(),
+
+})
+
 export type TaskConfig = z.infer<typeof TaskConfigSchema>
 
 export type SerializedTaskRequest = {

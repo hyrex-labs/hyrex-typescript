@@ -1,6 +1,7 @@
 import { range, sleep } from "../utils";
 import { HyrexRegistry } from "../HyrexRegistry";
 import 'dotenv/config';
+import { TaskConfig } from "../dispatchers/HyrexDispatcher";
 
 
 export const hy = new HyrexRegistry()
@@ -12,15 +13,31 @@ const submitFraudToPersona = async ({ email }: { email: string }) => {
     return true
 }
 
+type sendTaskArgs = [{ email: string }, TaskConfig]
+
+const choices: sendTaskArgs[] = [
+    [{ email: "mark@markdawson.io" }, { queue: "default" }],
+    [{ email: "mark@example.com" }, { queue: "fast" }],
+    [{ email: "mark@usekura.com" }, { queue: "low-priority" }],
+    [{ email: "trevor@usekura.com" }, { queue: "trevor-queue" }],
+];
+
 (async () => {
-    const sendSubmitFraud= hy.task(submitFraudToPersona)
+    const sendSubmitFraud = hy.task(submitFraudToPersona)
 
     if (process.argv.includes('--submit')) {
-        console.log("Submitting tasks...");
-        console.time("Submission time");
-        for (const i of range(10)) {
-            sendSubmitFraud({ email: "mark@markdawson.io" }, { maxRetries: 3 })
+        for (const i of range(4)) {
+            console.log("Submitting tasks...");
+            console.time("Submission time");
+
+
+            for (const i of range(6)) {
+                const randomElement: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
+
+                sendSubmitFraud(...randomElement)
+            }
+            console.timeEnd("Submission time");
+            await sleep(10_000)
         }
-        console.timeEnd("Submission time");
     }
 })()

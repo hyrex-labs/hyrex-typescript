@@ -108,4 +108,24 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     async cancelTask(taskId: UUID): Promise<void> {
     }
+
+    async registerWorker({ queue, workerId, workerName }: { queue: string, workerId: string, workerName: string }): Promise<void> {
+        const client = new Client({ connectionString: this.connectionString })
+        try {
+            await client.connect();
+            await client.query(sql.REGISTER_WORKER, [workerId, workerName, queue])
+        } finally {
+            await client.end();
+        }
+    }
+
+    async disconnectWorker({ workerId }: { workerId: string }): Promise<void> {
+        const client = new Client({ connectionString: this.connectionString })
+        try {
+            await client.connect();
+            await client.query(sql.DISCONNECT_WORKER, [workerId])
+        } finally {
+            await client.end();
+        }
+    }
 }

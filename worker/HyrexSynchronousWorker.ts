@@ -3,6 +3,8 @@ import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher"
 import { sleep, UUID } from "../utils";
 import { ExpBackoff } from "./ExpBackoff";
 import { randomUUID } from "node:crypto";
+import { Client } from "pg";
+import * as sql from "../dispatchers/postgres/sql";
 
 export const UPDATE_TASK_ID = "updateTaskId"
 
@@ -50,8 +52,8 @@ export class HyrexSynchronousWorker {
     }
 
 
-    async runWorker() {
-        console.log("TaskRegistry", this.taskRegistry)
+    async runWorker({ queue }: { queue: string } = { queue: "*" }) {
+        // console.log("TaskRegistry", this.taskRegistry)
         let shouldStop = false
 
         const handleShutdown = (signal: string) => {
@@ -62,10 +64,12 @@ export class HyrexSynchronousWorker {
         process.on('SIGINT', handleShutdown);
         process.on('SIGTERM', handleShutdown);
 
+        await this.dispatcher.registerWorker({ queue, workerId: this.workerId, workerName: this.name });
+
         while (!shouldStop) {
 
             // Process
-            const tasks = await this.dispatcher.dequeue({ numTasks: 1, workerId: this.workerId, queue: "*" })
+            const tasks = await this.dispatcher.dequeue({ numTasks: 1, workerId: this.workerId, queue })
             if (tasks.length === 0) {
                 console.log("No tasks found... going to sleep", new Date())
                 await this.backoff.wait()
@@ -89,6 +93,7 @@ export class HyrexSynchronousWorker {
 
         }
 
+        await this.dispatcher.disconnectWorker({ workerId: this.workerId })
         console.log(`Worker ${this.name} stopped.`)
     }
 }

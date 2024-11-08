@@ -33,5 +33,6 @@ export interface HyrexDispatcher {
     markTaskSuccess(taskId: UUID): Promise<void>
     markTaskFailed(taskId: UUID): Promise<void>
     cancelTask(taskId: UUID): Promise<void>
-
+    registerWorker({ queue, workerId, workerName }: { queue: string, workerId: string, workerName: string }): Promise<void>
+    disconnectWorker({ workerId }: { workerId: string }): Promise<void>
 }

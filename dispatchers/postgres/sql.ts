@@ -76,7 +76,7 @@ FROM hyrextask
 WHERE
 queue = $1 AND
 status = 'queued'
-ORDER BY priority DESC, id
+ORDER BY priority DESC, queued
 FOR UPDATE SKIP LOCKED
 LIMIT 1
 )
@@ -92,7 +92,7 @@ WITH next_task AS (
     SELECT id
 FROM hyrextask
 WHERE status = 'queued'
-ORDER BY priority DESC, id
+ORDER BY priority DESC, queued
 FOR UPDATE SKIP LOCKED
 LIMIT 1
 )
@@ -118,4 +118,20 @@ export const MARK_TASK_SUCCESS = `
         finished = CURRENT_TIMESTAMP
     WHERE id = $1
       AND status IN ('running', 'up_for_cancel')
+`
+
+export const REGISTER_WORKER = `
+    INSERT INTO hyrexworker (
+    id,
+    name,
+    queue,
+    started,
+    stopped
+) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, null);
+`
+
+export const DISCONNECT_WORKER = `
+    UPDATE hyrexworker
+    SET stopped = CURRENT_TIMESTAMP
+    where id = $1;
 `

@@ -1,6 +1,7 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "./HyrexDispatcher";
 import { UUID } from "../utils";
 import { createClient, RedisClientType } from 'redis';
+import { string } from "zod";
 
 
 type HyrexRedisDispatcherConfig = {
@@ -36,4 +37,12 @@ export class RedisDispatcher implements HyrexDispatcher {
     }
 
     async cancelTask(taskId: UUID): Promise<void> {}
+
+    async registerWorker({ queue, workerId, workerName }: { queue: string, workerId: string, workerName: string }): Promise<void> {
+
+    }
+
+    async disconnectWorker({ workerId }: { workerId: string }): Promise<void> {
+
+    }
 }

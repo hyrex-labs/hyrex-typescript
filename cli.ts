@@ -7,6 +7,11 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { UPDATE_TASK_ID } from "./worker/HyrexSynchronousWorker";
 import { COMMANDS } from "./commands";
+import { sleep } from "./utils";
+import { ListenerMessage, ListenerResultMessage } from "./types";
+
+// Settings
+const SHUTDOWN_TIMEOUT = 25_000
 
 // Store references to all spawned workers
 let isShuttingDown = false;
@@ -29,7 +34,7 @@ const argv = yargs(hideBin(process.argv))
                     default: 1,
                 });
         },
-        (args) => {
+        async (args) => {
             const scriptPath = path.resolve(process.cwd(), args.script as string);
             const count = args.count as number;
 
@@ -38,6 +43,18 @@ const argv = yargs(hideBin(process.argv))
             for (let i = 0; i < count; i++) {
                 spawnWorker(scriptPath, i + 1);
             }
+
+            spawnListener(scriptPath)
+
+            // while (true) {
+            //     console.log("/---taskIds to workers----\\")
+            //     taskIdToWorker.forEach((worker, taskId) => {
+            //         console.log(`Task ID: ${taskId}`);
+            //         console.log(`Worker PID: ${worker.pid}`);
+            //     });
+            //     console.log("\\-------------------------/")
+            //     await sleep(3_000)
+            // }
         }
     )
     .command(
@@ -124,11 +141,46 @@ function spawnWorker(scriptPath: string, workerNumber: number) {
     });
 }
 
+function spawnListener(scriptPath: string) {
+    const listener: ChildProcess = spawn('ts-node', [scriptPath], {
+        env: {
+            ...process.env,
+            [COMMANDS.RUN_WORKER_LISTENER]: "1",
+        },
+        stdio: ['ignore', 'inherit', 'inherit', "ipc"],
+    });
+
+    workers.push(listener);
+
+    listener.on('message', (message) => {
+        handleListenerMessage(listener, message as ListenerMessage);
+    });
+
+    listener.on('exit', (code, signal) => {
+        if (code !== null) {
+            console.log(`Listener exited with code ${code}`);
+        } else if (signal !== null) {
+            console.log(`Listener was killed by signal ${signal}`);
+        } else {
+            console.log(`Listener exited`);
+        }
+
+        // Optionally, respawn the worker if it exited unexpectedly
+        if (!isShuttingDown) {
+            console.log(`Respawning Listener...`);
+            spawnListener(scriptPath);
+        }
+    });
+
+    listener.on('error', (err) => {
+        console.error(`Listener encountered an error:`, err);
+    });
+}
+
 function handleWorkerMessage(worker: ChildProcess, message: any) {
     if (message && message.type === UPDATE_TASK_ID) {
         const { taskId, name } = message;
         console.log(`${name} (Worker PID ${worker.pid}) is working on Task ID ${taskId}`);
-
         // Remove any existing mapping of this worker to a task ID
         for (const [existingTaskId, existingWorker] of taskIdToWorker.entries()) {
             if (existingWorker === worker) {
@@ -138,8 +190,31 @@ function handleWorkerMessage(worker: ChildProcess, message: any) {
         }
 
         // Map the new task ID to the worker
-        console.log("Setting taskId", taskId)
-        taskIdToWorker.set(taskId, worker);
+        if (taskId !== null) {
+            console.log("Setting taskId", taskId)
+            taskIdToWorker.set(taskId, worker);
+        }
+    }
+}
+
+function handleListenerMessage(listener: ChildProcess, message: ListenerMessage) {
+    if (message && message.messageType === "TASK_CANCEL") {
+        killTask(message.taskId)
+    } else if (message && message.messageType === "TASK_HEARTBEAT") {
+        const workerForTask = taskIdToWorker.get(message.messageType)
+        const status = workerForTask ? "RUNNING" : "LOST"
+        const timestamp = (new Date()).toUTCString()
+        const heartbeatMsg: ListenerResultMessage = {
+            messageType: "TASK_HEARTBEAT",
+            body: {
+                taskId: message.taskId,
+                status,
+                timestamp,
+            }
+        }
+        listener.send(heartbeatMsg)
+    } else {
+        console.error("Received unrecognized message...", message);
     }
 }
 
@@ -174,8 +249,6 @@ const shutdown = () => {
         worker.kill('SIGTERM');
     }
 
-    const timeout = 15_000;
-
     // Forcefully kill workers that don't exit within the timeout
     const timeoutHandle = setTimeout(() => {
         for (const worker of workers) {
@@ -184,7 +257,7 @@ const shutdown = () => {
                 worker.kill('SIGKILL');
             }
         }
-    }, timeout);
+    }, SHUTDOWN_TIMEOUT);
 
     // Wait for all workers to exit
     Promise.all(workerExitPromises)

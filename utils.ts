@@ -7,6 +7,8 @@ export type Callable = z.infer<typeof CallableSchema>
 
 export type UUID = string
 
+export const uuidSchema = z.string().uuid();
+
 
 export interface JsonSerializableObject {
     [key: string]: any; // Allows any property with any value

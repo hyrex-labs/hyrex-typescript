@@ -2,11 +2,17 @@ import { z } from 'zod'
 import {
     CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, sleep, range, InternalTaskRegistry
 } from "./utils";
-import { SerializedTask, TaskConfig, HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispatcher";
-import { HyrexSynchronousWorker } from "./worker/HyrexSynchronousWorker";
+import {
+    SerializedTask,
+    TaskConfig,
+    HyrexDispatcher,
+    SerializedTaskRequest,
+} from "./dispatchers/HyrexDispatcher";
+import { HyrexSynchronousWorker, UPDATE_TASK_ID } from "./worker/HyrexSynchronousWorker";
 import { HyrexRegistry } from "./HyrexRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
+import { HyrexWorkerListener } from "./HyrexWorkerListener";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -21,7 +27,6 @@ const stringSchema = z.string()
 
 
 type WorkerConfig = {
-    numThreads: number
     queue: string
     logLevel: string
 }
@@ -70,6 +75,8 @@ export class HyrexWorker {
             await this.initDB()
         } else if (process.env[COMMANDS.RUN_WORKER]) {
             await this.runWorker()
+        } else if (process.env[COMMANDS.RUN_WORKER_LISTENER]) {
+            await this.runWorkerListener()
         }
     }
 
@@ -80,10 +87,9 @@ export class HyrexWorker {
         }
     }
 
-    async runWorker({ queue, logLevel, numThreads }: WorkerConfig = {
+    async runWorker({ queue, logLevel }: WorkerConfig = {
         queue: "default",
         logLevel: "INFO",
-        numThreads: 1
     }) {
         const workerName = process.env.HYREX_WORKER_NAME
         if (!workerName) {
@@ -98,6 +104,14 @@ export class HyrexWorker {
         })
 
         worker.runWorker()
+    }
+
+    async runWorkerListener() {
+        const listener = new HyrexWorkerListener({
+            dispatcher: this.dispatcher
+        })
+
+        listener.runListener()
     }
 
     async initDB() {

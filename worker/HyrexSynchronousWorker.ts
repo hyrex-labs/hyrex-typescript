@@ -43,7 +43,7 @@ export class HyrexSynchronousWorker {
         return
     }
 
-    private updateTaskId(taskId: string) {
+    private updateTaskId(taskId: string | null) {
         if (process.send) {
             process.send({ type: UPDATE_TASK_ID, taskId, name: this.name });
         } else {
@@ -67,7 +67,6 @@ export class HyrexSynchronousWorker {
         await this.dispatcher.registerWorker({ queue, workerId: this.workerId, workerName: this.name });
 
         while (!shouldStop) {
-
             // Process
             const tasks = await this.dispatcher.dequeue({ numTasks: 1, workerId: this.workerId, queue })
             if (tasks.length === 0) {
@@ -85,10 +84,12 @@ export class HyrexSynchronousWorker {
                 await this.processTask(task)
                 await this.dispatcher.markTaskSuccess(task.id)
                 console.log(`Successfully processed ${task.id}`)
+                this.updateTaskId(null)
             } catch (error) {
                 console.error(error)
                 await this.dispatcher.markTaskFailed(task.id)
                 console.log(`Failed processing on ${task.id}`)
+                this.updateTaskId(null)
             }
 
         }

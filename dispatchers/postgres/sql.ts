@@ -24,6 +24,7 @@ primary key,
     queued          timestamp with time zone,
     started         timestamp with time zone,
     finished        timestamp with time zone
+    last_heartbeat  timestamp with time zone
 );
 
 create index if not exists ix_hyrextask_task_name
@@ -134,4 +135,8 @@ export const DISCONNECT_WORKER = `
     UPDATE hyrexworker
     SET stopped = CURRENT_TIMESTAMP
     where id = $1;
+`
+
+export const UPDATE_HEARTBEAT = `
+    
 `

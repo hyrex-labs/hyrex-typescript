@@ -1,8 +1,10 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
-import { UUID } from "../../utils";
-import { Client } from 'pg';
+import { UUID, uuidSchema } from "../../utils";
+import { Client, Notification } from 'pg';
 import * as sql from "./sql"
 import { string } from "zod";
+import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
+import { HeartbeatResultMessageBody, ListenerMessage } from "../../types";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -109,6 +111,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
     async cancelTask(taskId: UUID): Promise<void> {
     }
 
+    async updateHeartbeat(heartbeatMsg: HeartbeatResultMessageBody): Promise<void> {
+        console.log("It would update the heartbeat here...", heartbeatMsg)
+    }
+
     async registerWorker({ queue, workerId, workerName }: { queue: string, workerId: string, workerName: string }): Promise<void> {
         const client = new Client({ connectionString: this.connectionString })
         try {
@@ -126,6 +132,49 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(sql.DISCONNECT_WORKER, [workerId])
         } finally {
             await client.end();
+        }
+    }
+
+    /*
+    Listens for cancellation and heartbeat requests from server.
+     */
+    async listen(hyrexListener: DispatcherListenerCallbacks) {
+        console.log("Starting listener!")
+        const TASK_HEARTBEAT = "TASK_HEARTBEAT"
+        const TASK_CANCEL = "TASK_CANCEL"
+        const client = new Client({ connectionString: this.connectionString })
+        try {
+
+            await client.connect();
+
+
+            await client.query(`LISTEN "${TASK_HEARTBEAT}"`);
+            await client.query(`LISTEN "${TASK_CANCEL}"`);
+
+            client.on("notification", async (pg_msg: Notification) => {
+                console.log("Heard a notification!!", pg_msg)
+                if (pg_msg.channel === TASK_HEARTBEAT) {
+                    const taskId = uuidSchema.parse(pg_msg.payload)
+                    const message: ListenerMessage = {
+                        messageType: "TASK_HEARTBEAT",
+                        taskId
+                    }
+                    await hyrexListener.taskHeartbeatCallback(message)
+                } else if (pg_msg.channel === TASK_CANCEL) {
+                    const taskId = uuidSchema.parse(pg_msg.payload)
+                    const message: ListenerMessage = {
+                        messageType: "TASK_CANCEL",
+                        taskId
+                    }
+                    await hyrexListener.taskCancelCallback(message)
+                } else {
+                    console.error(`Notification channel not recognized: ${pg_msg.channel}`);
+                }
+            })
+        } catch (error) {
+            throw error;
+        } finally {
+            // await client.end()
         }
     }
 }

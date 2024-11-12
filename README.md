@@ -14,3 +14,12 @@ npm run worker app.ts 2
 ```typescript
 npm run init-db app.ts
 ```
+
+## Notes on Signals
+
+Hyrex Worker listens to two channels in a Postgres database:
+
+`TASK_HEARTBEAT`
+
+`TASK_CANCEL`
+

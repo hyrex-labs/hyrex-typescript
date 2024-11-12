@@ -4,7 +4,7 @@ import { Client, Notification } from 'pg';
 import * as sql from "./sql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
-import { HeartbeatResultMessageBody, ListenerMessage } from "../../types";
+import { HeartbeatResultMessage, ListenerMessage } from "../../types";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -108,10 +108,18 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
     }
 
-    async cancelTask(taskId: UUID): Promise<void> {
+    async markTaskCanceled(taskId: UUID): Promise<boolean> {
+        const client = new Client({ connectionString: this.connectionString })
+        try {
+            await client.connect();
+            const result = await client.query(sql.MARK_TASK_CANCELED, [taskId])
+            return result.rows.length > 0
+        } finally {
+            await client.end();
+        }
     }
 
-    async updateHeartbeat(heartbeatMsg: HeartbeatResultMessageBody): Promise<void> {
+    async updateHeartbeat(heartbeatMsg: HeartbeatResultMessage): Promise<void> {
         console.log("It would update the heartbeat here...", heartbeatMsg)
     }
 
@@ -152,7 +160,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(`LISTEN "${TASK_CANCEL}"`);
 
             client.on("notification", async (pg_msg: Notification) => {
-                console.log("Heard a notification!!", pg_msg)
                 if (pg_msg.channel === TASK_HEARTBEAT) {
                     const taskId = uuidSchema.parse(pg_msg.payload)
                     const message: ListenerMessage = {

@@ -6,13 +6,22 @@ export type ListenerMessage = {
     taskId: UUID
 }
 
-export type HeartbeatResultMessageBody = {
-    taskId: UUID,
-    status: "RUNNING" | "LOST",
-    timestamp: string
+
+export type HeartbeatResultMessage = {
+    messageType: "TASK_HEARTBEAT",
+    body: {
+        taskId: UUID,
+        status: "RUNNING" | "LOST",
+        timestamp: string
+    }
 }
 
-export type ListenerResultMessage = {
-    messageType: ListenerMesssageType,
-    body: HeartbeatResultMessageBody
+export type CancelResultMessage = {
+    messageType: "TASK_CANCEL",
+    body: {
+        taskId: UUID,
+        status: "CANCELED" | "LOST"
+    }
 }
+
+export type ListenerResultMessage = HeartbeatResultMessage | CancelResultMessage

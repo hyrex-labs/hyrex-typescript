@@ -19,7 +19,9 @@ export class HyrexWorkerListener {
 
     private handleMessage(message: ListenerResultMessage) {
         if (message.messageType === "TASK_HEARTBEAT") {
-            this.dispatcher.updateHeartbeat(message.body)
+            this.dispatcher.updateHeartbeat(message)
+        } else if (message.messageType === "TASK_CANCEL") {
+            this.dispatcher.markTaskCanceled(message.body.taskId)
         }
     }
 

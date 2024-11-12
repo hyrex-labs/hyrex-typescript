@@ -1,7 +1,7 @@
 import { UUID, JsonSerializableObject } from "../utils";
 
 import { z } from "zod";
-import { HeartbeatResultMessageBody, ListenerMessage } from "../types";
+import { HeartbeatResultMessage, ListenerMessage } from "../types";
 
 export const TaskConfigSchema = z.object({
     queue: z.string().optional(),
@@ -38,8 +38,8 @@ export interface HyrexDispatcher {
     dequeue: ({ numTasks, workerId, queue }: { numTasks: number, workerId: string, queue: string }) => Promise<SerializedTask[]>
     markTaskSuccess(taskId: UUID): Promise<void>
     markTaskFailed(taskId: UUID): Promise<void>
-    cancelTask(taskId: UUID): Promise<void>
-    updateHeartbeat(heartbeatMsg: HeartbeatResultMessageBody): Promise<void>
+    markTaskCanceled(taskId: UUID): Promise<boolean>
+    updateHeartbeat(heartbeatMsg: HeartbeatResultMessage): Promise<void>
     registerWorker({ queue, workerId, workerName }: { queue: string, workerId: string, workerName: string }): Promise<void>
     disconnectWorker({ workerId }: { workerId: string }): Promise<void>
     listen(hyrexListener: DispatcherListenerCallbacks): Promise<void>

@@ -199,9 +199,24 @@ function handleWorkerMessage(worker: ChildProcess, message: any) {
 
 function handleListenerMessage(listener: ChildProcess, message: ListenerMessage) {
     if (message && message.messageType === "TASK_CANCEL") {
+        console.log("Killing task...", message.taskId)
         killTask(message.taskId)
+        listener.send({
+            messageType: "TASK_CANCEL",
+            body: {
+                taskId: message.taskId,
+            }
+        })
     } else if (message && message.messageType === "TASK_HEARTBEAT") {
-        const workerForTask = taskIdToWorker.get(message.messageType)
+        const workerForTask = taskIdToWorker.get(message.taskId)
+        console.log("workerForTask", workerForTask)
+        console.log("/---taskIds to workers----\\")
+        taskIdToWorker.forEach((worker, taskId) => {
+            console.log(`Task ID: ${taskId}`);
+            console.log(`Worker PID: ${worker.pid}`);
+        });
+        console.log("\\-------------------------/")
+
         const status = workerForTask ? "RUNNING" : "LOST"
         const timestamp = (new Date()).toUTCString()
         const heartbeatMsg: ListenerResultMessage = {
@@ -223,7 +238,7 @@ function killTask(taskId: string) {
     const worker = taskIdToWorker.get(taskId);
     if (worker) {
         console.log(`Killing worker PID ${worker.pid} handling Task ID ${taskId}`);
-        worker.kill('SIGTERM');
+        worker.kill('SIGKILL');
 
         // Optionally, remove the mapping immediately
         taskIdToWorker.delete(taskId);

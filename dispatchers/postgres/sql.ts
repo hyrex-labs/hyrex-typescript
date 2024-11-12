@@ -121,6 +121,18 @@ export const MARK_TASK_SUCCESS = `
       AND status IN ('running', 'up_for_cancel')
 `
 
+export const MARK_TASK_CANCELED = `
+UPDATE hyrextask
+SET status = 'canceled'::statusenum, finished = CURRENT_TIMESTAMP
+WHERE id = $1 AND status = 'up_for_cancel'
+`
+
+export const MARK_TASK_LOST = `
+UPDATE hyrextask
+SET status = 'lost'::statusenum, finished = CURRENT_TIMESTAMP
+WHERE id = $1
+`
+
 export const REGISTER_WORKER = `
     INSERT INTO hyrexworker (
     id,

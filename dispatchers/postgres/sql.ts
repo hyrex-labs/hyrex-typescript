@@ -23,7 +23,7 @@ primary key,
     worker_id       uuid,
     queued          timestamp with time zone,
     started         timestamp with time zone,
-    finished        timestamp with time zone
+    finished        timestamp with time zone,
     last_heartbeat  timestamp with time zone
 );
 
@@ -43,15 +43,15 @@ create index if not exists index_queue_status
 on public.hyrextask (status, queue, scheduled_start, task_name);
 `
 
-export const CreateWorkerTable = `
-create table if not exists public.hyrexworker
+export const CreateExecutorTable = `
+create table if not exists hyrexexecutor
 (
-    id      uuid    not null
-primary key,
+    id      uuid    not null primary key,
     name    varchar not null,
     queue   varchar not null,
-    started timestamp,
-    stopped timestamp
+    started timestamp with time zone,
+    stopped timestamp with time zone,
+    last_heartbeat timestamp with time zone
 );
 `
 
@@ -133,19 +133,20 @@ SET status = 'lost'::statusenum, finished = CURRENT_TIMESTAMP
 WHERE id = $1
 `
 
-export const REGISTER_WORKER = `
-    INSERT INTO hyrexworker (
+export const REGISTER_EXECUTOR = `
+    INSERT INTO hyrexexecutor (
     id,
     name,
     queue,
     started,
-    stopped
-) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, null);
+    stopped,
+    last_heartbeat
+) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP);
 `
 
-export const DISCONNECT_WORKER = `
-    UPDATE hyrexworker
-    SET stopped = CURRENT_TIMESTAMP
+export const DISCONNECT_EXECUTOR = `
+    UPDATE hyrexexecutor
+    SET stopped = CURRENT_TIMESTAMP, last_heartbeat = CURRENT_TIMESTAMP
     where id = $1;
 `
 

@@ -38,11 +38,11 @@ export class RedisDispatcher implements HyrexDispatcher {
 
     async cancelTask(taskId: UUID): Promise<void> {}
 
-    async registerWorker({ queue, workerId, workerName }: { queue: string, workerId: string, workerName: string }): Promise<void> {
+    async registerExecutor({ queue, workerId, workerName }: { queue: string, workerId: string, workerName: string }): Promise<void> {
 
     }
 
-    async disconnectWorker({ workerId }: { workerId: string }): Promise<void> {
+    async disconnectExecutor({ workerId }: { workerId: string }): Promise<void> {
 
     }
 }

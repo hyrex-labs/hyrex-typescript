@@ -15,7 +15,7 @@ type HyrexWorkerConfig = {
     dispatcher: HyrexDispatcher
 }
 
-export class HyrexSynchronousWorker {
+export class HyrexExecutor {
     private dispatcher: HyrexDispatcher
     private taskRegistry: HyrexRegistry
     private name: string
@@ -37,9 +37,11 @@ export class HyrexSynchronousWorker {
     }
 
     private async processTask(task: SerializedTask): Promise<void> {
-        const { task_name, args } = task
+        const { id: taskId, task_name, args } = task
         const func = this.taskRegistry.getFunction(task_name)
+        // Set task id
         const result = await func(args)
+        // unset
         return
     }
 
@@ -52,7 +54,7 @@ export class HyrexSynchronousWorker {
     }
 
 
-    async runWorker({ queue }: { queue: string } = { queue: "*" }) {
+    async runExecutor({ queue }: { queue: string } = { queue: "*" }) {
         // console.log("TaskRegistry", this.taskRegistry)
         let shouldStop = false
 
@@ -64,11 +66,11 @@ export class HyrexSynchronousWorker {
         process.on('SIGINT', handleShutdown);
         process.on('SIGTERM', handleShutdown);
 
-        await this.dispatcher.registerWorker({ queue, workerId: this.workerId, workerName: this.name });
+        await this.dispatcher.registerExecutor({ queue, executorId: this.workerId, executorName: this.name });
 
         while (!shouldStop) {
             // Process
-            const tasks = await this.dispatcher.dequeue({ numTasks: 1, workerId: this.workerId, queue })
+            const tasks = await this.dispatcher.dequeue({ numTasks: 1, executorId: this.workerId, queue })
             if (tasks.length === 0) {
                 console.log("No tasks found... going to sleep", new Date())
                 await this.backoff.wait()
@@ -94,7 +96,7 @@ export class HyrexSynchronousWorker {
 
         }
 
-        await this.dispatcher.disconnectWorker({ workerId: this.workerId })
+        await this.dispatcher.disconnectExecutor({ executorId: this.workerId })
         console.log(`Worker ${this.name} stopped.`)
     }
 }

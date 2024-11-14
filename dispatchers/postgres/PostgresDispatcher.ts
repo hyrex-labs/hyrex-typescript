@@ -4,7 +4,7 @@ import { Client, Notification } from 'pg';
 import * as sql from "./sql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
-import { HeartbeatResultMessage, ListenerMessage } from "../../types";
+import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -23,8 +23,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
         try {
             await client.connect();
             await client.query(sql.CreateHyrexTaskTable);
-            await client.query(sql.CreateWorkerTable);
+            await client.query(sql.CreateExecutorTable);
             console.log("initPostgresDB finished successfully.");
+        } catch (error) {
+            console.error(error);
         } finally {
             await client.end();
         }
@@ -62,8 +64,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
 
     async dequeue(
-        { numTasks, workerId, queue }: { numTasks: number, workerId: string, queue: string }
-            = { numTasks: 1, workerId: "UnknownWorker", queue: "*" }
+        { numTasks, executorId, queue }: { numTasks: number, executorId: string, queue: string }
+            = { numTasks: 1, executorId: "UnknownExecutor", queue: "*" }
     ): Promise<SerializedTask[]> {
         if (numTasks !== 1) {
             throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
@@ -75,9 +77,9 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.connect();
             let result
             if (queue === "*") {
-                result = await client.query<SerializedTask>(sql.FETCH_TASK_FROM_ANY_QUEUE, [workerId])
+                result = await client.query<SerializedTask>(sql.FETCH_TASK_FROM_ANY_QUEUE, [executorId])
             } else {
-                result = await client.query<SerializedTask>(sql.FETCH_TASK, [queue, workerId])
+                result = await client.query<SerializedTask>(sql.FETCH_TASK, [queue, executorId])
             }
 
             dequeuedTasks.push(...result.rows);
@@ -119,25 +121,33 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
     }
 
-    async updateHeartbeat(heartbeatMsg: HeartbeatResultMessage): Promise<void> {
+    async updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void> {
         console.log("It would update the heartbeat here...", heartbeatMsg)
     }
 
-    async registerWorker({ queue, workerId, workerName }: { queue: string, workerId: string, workerName: string }): Promise<void> {
+    async updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void> {
+        console.log("It would update the heartbeat here...", heartbeatMsg)
+    }
+
+    async registerExecutor({ queue, executorId, executorName }: {
+        queue: string,
+        executorId: string,
+        executorName: string
+    }): Promise<void> {
         const client = new Client({ connectionString: this.connectionString })
         try {
             await client.connect();
-            await client.query(sql.REGISTER_WORKER, [workerId, workerName, queue])
+            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, queue])
         } finally {
             await client.end();
         }
     }
 
-    async disconnectWorker({ workerId }: { workerId: string }): Promise<void> {
+    async disconnectExecutor({ executorId }: { executorId: string }): Promise<void> {
         const client = new Client({ connectionString: this.connectionString })
         try {
             await client.connect();
-            await client.query(sql.DISCONNECT_WORKER, [workerId])
+            await client.query(sql.DISCONNECT_EXECUTOR, [executorId])
         } finally {
             await client.end();
         }

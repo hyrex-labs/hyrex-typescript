@@ -8,11 +8,11 @@ import {
     HyrexDispatcher,
     SerializedTaskRequest,
 } from "./dispatchers/HyrexDispatcher";
-import { HyrexSynchronousWorker, UPDATE_TASK_ID } from "./worker/HyrexSynchronousWorker";
+import { HyrexExecutor, UPDATE_TASK_ID } from "./worker/HyrexExecutor";
 import { HyrexRegistry } from "./HyrexRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
-import { HyrexWorkerListener } from "./HyrexWorkerListener";
+import { HyrexListener } from "./HyrexListener";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -96,18 +96,18 @@ export class HyrexWorker {
             throw new Error("No HYREX_WORKER_NAME Found. Ensure this command is being executed via the CLI.")
         }
 
-        const worker = new HyrexSynchronousWorker({
+        const executor = new HyrexExecutor({
             name: workerName,
             queue,
             taskRegistry: this.appTaskRegistry,
             dispatcher: this.dispatcher
         })
 
-        worker.runWorker()
+        executor.runExecutor()
     }
 
     async runWorkerListener() {
-        const listener = new HyrexWorkerListener({
+        const listener = new HyrexListener({
             dispatcher: this.dispatcher
         })
 

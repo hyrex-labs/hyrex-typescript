@@ -5,8 +5,10 @@ export type hyrexWorkerListenerConfig = {
     dispatcher: HyrexDispatcher,
 }
 
-export class HyrexWorkerListener {
+export class HyrexListener {
     private dispatcher: HyrexDispatcher
+    private heartbeatInterval: NodeJS.Timeout | null = null
+    private readonly DEFAULT_HEARTBEAT_INTERVAL = 10000 // 10 seconds in milliseconds
 
     constructor({ dispatcher }: hyrexWorkerListenerConfig) {
         this.dispatcher = dispatcher
@@ -19,9 +21,11 @@ export class HyrexWorkerListener {
 
     private handleMessage(message: ListenerResultMessage) {
         if (message.messageType === "TASK_HEARTBEAT") {
-            this.dispatcher.updateHeartbeat(message)
+            this.dispatcher.updateTaskHeartbeat(message)
         } else if (message.messageType === "TASK_CANCEL") {
             this.dispatcher.markTaskCanceled(message.body.taskId)
+        } else if (message.messageType === "EXECUTOR_HEARTBEAT") {
+            this.dispatcher.updateExecutorHeartbeat(message)
         }
     }
 

@@ -5,7 +5,7 @@ import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { UPDATE_TASK_ID } from "./worker/HyrexSynchronousWorker";
+import { UPDATE_TASK_ID } from "./worker/HyrexExecutor";
 import { COMMANDS } from "./commands";
 import { sleep } from "./utils";
 import { ListenerMessage, ListenerResultMessage } from "./types";
@@ -41,7 +41,7 @@ const argv = yargs(hideBin(process.argv))
             console.log(`Spawning ${count} worker processes for script: ${scriptPath}`);
 
             for (let i = 0; i < count; i++) {
-                spawnWorker(scriptPath, i + 1);
+                spawnExectuor(scriptPath, i + 1);
             }
 
             spawnListener(scriptPath)
@@ -99,45 +99,45 @@ const argv = yargs(hideBin(process.argv))
 /**
  * Spawns a single worker process.
  * @param scriptPath Absolute path to the user script.
- * @param workerNumber Identifier for the worker.
+ * @param executorNumber Identifier for the worker.
  */
-function spawnWorker(scriptPath: string, workerNumber: number) {
+function spawnExectuor(scriptPath: string, executorNumber: number) {
     // const workerScriptPath = path.resolve(__dirname, './worker/worker-runner.ts');
-    const worker: ChildProcess = spawn('ts-node', [scriptPath], {
+    const executor: ChildProcess = spawn('ts-node', [scriptPath], {
         env: {
             ...process.env,
             [COMMANDS.RUN_WORKER]: "1",
-            HYREX_WORKER_NAME: `W${workerNumber}`,
+            HYREX_WORKER_NAME: `E${executorNumber}`,
         },
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     });
 
-    workers.push(worker);
+    workers.push(executor);
 
-    console.log(`Worker ${workerNumber} started with PID: ${worker.pid}`);
+    console.log(`Worker ${executorNumber} started with PID: ${executor.pid}`);
 
-    worker.on('message', (message) => {
-        handleWorkerMessage(worker, message);
+    executor.on('message', (message) => {
+        handleWorkerMessage(executor, message);
     });
 
-    worker.on('exit', (code, signal) => {
+    executor.on('exit', (code, signal) => {
         if (code !== null) {
-            console.log(`Worker ${workerNumber} exited with code ${code}`);
+            console.log(`Worker ${executorNumber} exited with code ${code}`);
         } else if (signal !== null) {
-            console.log(`Worker ${workerNumber} was killed by signal ${signal}`);
+            console.log(`Worker ${executorNumber} was killed by signal ${signal}`);
         } else {
-            console.log(`Worker ${workerNumber} exited`);
+            console.log(`Worker ${executorNumber} exited`);
         }
 
         // Optionally, respawn the worker if it exited unexpectedly
         if (!isShuttingDown) {
-            console.log(`Respawning Worker ${workerNumber}...`);
-            spawnWorker(scriptPath, workerNumber);
+            console.log(`Respawning Executor ${executorNumber}...`);
+            spawnExectuor(scriptPath, executorNumber);
         }
     });
 
-    worker.on('error', (err) => {
-        console.error(`Worker ${workerNumber} encountered an error:`, err);
+    executor.on('error', (err) => {
+        console.error(`Executor ${executorNumber} encountered an error:`, err);
     });
 }
 

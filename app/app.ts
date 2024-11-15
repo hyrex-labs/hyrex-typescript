@@ -8,7 +8,7 @@ export const hy = new HyrexRegistry()
 
 const submitFraudToPersona = async ({ email }: { email: string }) => {
     console.log(`Submitted fraud info to persona for ${email}`)
-    await sleep(5_000)
+    await sleep(16_000)
     // Note it could take 48 hours for persona to get back
     return true
 }
@@ -26,7 +26,7 @@ const choices: sendTaskArgs[] = [
     const sendSubmitFraud = hy.task(submitFraudToPersona)
 
     if (process.argv.includes('--submit')) {
-        for (const i of range(3)) {
+        for (const i of range(5)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 
@@ -37,7 +37,7 @@ const choices: sendTaskArgs[] = [
                 sendSubmitFraud(...randomElement)
             }
             console.timeEnd("Submission time");
-            await sleep(10_000)
+            await sleep(3_000)
         }
     }
 })()

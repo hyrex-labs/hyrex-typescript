@@ -8,7 +8,7 @@ import {
     HyrexDispatcher,
     SerializedTaskRequest,
 } from "./dispatchers/HyrexDispatcher";
-import { HyrexExecutor, UPDATE_TASK_ID } from "./worker/HyrexExecutor";
+import { HyrexExecutor } from "./worker/HyrexExecutor";
 import { HyrexRegistry } from "./HyrexRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";

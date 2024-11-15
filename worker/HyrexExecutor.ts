@@ -5,8 +5,8 @@ import { ExpBackoff } from "./ExpBackoff";
 import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import * as sql from "../dispatchers/postgres/sql";
+import { ExecutorMessage } from "../types";
 
-export const UPDATE_TASK_ID = "updateTaskId"
 
 type HyrexWorkerConfig = {
     name: string
@@ -21,7 +21,7 @@ export class HyrexExecutor {
     private name: string
     private queue: string
     private backoff: ExpBackoff
-    private workerId: UUID
+    private executorId: UUID
 
     constructor(config: HyrexWorkerConfig) {
         const defaultConfig = {}
@@ -32,8 +32,10 @@ export class HyrexExecutor {
         this.name = name
         this.queue = queue
 
-        this.workerId = randomUUID()
+        this.executorId = randomUUID()
         this.backoff = new ExpBackoff()
+
+        this.setExecutorId(this.executorId)
     }
 
     private async processTask(task: SerializedTask): Promise<void> {
@@ -47,7 +49,15 @@ export class HyrexExecutor {
 
     private updateTaskId(taskId: string | null) {
         if (process.send) {
-            process.send({ type: UPDATE_TASK_ID, taskId, name: this.name });
+            process.send({ messageType: "UPDATE_TASK_ID", taskId, name: this.name } as ExecutorMessage);
+        } else {
+            console.error('process.send is undefined. IPC channel might not be set up.');
+        }
+    }
+
+    private setExecutorId(executorId: string) {
+        if (process.send) {
+            process.send({ messageType: "SET_EXECUTOR_ID", executorId } as ExecutorMessage);
         } else {
             console.error('process.send is undefined. IPC channel might not be set up.');
         }
@@ -66,11 +76,11 @@ export class HyrexExecutor {
         process.on('SIGINT', handleShutdown);
         process.on('SIGTERM', handleShutdown);
 
-        await this.dispatcher.registerExecutor({ queue, executorId: this.workerId, executorName: this.name });
+        await this.dispatcher.registerExecutor({ queue, executorId: this.executorId, executorName: this.name });
 
         while (!shouldStop) {
             // Process
-            const tasks = await this.dispatcher.dequeue({ numTasks: 1, executorId: this.workerId, queue })
+            const tasks = await this.dispatcher.dequeue({ numTasks: 1, executorId: this.executorId, queue })
             if (tasks.length === 0) {
                 console.log("No tasks found... going to sleep", new Date())
                 await this.backoff.wait()
@@ -96,7 +106,7 @@ export class HyrexExecutor {
 
         }
 
-        await this.dispatcher.disconnectExecutor({ executorId: this.workerId })
+        await this.dispatcher.disconnectExecutor({ executorId: this.executorId })
         console.log(`Worker ${this.name} stopped.`)
     }
 }

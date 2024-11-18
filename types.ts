@@ -36,4 +36,12 @@ export type CancelResultMessage = {
     }
 }
 
-export type ListenerResultMessage = TaskHeartbeatResultMessage | CancelResultMessage | ExecutorHeartbeatResultMessage
+export type BatchHeartbeatMessage = {
+    messageType: "BATCH_HEARTBEAT",
+    body: {
+        taskHeartbeatMessages: TaskHeartbeatResultMessage[]
+        executorHeartbeatMessages: ExecutorHeartbeatResultMessage[]
+    }
+}
+
+export type ListenerResultMessage = TaskHeartbeatResultMessage | CancelResultMessage | ExecutorHeartbeatResultMessage | BatchHeartbeatMessage

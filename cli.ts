@@ -7,7 +7,14 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { COMMANDS } from "./commands";
 import { sleep } from "./utils";
-import { ExecutorMessage, ListenerMessage, ListenerResultMessage } from "./types";
+import {
+    BatchHeartbeatMessage,
+    ExecutorHeartbeatResultMessage,
+    ExecutorMessage,
+    ListenerMessage,
+    ListenerResultMessage,
+    TaskHeartbeatResultMessage
+} from "./types";
 
 // Settings
 const SHUTDOWN_TIMEOUT = 25_000
@@ -17,7 +24,7 @@ let isShuttingDown = false;
 const taskIdToProcess = new Map<string, ChildProcess>();
 const executorIdToProcess = new Map<string, ChildProcess>();
 const childProcesses: ChildProcess[] = [];
-const listenerProcesses: ChildProcess[] = [];
+const adminProcesses: ChildProcess[] = [];
 
 const argv = yargs(hideBin(process.argv))
     .command(
@@ -45,24 +52,55 @@ const argv = yargs(hideBin(process.argv))
                 spawnExectuor(scriptPath, i + 1);
             }
 
-            spawnListener(scriptPath)
+            spawnAdmin(scriptPath)
 
-            childProcesses[0].killed
-
-            while (!isShuttingDown) {
+            const printStatus = () => {
                 console.log("/---Child Processes----\\")
-                console.log("Child Processes", childProcesses.map(cp => ({pid: cp.pid, killed: cp.killed})))
-                console
+                console.log("Child Processes", childProcesses.map(cp => ({ pid: cp.pid, killed: cp.killed })))
                 // console.log("taskIdsToExecutor", Object.values(taskIdToWorker).map(p => p.pid))
                 taskIdToProcess.forEach((worker, taskId) => {
-                    console.log({taskId, pid: worker.pid})
+                    console.log({ taskId, pid: worker.pid })
                 });
 
                 executorIdToProcess.forEach((worker, executorId) => {
-                    console.log({executorId, pid: worker.pid})
+                    console.log({ executorId, pid: worker.pid })
                 });
                 console.log("\\-------------------------/")
+            }
+
+            while (!isShuttingDown) {
                 await sleep(3_000)
+                const aliveAdminProcesses = adminProcesses.filter(p => !p.killed)
+                if (aliveAdminProcesses.length === 0) {
+                    continue
+                } else if (aliveAdminProcesses.length > 1) {
+                    throw new Error("Too many admin processes")
+                } else { // Exactly 1 aliveAdminProcesses
+                    const adminProcess = aliveAdminProcesses[0]
+                    const timestamp = (new Date()).toUTCString()
+                    const taskHeartbeatMessages: TaskHeartbeatResultMessage[] = Object.keys(taskIdToProcess).map(taskId => ({
+                        messageType: "TASK_HEARTBEAT",
+                        body: {
+                            taskId,
+                            status: "RUNNING",
+                            timestamp
+                        }
+                    }))
+
+                    const executorHeartbeatMessages = Object.keys(executorIdToProcess).map((executorIds) => ({
+                        messageType: "EXECUTOR_HEARTBEAT",
+                    } as ExecutorHeartbeatResultMessage))
+
+                    // adminProcess.send({
+                    //     messageType: "BATCH_HEARTBEAT",
+                    //     body: {
+                    //         taskHeartbeatMessages,
+                    //         executorIds: Object.keys(executorIdToProcess),
+                    //     }
+                    // } as BatchHeartbeatMessage)
+                }
+
+
             }
         }
     )
@@ -150,8 +188,8 @@ function spawnExectuor(scriptPath: string, executorNumber: number) {
     });
 }
 
-function spawnListener(scriptPath: string) {
-    const listener: ChildProcess = spawn('ts-node', [scriptPath], {
+function spawnAdmin(scriptPath: string) {
+    const adminProcess: ChildProcess = spawn('ts-node', [scriptPath], {
         env: {
             ...process.env,
             [COMMANDS.RUN_WORKER_LISTENER]: "1",
@@ -159,14 +197,14 @@ function spawnListener(scriptPath: string) {
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     });
 
-    childProcesses.push(listener);
-    listenerProcesses.push(listener)
+    childProcesses.push(adminProcess);
+    adminProcesses.push(adminProcess)
 
-    listener.on('message', (message) => {
-        handleListenerMessage(listener, message as ListenerMessage);
+    adminProcess.on('message', (message) => {
+        handleAdminMessage(adminProcess, message as ListenerMessage);
     });
 
-    listener.on('exit', (code, signal) => {
+    adminProcess.on('exit', (code, signal) => {
         if (code !== null) {
             console.log(`Listener exited with code ${code}`);
         } else if (signal !== null) {
@@ -178,11 +216,11 @@ function spawnListener(scriptPath: string) {
         // Optionally, respawn the worker if it exited unexpectedly
         if (!isShuttingDown) {
             console.log(`Respawning Listener...`);
-            spawnListener(scriptPath);
+            spawnAdmin(scriptPath);
         }
     });
 
-    listener.on('error', (err) => {
+    adminProcess.on('error', (err) => {
         console.error(`Listener encountered an error:`, err);
     });
 
@@ -213,7 +251,7 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage)
     }
 }
 
-function handleListenerMessage(listener: ChildProcess, message: ListenerMessage) {
+function handleAdminMessage(listener: ChildProcess, message: ListenerMessage) {
     if (message && message.messageType === "TASK_CANCEL") {
         console.log("Killing task...", message.taskId)
         killTask(message.taskId)

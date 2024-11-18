@@ -12,7 +12,7 @@ import { HyrexExecutor } from "./worker/HyrexExecutor";
 import { HyrexRegistry } from "./HyrexRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
-import { HyrexListener } from "./HyrexListener";
+import { HyrexAdmin } from "./HyrexAdmin";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -76,7 +76,7 @@ export class HyrexWorker {
         } else if (process.env[COMMANDS.RUN_WORKER]) {
             await this.runWorker()
         } else if (process.env[COMMANDS.RUN_WORKER_LISTENER]) {
-            await this.runWorkerListener()
+            await this.runWorkerAdmin()
         }
     }
 
@@ -106,12 +106,12 @@ export class HyrexWorker {
         executor.runExecutor()
     }
 
-    async runWorkerListener() {
-        const listener = new HyrexListener({
+    async runWorkerAdmin() {
+        const listener = new HyrexAdmin({
             dispatcher: this.dispatcher
         })
 
-        listener.runListener()
+        listener.runAdmin()
     }
 
     async initDB() {

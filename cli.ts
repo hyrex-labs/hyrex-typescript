@@ -40,11 +40,17 @@ const argv = yargs(hideBin(process.argv))
                     describe: 'Number of worker processes to spawn',
                     type: 'number',
                     default: 1,
-                });
+                })
+                .option('lifespan', {
+                    describe: 'Lifespan of the worker in seconds',
+                    type: 'number',
+                    alias: 'l'
+                })
         },
         async (args) => {
             const scriptPath = path.resolve(process.cwd(), args.script as string);
             const count = args.count as number;
+            const lifespan = args.lifespan as number | undefined;
 
             console.log(`Spawning ${count} worker processes for script: ${scriptPath}`);
 
@@ -53,6 +59,15 @@ const argv = yargs(hideBin(process.argv))
             }
 
             spawnAdmin(scriptPath)
+
+            if (lifespan) {
+                console.log(`Process will shutdown after ${lifespan} seconds`);
+                setTimeout(() => {
+                    console.log(`Process reached lifespan limit of ${lifespan} seconds`);
+                    console.log('Initiating complete shutdown...');
+                    shutdown(); // Use the existing shutdown function
+                }, lifespan * 1000); // Convert seconds to milliseconds
+            }
 
             const printStatus = () => {
                 console.log("/---Child Processes----\\")

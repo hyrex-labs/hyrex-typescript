@@ -14,7 +14,7 @@
     "release": "npm run build && npm publish",
     "worker": "ts-node cli.ts run-worker",
     "workerjs": "node dist/cli.js run-worker",
-    "init-db": "ts-node cli.ts init-db"
+    "init-db": "node dist/cli.js init-db"
   },
   "dependencies": {
     "@types/pg": "^8.11.10",

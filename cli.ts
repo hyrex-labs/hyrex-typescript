@@ -46,16 +46,23 @@ const argv = yargs(hideBin(process.argv))
                     type: 'number',
                     alias: 'l'
                 })
+                .option('exit-on-sleep', {
+                    describe: 'If the worker should exit on sleep',
+                    type: 'boolean',
+                    alias: 'eos',
+                    default: false
+                })
         },
         async (args) => {
             const scriptPath = path.resolve(process.cwd(), args.script as string);
             const count = args.count as number;
             const lifespan = args.lifespan as number | undefined;
+            const exitOnSleep = args.exitOnSleep as boolean;
 
             console.log(`Spawning ${count} worker processes for script: ${scriptPath}`);
 
             for (let i = 0; i < count; i++) {
-                spawnExectuor(scriptPath, i + 1);
+                spawnExectuor(scriptPath, exitOnSleep, i + 1);
             }
 
             spawnAdmin(scriptPath)
@@ -163,14 +170,16 @@ const argv = yargs(hideBin(process.argv))
  * @param scriptPath Absolute path to the user script.
  * @param executorNumber Identifier for the worker.
  */
-function spawnExectuor(scriptPath: string, executorNumber: number) {
+function spawnExectuor(scriptPath: string, exitOnSleep: boolean, executorNumber: number) {
     // const workerScriptPath = path.resolve(__dirname, './worker/worker-runner.ts');
-    const executor: ChildProcess = spawn('ts-node', [scriptPath], {
-        env: {
+    const workerEnv = {
             ...process.env,
             [COMMANDS.RUN_WORKER]: "1",
             HYREX_WORKER_NAME: `E${executorNumber}`,
-        },
+        }
+
+    const executor: ChildProcess = spawn('ts-node', [scriptPath], {
+        env: workerEnv,
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     });
 
@@ -179,7 +188,7 @@ function spawnExectuor(scriptPath: string, executorNumber: number) {
     console.log(`Executor ${executorNumber} started with PID: ${executor.pid}`);
 
     executor.on('message', (message) => {
-        handleExecutorMessage(executor, message as ExecutorMessage);
+        handleExecutorMessage(executor, message as ExecutorMessage, exitOnSleep);
     });
 
     executor.on('exit', (code, signal) => {
@@ -194,7 +203,7 @@ function spawnExectuor(scriptPath: string, executorNumber: number) {
         // Optionally, respawn the executor if it exited unexpectedly
         if (!isShuttingDown) {
             console.log(`Respawning Executor ${executorNumber}...`);
-            spawnExectuor(scriptPath, executorNumber);
+            spawnExectuor(scriptPath, exitOnSleep, executorNumber);
         }
     });
 
@@ -241,7 +250,7 @@ function spawnAdmin(scriptPath: string) {
 
 }
 
-function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage) {
+function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage, exitOnSleep: boolean) {
     if (message.messageType === "UPDATE_TASK_ID") {
         const { taskId, name } = message;
         console.log(`${name} (Worker PID ${executor.pid}) is working on Task ID ${taskId}`);
@@ -258,6 +267,12 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage)
             console.log("Setting taskId", taskId)
             taskIdToProcess.set(taskId, executor);
         }
+
+        if (exitOnSleep && taskIdToProcess.size === 0) {
+            console.log("Doing exit on sleep...")
+            shutdown()
+        }
+
     } else if (message.messageType === "SET_EXECUTOR_ID") {
         const { executorId } = message;
         executorIdToProcess.set(executorId, executor)

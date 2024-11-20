@@ -26,14 +26,12 @@ const choices: sendTaskArgs[] = [
     const sendSubmitFraud = hy.task(submitFraudToPersona)
 
     if (process.argv.includes('--submit')) {
-        for (const i of range(5)) {
+        for (const i of range(2)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 
-
             for (const i of range(8)) {
                 const randomElement: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
-
                 sendSubmitFraud(...randomElement)
             }
             console.timeEnd("Submission time");

@@ -3,7 +3,6 @@ import { UUID } from "./utils"
 
 type ExecutorUpdateTaskIdMessage = { messageType: "UPDATE_TASK_ID", taskId: string, name: string }
 type ExecutorSetIdMessage = { messageType: "SET_EXECUTOR_ID", executorId: string }
-
 export type ExecutorMessage = ExecutorUpdateTaskIdMessage | ExecutorSetIdMessage
 
 export type ListenerMessage = {

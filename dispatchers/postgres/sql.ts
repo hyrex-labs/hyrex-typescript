@@ -20,7 +20,7 @@ primary key,
     status          statusenum not null,
     attempt_number  smallint   not null,
     scheduled_start timestamp with time zone,
-    worker_id       uuid,
+    executor_id       uuid,
     queued          timestamp with time zone,
     started         timestamp with time zone,
     finished        timestamp with time zone,
@@ -82,7 +82,7 @@ FOR UPDATE SKIP LOCKED
 LIMIT 1
 )
 UPDATE hyrextask
-SET status = 'running', started = CURRENT_TIMESTAMP, worker_id = $2
+SET status = 'running', started = CURRENT_TIMESTAMP, executor_id = $2
 FROM next_task
 WHERE hyrextask.id = next_task.id
 RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;
@@ -98,7 +98,7 @@ FOR UPDATE SKIP LOCKED
 LIMIT 1
 )
 UPDATE hyrextask
-SET status = 'running', started = CURRENT_TIMESTAMP, worker_id = $1
+SET status = 'running', started = CURRENT_TIMESTAMP, executor_id = $1
 FROM next_task
 WHERE hyrextask.id = next_task.id
 RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;

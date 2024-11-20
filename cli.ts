@@ -377,7 +377,7 @@ const shutdown = () => {
         .then(() => {
             clearTimeout(timeoutHandle); // Clear the timeout if all workers have exited
             console.log("All workers have exited. Shutting down parent process.");
-            process.exit();
+            process.exit(0);
         })
         .catch((err) => {
             console.error("Error while waiting for workers to exit:", err);

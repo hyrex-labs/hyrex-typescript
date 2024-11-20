@@ -250,6 +250,8 @@ function spawnAdmin(scriptPath: string) {
 
 }
 
+let shutdownTimeout: NodeJS.Timeout | null = null;
+
 function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage, exitOnSleep: boolean) {
     if (message.messageType === "UPDATE_TASK_ID") {
         const { taskId, name } = message;
@@ -268,9 +270,21 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage,
             taskIdToProcess.set(taskId, executor);
         }
 
+        // Clear any pending shutdown if tasks are still active
+        if (shutdownTimeout && taskIdToProcess.size > 0) {
+            clearTimeout(shutdownTimeout);
+            shutdownTimeout = null;
+            console.log("Pending shutdown canceled because tasks are active.");
+        }
+
         if (exitOnSleep && taskIdToProcess.size === 0) {
-            console.log("Doing exit on sleep...")
-            shutdown()
+            if (!shutdownTimeout) {
+                console.log("No active task IDs, scheduling shutdown in 10 seconds...");
+                shutdownTimeout = setTimeout(() => {
+                    console.log("No task IDs received. Proceeding with shutdown.");
+                    shutdown();
+                }, 10000); // 10 seconds
+            }
         }
 
     } else if (message.messageType === "SET_EXECUTOR_ID") {

@@ -1,6 +1,6 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
 import { UUID, uuidSchema } from "../../utils";
-import { Client, Notification, Pool } from 'pg';
+import { Notification, Pool } from 'pg';
 import * as sql from "./sql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
@@ -10,16 +10,12 @@ type HyrexPostgresDispatcherConfig = {
     conn: string
 }
 
-
 export class PostgresDispatcher implements HyrexDispatcher {
-    private connectionString: string
     private pool: Pool
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
-        this.connectionString = config.conn
         this.pool = new Pool({
-            connectionString: this.connectionString,
-            // Optional additional config
+            connectionString: config.conn,
             max: 20,
             idleTimeoutMillis: 30000,
         })
@@ -28,16 +24,15 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async initPostgresDB() {
-        const client = new Client({ connectionString: this.connectionString })
+        const client = await this.pool.connect()
         try {
-            await client.connect();
             await client.query(sql.CreateHyrexTaskTable);
             await client.query(sql.CreateExecutorTable);
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error(error);
         } finally {
-            await client.end();
+            client.release();
         }
     }
 
@@ -70,12 +65,11 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 console.error("Error enqueuing tasks:", error);
                 throw error;
             } finally {
-                await client.release();
+                client.release();
             }
         }
         throw new Error('Enqueue failed and max retries reached')
     }
-
 
     async dequeue(
         { numTasks, executorId, queue }: { numTasks: number, executorId: string, queue: string }
@@ -85,10 +79,9 @@ export class PostgresDispatcher implements HyrexDispatcher {
             throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
         }
 
-        const client = new Client({ connectionString: this.connectionString })
+        const client = await this.pool.connect()
         const dequeuedTasks: SerializedTask[] = []
         try {
-            await client.connect();
             let result
             if (queue === "*") {
                 result = await client.query<SerializedTask>(sql.FETCH_TASK_FROM_ANY_QUEUE, [executorId])
@@ -98,40 +91,36 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
             dequeuedTasks.push(...result.rows);
             return dequeuedTasks
-
         } finally {
-            await client.end();
+            client.release();
         }
     }
 
     async markTaskFailed(taskId: UUID): Promise<void> {
-        const client = new Client({ connectionString: this.connectionString })
+        const client = await this.pool.connect()
         try {
-            await client.connect();
             await client.query(sql.MARK_TASK_FAILED, [taskId])
         } finally {
-            await client.end();
+            client.release();
         }
     }
 
     async markTaskSuccess(taskId: UUID): Promise<void> {
-        const client = new Client({ connectionString: this.connectionString })
+        const client = await this.pool.connect()
         try {
-            await client.connect();
             await client.query(sql.MARK_TASK_SUCCESS, [taskId])
         } finally {
-            await client.end();
+            client.release();
         }
     }
 
     async markTaskCanceled(taskId: UUID): Promise<boolean> {
-        const client = new Client({ connectionString: this.connectionString })
+        const client = await this.pool.connect()
         try {
-            await client.connect();
             const result = await client.query(sql.MARK_TASK_CANCELED, [taskId])
             return result.rows.length > 0
         } finally {
-            await client.end();
+            client.release();
         }
     }
 
@@ -148,38 +137,30 @@ export class PostgresDispatcher implements HyrexDispatcher {
         executorId: string,
         executorName: string
     }): Promise<void> {
-        const client = new Client({ connectionString: this.connectionString })
+        const client = await this.pool.connect()
         try {
-            await client.connect();
             await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, queue])
         } finally {
-            await client.end();
+            client.release();
         }
     }
 
     async disconnectExecutor({ executorId }: { executorId: string }): Promise<void> {
-        const client = new Client({ connectionString: this.connectionString })
+        const client = await this.pool.connect()
         try {
-            await client.connect();
             await client.query(sql.DISCONNECT_EXECUTOR, [executorId])
         } finally {
-            await client.end();
+            client.release();
         }
     }
 
-    /*
-    Listens for cancellation and heartbeat requests from server.
-     */
     async listen(hyrexListener: DispatcherListenerCallbacks) {
         console.log("Starting listener!")
         const TASK_HEARTBEAT = "TASK_HEARTBEAT"
         const TASK_CANCEL = "TASK_CANCEL"
-        const client = new Client({ connectionString: this.connectionString })
+        // For the listener, we need a dedicated client connection that stays open
+        const client = await this.pool.connect()
         try {
-
-            await client.connect();
-
-
             await client.query(`LISTEN "${TASK_HEARTBEAT}"`);
             await client.query(`LISTEN "${TASK_CANCEL}"`);
 
@@ -203,9 +184,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 }
             })
         } catch (error) {
+            client.release();
             throw error;
-        } finally {
-            // await client.end()
         }
+        // Note: We don't release the client in the finally block for the listener
+        // as it needs to maintain an open connection
     }
 }

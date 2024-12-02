@@ -42,32 +42,38 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
-        const client = await this.pool.connect()
-        try {
-            await client.query('BEGIN');
+        const maxRetries = 3;
+        const retryDelay = 1000; // 1 second
 
-            for (const task of serializedTasks) {
-                const { id, task_name, args, queue, max_retries, priority } = task;
-                await client.query(sql.ENQUEUE_TASKS, [
-                    id,
-                    id,
-                    task_name,
-                    args,
-                    queue,
-                    max_retries,
-                    priority,
-                ]);
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            const client = await this.pool.connect()
+            try {
+                await client.query('BEGIN');
+
+                for (const task of serializedTasks) {
+                    const { id, task_name, args, queue, max_retries, priority } = task;
+                    await client.query(sql.ENQUEUE_TASKS, [
+                        id,
+                        id,
+                        task_name,
+                        args,
+                        queue,
+                        max_retries,
+                        priority,
+                    ]);
+                }
+
+                await client.query('COMMIT');
+                return serializedTasks.map(st => st.id);
+            } catch (error) {
+                await client.query('ROLLBACK');
+                console.error("Error enqueuing tasks:", error);
+                throw error;
+            } finally {
+                await client.release();
             }
-
-            await client.query('COMMIT');
-            return serializedTasks.map(st => st.id);
-        } catch (error) {
-            await client.query('ROLLBACK');
-            console.error("Error enqueuing tasks:", error);
-            throw error;
-        } finally {
-            await client.release();
         }
+        throw new Error('Enqueue failed and max retries reached')
     }
 
 

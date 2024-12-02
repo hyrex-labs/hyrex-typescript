@@ -1,6 +1,6 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
 import { UUID, uuidSchema } from "../../utils";
-import { Client, Notification } from 'pg';
+import { Client, Notification, Pool } from 'pg';
 import * as sql from "./sql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
@@ -13,9 +13,16 @@ type HyrexPostgresDispatcherConfig = {
 
 export class PostgresDispatcher implements HyrexDispatcher {
     private connectionString: string
+    private pool: Pool
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
         this.connectionString = config.conn
+        this.pool = new Pool({
+            connectionString: this.connectionString,
+            // Optional additional config
+            max: 20,
+            idleTimeoutMillis: 30000,
+        })
     }
 
     async initPostgresDB() {
@@ -33,9 +40,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
-        const client = new Client({ connectionString: this.connectionString })
+        const client = await this.pool.connect()
         try {
-            await client.connect()
             await client.query('BEGIN');
 
             for (const task of serializedTasks) {
@@ -58,7 +64,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
             console.error("Error enqueuing tasks:", error);
             throw error;
         } finally {
-            await client.end();
+            await client.release();
         }
     }
 

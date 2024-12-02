@@ -23,6 +23,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
             max: 20,
             idleTimeoutMillis: 30000,
         })
+
+        console.log("Successfully created postgres pool!")
     }
 
     async initPostgresDB() {

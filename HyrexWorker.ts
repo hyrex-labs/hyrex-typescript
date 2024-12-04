@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import {
-    CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, sleep, range, InternalTaskRegistry
+    UUID,
+    JsonSerializable,
+    JsonType,
+    sleep,
+    range,
+    InternalTaskRegistry,
+    HyrexTaskFunction,
+    HyrexTaskConfig
 } from "./utils";
 import {
     SerializedTask,
@@ -83,7 +90,8 @@ export class HyrexWorker {
     addRegistry(taskRegistry: HyrexRegistry) {
         console.log("Calling add Registry!")
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
-            this.appTaskRegistry.addFunction(key, taskRegistry.internalTaskRegistry[key])
+            const { taskFunc, taskConfig } = taskRegistry.internalTaskRegistry[key]
+            this.appTaskRegistry.addFunction(key, taskFunc, taskConfig)
         }
     }
 
@@ -129,13 +137,13 @@ export class HyrexWorker {
         }
     }
 
-    private addFunctionToRegistry(taskFunction: Callable) {
+    public addFunctionToRegistry(taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig = {}) {
         const stringValidation = stringSchema.safeParse(taskFunction.name)
         if (!stringValidation) {
             throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
         }
 
-        this.appTaskRegistry.addFunction(taskFunction.name, taskFunction)
+        this.appTaskRegistry.addFunction(taskFunction.name, taskFunction, taskConfig)
     }
 
 }

@@ -1,7 +1,11 @@
-import { range, sleep } from "../utils";
+import { HyrexTaskFunction, JsonType, range, sleep } from "../utils";
 import { HyrexRegistry } from "../HyrexRegistry";
 import 'dotenv/config';
 import { TaskConfig } from "../dispatchers/HyrexDispatcher";
+
+const initPersonaConnection = async ({}) => {
+    console.log(`INIT PERSONA CONNECTION`)
+}
 
 
 export const hy = new HyrexRegistry()
@@ -10,8 +14,28 @@ const submitFraudToPersona = async ({ email }: { email: string }) => {
     console.log(`Submitted fraud info to persona for ${email}`)
     await sleep(2_000)
     // Note it could take 48 hours for persona to get back
-    return true
+    return {"result": true}
 }
+
+const restartDatabase = async () => {
+    console.log(`Restart Database`)
+    return {"status": "ok"}
+}
+
+const sayHello = async () => {
+    console.log(`Hello!`)
+}
+
+
+const sendSubmitFraud = hy.task(submitFraudToPersona)
+const sendRestartDatabase = hy.task(restartDatabase)
+const sendSayHello = hy.task(sayHello)
+
+sendRestartDatabase()
+sayHello()
+
+// TODO we should enforce the type on send
+// sendSubmitFraud({name: "mark"}) // this is bad
 
 type sendTaskArgs = [{ email: string }, TaskConfig]
 

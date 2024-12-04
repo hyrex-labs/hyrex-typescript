@@ -1,5 +1,5 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
-import { UUID, uuidSchema } from "../../utils";
+import { JsonType, UUID, uuidSchema } from "../../utils";
 import { Notification, Pool } from 'pg';
 import * as sql from "./sql"
 import { string } from "zod";
@@ -28,6 +28,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         try {
             await client.query(sql.CreateHyrexTaskTable);
             await client.query(sql.CreateExecutorTable);
+            await client.query(sql.CreateResultsTable);
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error(error);
@@ -189,5 +190,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
         // Note: We don't release the client in the finally block for the listener
         // as it needs to maintain an open connection
+    }
+
+    async saveResult(taskId: UUID, result: JsonType): Promise<boolean> {
+        console.log("Result would be saved here...")
+        return true
     }
 }

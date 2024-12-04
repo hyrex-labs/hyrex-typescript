@@ -1,6 +1,6 @@
 import {
-    CallableSchema, Callable, UUID, JsonSerializable, JsonSerializableObject, sleep, range, InternalTaskRegistry,
-    CallableTaskWrapper
+    UUID, JsonSerializable, JsonType, sleep, range, InternalTaskRegistry,
+    CallableTaskWrapper, HyrexTaskConfig, HyrexTaskFunction, TaskRegistration
 } from "./utils"
 import { HyrexDispatcher, TaskConfig } from "./dispatchers/HyrexDispatcher";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
@@ -28,41 +28,56 @@ export class HyrexRegistry {
         console.log("Task Registry:", Object.entries(this.internalTaskRegistry));
     }
 
-    task<U extends JsonSerializableObject>(taskFunction: (arg: U) => any): CallableTaskWrapper<U> {
+
+    task<U extends JsonType>(taskFunction: HyrexTaskFunction<U>, taskConfig: HyrexTaskConfig = {}): CallableTaskWrapper<U> {
         const wrapper = new TaskWrapper(this.dispatcher, taskFunction);
 
-        const callableFunction = (context: U, config?: TaskConfig) => {
-            return wrapper.call(context, config);
-        };
+        let callableFunction;
 
-        this.addFunctionToRegistry(taskFunction as Callable);
+        if (taskFunction.length === 0) {
+            callableFunction = (config?: TaskConfig) => {
+                return wrapper.call({}, config);
+            };
+        } else {
+            callableFunction = (context: U, config?: TaskConfig) => {
+                return wrapper.call(context, config);
+            }
+        }
+
+
+        this.addFunctionToRegistry(taskFunction as HyrexTaskFunction, taskConfig);
 
         const combined = Object.assign(callableFunction, wrapper);
 
         return combined as CallableTaskWrapper<U>;
     }
 
-    private addFunctionToRegistry(taskFunction: Callable) {
+    private addFunctionToRegistry(taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
         const stringValidation = z.string().safeParse(taskFunction.name)
         if (!stringValidation) {
             throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
         }
 
-        this.addFunction(taskFunction.name, taskFunction)
+        this.addFunction(taskFunction.name, taskFunction, taskConfig)
     }
 
-    addFunction(key: string, value: Callable) {
-        if (this.internalTaskRegistry[key]) {
-            throw new Error(`Function with key "${key}" is already in the registry.`);
+    addFunction(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+        const taskRegistration = {
+            taskFunc,
+            taskConfig,
         }
-        this.internalTaskRegistry[key] = value
+
+        if (this.internalTaskRegistry[taskName]) {
+            throw new Error(`Function with name "${taskName}" is already in the registry.`);
+        }
+        this.internalTaskRegistry[taskName] = taskRegistration
     }
 
-    getFunction(key: string): Callable {
-        const func = this.internalTaskRegistry[key]
-        if (!func) {
+    getFunction(key: string): HyrexTaskFunction {
+        const taskRegistration = this.internalTaskRegistry[key]
+        if (!taskRegistration) {
             throw new Error(`Function with key "${key}" is not in the registry.`);
         }
-        return func
+        return taskRegistration.taskFunc
     }
 }

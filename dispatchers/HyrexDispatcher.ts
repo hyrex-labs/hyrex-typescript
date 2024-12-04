@@ -1,4 +1,4 @@
-import { UUID, JsonSerializableObject } from "../utils";
+import { UUID, JsonType } from "../utils";
 
 import { z } from "zod";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../types";
@@ -16,7 +16,7 @@ export type TaskConfig = z.infer<typeof TaskConfigSchema>
 export type SerializedTaskRequest = {
     id: UUID,
     task_name: string,
-    args: JsonSerializableObject,
+    args: JsonType,
     queue: string,
     max_retries: number,
     priority: number,
@@ -25,7 +25,7 @@ export type SerializedTaskRequest = {
 export type SerializedTask = {
     id: string
     task_name: string,
-    args: JsonSerializableObject,
+    args: JsonType,
 }
 
 export type DispatcherListenerCallbacks = {
@@ -39,6 +39,7 @@ export interface HyrexDispatcher {
     markTaskSuccess(taskId: UUID): Promise<void>
     markTaskFailed(taskId: UUID): Promise<void>
     markTaskCanceled(taskId: UUID): Promise<boolean>
+    saveResult(taskId: UUID, result: JsonType): Promise<boolean>
     updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void>
     updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
     registerExecutor({ queue, executorId, executorName }: { queue: string, executorId: string, executorName: string }): Promise<void>

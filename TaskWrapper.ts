@@ -1,4 +1,4 @@
-import { JsonSerializable, JsonSerializableObject, UUID } from "./utils";
+import { HyrexTaskFunction, JsonSerializable, JsonType, UUID } from "./utils";
 import { HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispatcher";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -13,8 +13,13 @@ export const TaskConfigSchema = z.object({
 
 export type TaskConfig = Partial<z.infer<typeof TaskConfigSchema>>
 
-export class TaskWrapper<U extends JsonSerializableObject> {
-    constructor(private dispatcher: HyrexDispatcher, private taskFunction: (arg: U) => any) {
+export class TaskWrapper<U extends JsonType> {
+    private taskFunction: HyrexTaskFunction
+    private dispatcher: HyrexDispatcher
+
+    constructor(dispatcher: HyrexDispatcher, taskFunction: HyrexTaskFunction) {
+        this.dispatcher = dispatcher
+        this.taskFunction = taskFunction as HyrexTaskFunction
     }
 
     async call(context: U, config: TaskConfig = {}): Promise<UUID> {

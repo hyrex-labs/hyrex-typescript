@@ -1,10 +1,8 @@
 import { HyrexRegistry } from "../HyrexRegistry";
 import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher";
-import { sleep, UUID } from "../utils";
+import { HyrexTaskFunction, JsonType, sleep, UUID } from "../utils";
 import { ExpBackoff } from "./ExpBackoff";
 import { randomUUID } from "node:crypto";
-import { Client } from "pg";
-import * as sql from "../dispatchers/postgres/sql";
 import { ExecutorMessage } from "../types";
 
 
@@ -38,13 +36,16 @@ export class HyrexExecutor {
         this.setExecutorId(this.executorId)
     }
 
-    private async processTask(task: SerializedTask): Promise<void> {
-        const { id: taskId, task_name, args } = task
-        const func = this.taskRegistry.getFunction(task_name)
-        // Set task id
-        const result = await func(args)
-        // unset
-        return
+    private async processTask(task: SerializedTask): Promise<JsonType | undefined> {
+        const { task_name, args } = task
+        const func: HyrexTaskFunction = this.taskRegistry.getFunction(task_name)
+        if (args) {
+            const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
+            return await withArgsFunc(args)
+        } else {
+            const noArgsFunc = func as (() => JsonType | undefined)
+            return await noArgsFunc()
+        }
     }
 
     private updateTaskId(taskId: string | null) {
@@ -93,7 +94,10 @@ export class HyrexExecutor {
             try {
                 console.log(`Starting to process task ${task.id}`)
                 this.updateTaskId(task.id)
-                await this.processTask(task)
+                const result = await this.processTask(task)
+                if (result) {
+                    await this.dispatcher.saveResult(task.id, result)
+                }
                 await this.dispatcher.markTaskSuccess(task.id)
                 console.log(`Successfully processed ${task.id}`)
                 this.updateTaskId(null)

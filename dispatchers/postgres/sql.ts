@@ -7,7 +7,7 @@ CREATE TYPE public.statusenum AS ENUM ('success', 'failed', 'up_for_retry', 'run
 END IF;
 END $$;
 
-create table if not exists public.hyrextask
+create table if not exists hyrextask
 (
     id              uuid       not null
 primary key,
@@ -52,6 +52,15 @@ create table if not exists hyrexexecutor
     started timestamp with time zone,
     stopped timestamp with time zone,
     last_heartbeat timestamp with time zone
+);
+`
+
+export const CreateResultsTable = `
+create table if not exists taskresults
+(
+    task_id     uuid primary key references public.hyrextask(id) on delete cascade,
+    result      json,
+    created_at  timestamp with time zone default current_timestamp
 );
 `
 

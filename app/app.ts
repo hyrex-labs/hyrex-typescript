@@ -27,7 +27,7 @@ const sayHello = async () => {
 }
 
 
-const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
+// const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
 const restartDatabaseTask = hy.task(restartDatabase)
 const sayHelloTask = hy.task(sayHello)
 
@@ -51,7 +51,7 @@ const choices: sendTaskArgs[] = [
 ];
 
 (async () => {
-    const sendSubmitFraud = hy.task(submitFraudToPersona)
+    const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
 
     if (process.argv.includes('--submit')) {
         for (const i of range(2)) {

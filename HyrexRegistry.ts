@@ -39,7 +39,7 @@ export class HyrexRegistry {
     }
 
 
-    task<U extends JsonType>(taskFunction: HyrexTaskFunction<U>, taskConfig?: HyrexTaskConfigInput): TaskWrapper<U> {
+    task<U extends JsonType>(taskFunction: HyrexTaskFunction<U>, taskConfig: HyrexTaskConfigInput = {}): TaskWrapper<U> {
         // const wrapper = new TaskWrapper(this.dispatcher, taskFunction, taskConfig);
 
         // let callableFunction;

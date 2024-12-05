@@ -27,12 +27,16 @@ const sayHello = async () => {
 }
 
 
-const sendSubmitFraud = hy.task(submitFraudToPersona)
-const sendRestartDatabase = hy.task(restartDatabase)
-const sendSayHello = hy.task(sayHello)
+const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
+const restartDatabaseTask = hy.task(restartDatabase)
+const sayHelloTask = hy.task(sayHello)
 
-sendRestartDatabase()
-sayHello()
+// submitFraudToPersonaTask.withConfig({
+//         queue: "low-priority",
+//         maxRetries: 3
+//     }).send({ email: "mark" });
+//
+// sayHello()
 
 // TODO we should enforce the type on send
 // sendSubmitFraud({name: "mark"}) // this is bad
@@ -55,8 +59,8 @@ const choices: sendTaskArgs[] = [
             console.time("Submission time");
 
             for (const i of range(8)) {
-                const randomElement: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
-                sendSubmitFraud(...randomElement)
+                const [args, taskConfig]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
+                submitFraudToPersonaTask.withConfig(taskConfig).send(args)
             }
             console.timeEnd("Submission time");
             await sleep(3_000)

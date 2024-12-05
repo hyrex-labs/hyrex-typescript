@@ -78,10 +78,15 @@ export const uuidSchema = z.string().uuid();
 // }
 
 
-const HyrexTaskConfigSchema = z.object({
-    onInit: z.function().args(z.any()).returns(z.any()).optional()
+export const HyrexTaskConfigSchema = z.object({
+    onInit: z.function().args(z.any()).returns(z.any()).optional(),
+    queue: z.string().default("default"),
+    priority: z.number().min(1).max(10).default(3),
+    maxRetries: z.number().min(0).max(10).default(3),
+    cron: z.string().optional(),
 });
 
+export type HyrexTaskConfigInput = z.input<typeof HyrexTaskConfigSchema>
 export type HyrexTaskConfig = z.infer<typeof HyrexTaskConfigSchema>;
 
 export const TaskRegistrationSchema = z.object({ taskFunc: HyrexTaskFunctionSchema, taskConfig: HyrexTaskConfigSchema })

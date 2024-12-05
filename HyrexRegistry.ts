@@ -1,18 +1,12 @@
 import {
-    UUID,
-    JsonSerializable,
     JsonType,
-    sleep,
-    range,
     InternalTaskRegistry,
-    CallableTaskWrapper,
     HyrexTaskConfig,
     HyrexTaskConfigSchema,
     HyrexTaskFunction,
-    TaskRegistration,
     HyrexTaskConfigInput
 } from "./utils"
-import { HyrexDispatcher, TaskConfig } from "./dispatchers/HyrexDispatcher";
+import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { TaskWrapper } from "./TaskWrapper";
 import { z } from "zod";
@@ -40,27 +34,9 @@ export class HyrexRegistry {
 
 
     task<U extends JsonType>(taskFunction: HyrexTaskFunction<U>, taskConfig: HyrexTaskConfigInput = {}): TaskWrapper<U> {
-        // const wrapper = new TaskWrapper(this.dispatcher, taskFunction, taskConfig);
-
-        // let callableFunction;
-        //
-        // if (taskFunction.length === 0) {
-        //     callableFunction = (config?: TaskConfig) => {
-        //         return wrapper.call({}, config);
-        //     };
-        // } else {
-        //     callableFunction = (context: U, config?: TaskConfig) => {
-        //         return wrapper.call(context, config);
-        //     }
-        // }
-
         const validatedTaskConfig = HyrexTaskConfigSchema.parse(taskConfig)
         this.addFunctionToRegistry(taskFunction as HyrexTaskFunction, validatedTaskConfig);
         return new TaskWrapper<U>(this.dispatcher, taskFunction, validatedTaskConfig);
-
-        // const combined = Object.assign(callableFunction, wrapper);
-        //
-        // return combined as CallableTaskWrapper<U>;
     }
 
     private addFunctionToRegistry(taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {

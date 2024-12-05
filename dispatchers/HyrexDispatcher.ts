@@ -40,6 +40,7 @@ export interface HyrexDispatcher {
     markTaskFailed(taskId: UUID): Promise<void>
     markTaskCanceled(taskId: UUID): Promise<boolean>
     saveResult(taskId: UUID, result: JsonType): Promise<boolean>
+    getResult(taskId: UUID): Promise<JsonType>
     updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void>
     updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
     registerExecutor({ queue, executorId, executorName }: { queue: string, executorId: string, executorName: string }): Promise<void>

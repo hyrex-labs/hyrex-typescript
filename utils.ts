@@ -116,7 +116,3 @@ export function range(n: number): number[] {
 export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-export type CallableTaskWrapper<U extends JsonType> =
-    TaskWrapper<U>
-    & ((context?: U, config?: TaskConfig) => Promise<UUID>);

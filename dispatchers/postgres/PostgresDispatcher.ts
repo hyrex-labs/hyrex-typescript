@@ -193,7 +193,22 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async saveResult(taskId: UUID, result: JsonType): Promise<boolean> {
-        console.log("Result would be saved here...")
+        const client = await this.pool.connect()
+        try {
+            await client.query(sql.SAVE_RESULT, [taskId, result])
+        } finally {
+            client.release();
+        }
         return true
+    }
+
+    async getResult(taskId: UUID): Promise<JsonType> {
+        const client = await this.pool.connect()
+        try {
+            const { rows } = await client.query<JsonType>(sql.FETCH_RESULT, [taskId])
+            return rows[0]
+        } finally {
+            client.release()
+        }
     }
 }

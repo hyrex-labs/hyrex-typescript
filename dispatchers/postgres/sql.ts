@@ -162,3 +162,11 @@ export const DISCONNECT_EXECUTOR = `
 export const UPDATE_HEARTBEAT = `
     
 `
+
+export const SAVE_RESULT = `
+    INSERT INTO taskresults
+        (task_id, result)
+    VALUES ($1, $2)
+`
+
+export const FETCH_RESULT = `SELECT result FROM taskresults WHERE task_id = $1;`

@@ -56,7 +56,7 @@ create table if not exists hyrexexecutor
 `
 
 export const CreateResultsTable = `
-create table if not exists taskresults
+create table if not exists taskresult
 (
     task_id     uuid primary key references public.hyrextask(id) on delete cascade,
     result      json,
@@ -164,9 +164,9 @@ export const UPDATE_HEARTBEAT = `
 `
 
 export const SAVE_RESULT = `
-    INSERT INTO taskresults
+    INSERT INTO taskresult
         (task_id, result)
     VALUES ($1, $2)
 `
 
-export const FETCH_RESULT = `SELECT result FROM taskresults WHERE task_id = $1;`
+export const FETCH_RESULT = `SELECT result FROM taskresult WHERE task_id = $1;`

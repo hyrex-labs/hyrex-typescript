@@ -27,7 +27,10 @@ export class TaskWrapper<U extends JsonType> {
         return new TaskWrapper(this.dispatcher, this.taskFunction, newTaskConfig)
     }
 
-    async send(context: U): Promise<UUID> {
+    async send(context?: U | {}): Promise<UUID> {
+        if (!context) {
+            context = {}
+        }
 
         JsonSerializable.parse(context)
 

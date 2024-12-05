@@ -56,7 +56,7 @@ export class HyrexRegistry {
 
         const validatedTaskConfig = HyrexTaskConfigSchema.parse(taskConfig)
         this.addFunctionToRegistry(taskFunction as HyrexTaskFunction, validatedTaskConfig);
-        return new TaskWrapper(this.dispatcher, taskFunction, validatedTaskConfig);
+        return new TaskWrapper<U>(this.dispatcher, taskFunction, validatedTaskConfig);
 
         // const combined = Object.assign(callableFunction, wrapper);
         //

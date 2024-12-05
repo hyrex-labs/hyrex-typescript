@@ -28,7 +28,7 @@ const sayHello = async () => {
 
 
 // const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
-const restartDatabaseTask = hy.task(restartDatabase)
+// const restartDatabaseTask = hy.task(restartDatabase)
 const sayHelloTask = hy.task(sayHello)
 
 // submitFraudToPersonaTask.withConfig({
@@ -52,6 +52,7 @@ const choices: sendTaskArgs[] = [
 
 (async () => {
     const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
+    const restartDatabaseTask = hy.task(restartDatabase)
 
     if (process.argv.includes('--submit')) {
         for (const i of range(2)) {
@@ -61,6 +62,7 @@ const choices: sendTaskArgs[] = [
             for (const i of range(8)) {
                 const [args, taskConfig]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
                 submitFraudToPersonaTask.withConfig(taskConfig).send(args)
+                restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");
             await sleep(3_000)

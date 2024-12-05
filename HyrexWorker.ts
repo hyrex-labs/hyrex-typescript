@@ -137,7 +137,7 @@ export class HyrexWorker {
         }
     }
 
-    public addFunctionToRegistry(taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig = {}) {
+    public addFunctionToRegistry(taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
         const stringValidation = stringSchema.safeParse(taskFunction.name)
         if (!stringValidation) {
             throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)

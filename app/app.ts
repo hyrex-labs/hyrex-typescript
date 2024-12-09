@@ -33,7 +33,7 @@ const submitOrderQueuePattern = new HyrexQueuePattern({
 
 const submitFraudToPersona = async ({ email }: { email: string }) => {
     console.log(`Submitted fraud info to persona for ${email}`)
-    await sleep(2_000)
+    await sleep(500)
     // Note it could take 48 hours for persona to get back
     return { "result": true }
 }
@@ -76,24 +76,22 @@ const choices: sendTaskArgs[] = [
     const restartDatabaseTask = hy.task(restartDatabase)
 
     if (process.argv.includes('--submit')) {
-        for (const i of range(2)) {
+        for (const i of range(4)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 
-            for (const i of range(8)) {
+            for (const i of range(50)) {
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4()
                 const taskConfig: HyrexTaskConfigInput = {
-                    queuePattern: {
-                        pattern: `userId/${userId}`
-                    }
+                    queue: `userId/${userId}`
                 }
                 submitFraudToPersonaTask.withConfig(taskConfig).send(args)
                 restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");
-            await sleep(3_000)
+            await sleep(2_000)
         }
     }
 })()

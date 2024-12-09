@@ -23,6 +23,8 @@ export class HyrexExecutor {
     private queuePattern: HyrexQueuePattern
     private queues: HyrexQueue[]
     private queueListIndex: number
+    private queueLastRefreshCounter: number
+    private emptyQueueCounter: number
 
     private backoff: ExpBackoff
     private executorId: UUID
@@ -39,6 +41,8 @@ export class HyrexExecutor {
         this.queuePattern = queuePattern
         this.queues = []
         this.queueListIndex = 0
+        this.queueLastRefreshCounter = 0
+        this.emptyQueueCounter = 0
 
         this.executorId = randomUUID()
         this.backoff = new ExpBackoff()
@@ -75,6 +79,8 @@ export class HyrexExecutor {
     }
 
     private async refreshConcreteQueues(): Promise<void> {
+        this.queueListIndex = 0;
+
         console.log(`Refreshing concrete queue names with pattern ${JSON.stringify(this.queuePattern)}`)
         const queueNamesSet = new Set<string>();
         const queueNames = await this.dispatcher.fetchActiveQueueNames({ queuePattern: this.queuePattern.pattern })
@@ -111,19 +117,27 @@ export class HyrexExecutor {
     }
 
     private async getNextQueueRoundRobin(): Promise<HyrexQueue | null> {
-        console.log("...getNextQueueRoundRobin", this.executorId, this.queues, this.queueListIndex)
+        // console.log("...getNextQueueRoundRobin", this.executorId, this.queues, this.queueListIndex)
         // if (this.queues.length === 0) {
         //     return null;
         // }
 
-        // TODO: Is this the best way to do this?
         if (this.queueListIndex === this.queues.length) {
             this.queueListIndex = 0;
-            await this.refreshConcreteQueues();
-            return this.getNextQueueRoundRobin();
+
+            if (this.queueLastRefreshCounter >= 100 || this.queues.length === 0) {
+                await this.refreshConcreteQueues();
+                this.queueLastRefreshCounter = 0
+                if (this.queues.length === 0) {
+                    return null
+                }
+
+                return this.getNextQueueRoundRobin();
+            }
         }
 
         const queue = this.queues[this.queueListIndex++];
+        console.log("queueIndex", this.queueListIndex, "queueLength", this.queues.length)
         return queue;
     }
 
@@ -147,6 +161,8 @@ export class HyrexExecutor {
             executorName: this.name
         });
 
+        await this.refreshConcreteQueues()
+
         while (!shouldStop) {
             //
             // THIS IS THE FETCH LOOP
@@ -167,10 +183,18 @@ export class HyrexExecutor {
             })
 
             if (tasks.length === 0) {
-                console.log(`No tasks found on queue "${nextQueue.name}" going to sleep`, new Date())
+                console.log(`No tasks found on queue "${nextQueue.name}". EmptyQueueCounter: ${this.emptyQueueCounter++}`, new Date())
+                if (this.emptyQueueCounter >= 5) {
+                    console.log("<===============================>")
+                    console.log("QUEUEING REFRESH BECAUSE OF EMPTY QUEUE COUNTRY")
+                    console.log("<===============================>")
+                    this.emptyQueueCounter = 0
+                    await this.refreshConcreteQueues()
+                }
                 await this.backoff.wait()
                 continue
             } else {
+                this.emptyQueueCounter = 0
                 this.backoff.clear()
             }
             const task = tasks[0]

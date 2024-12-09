@@ -1,6 +1,6 @@
 import { sleep } from "../utils";
 
-const OFFSET_LIMIT = 3
+const OFFSET_LIMIT = 5
 
 export class ExpBackoff {
     private offset: number // Allow wait to be called a few times before triggering the counter

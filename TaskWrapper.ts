@@ -34,9 +34,10 @@ export class TaskWrapper<U extends JsonType> {
 
         JsonSerializable.parse(context)
 
+
         const serializedTaskRequest: SerializedTaskRequest = {
             id: randomUUID(),
-            queue: this.taskConfig.queue,
+            queue: typeof this.taskConfig.queue === 'string' ? this.taskConfig.queue : this.taskConfig.queue.name,
             task_name: this.taskFunction.name,
             args: context,
             max_retries: this.taskConfig.maxRetries,

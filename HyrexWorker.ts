@@ -9,6 +9,7 @@ import { HyrexRegistry } from "./HyrexRegistry";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
 import { HyrexAdmin } from "./HyrexAdmin";
+import { HyrexQueue, HyrexQueuePattern } from "./HyrexQueue";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -95,7 +96,7 @@ export class HyrexWorker {
 
         const executor = new HyrexExecutor({
             name: workerName,
-            queue,
+            queuePattern: new HyrexQueuePattern({pattern: "*"}),
             taskRegistry: this.appTaskRegistry,
             dispatcher: this.dispatcher
         })

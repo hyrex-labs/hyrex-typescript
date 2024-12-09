@@ -1,14 +1,15 @@
 import { HyrexRegistry } from "../HyrexRegistry";
 import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher";
-import { HyrexTaskFunction, JsonType, sleep, UUID } from "../utils";
+import { HyrexTaskFunction, JsonType, QueueType, sleep, UUID } from "../utils";
 import { ExpBackoff } from "./ExpBackoff";
 import { randomUUID } from "node:crypto";
 import { ExecutorMessage } from "../types";
+import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 
 
-type HyrexWorkerConfig = {
+type HyrexExecutorConfig = {
     name: string
-    queue: string
+    queuePattern: HyrexQueuePattern
     taskRegistry: HyrexRegistry
     dispatcher: HyrexDispatcher
 }
@@ -17,18 +18,27 @@ export class HyrexExecutor {
     private dispatcher: HyrexDispatcher
     private taskRegistry: HyrexRegistry
     private name: string
-    private queue: string
+
+    // Queue stuff
+    private queuePattern: HyrexQueuePattern
+    private queues: HyrexQueue[]
+    private queueListIndex: number
+
     private backoff: ExpBackoff
     private executorId: UUID
 
-    constructor(config: HyrexWorkerConfig) {
+    constructor(config: HyrexExecutorConfig) {
         const defaultConfig = {}
         const mergedConfig = { ...defaultConfig, ...config }
-        const { dispatcher, taskRegistry, name, queue } = mergedConfig
+        const { dispatcher, taskRegistry, name, queuePattern } = mergedConfig
         this.dispatcher = dispatcher
         this.taskRegistry = taskRegistry
         this.name = name
-        this.queue = queue
+
+        // Queue stuff
+        this.queuePattern = queuePattern
+        this.queues = []
+        this.queueListIndex = 0
 
         this.executorId = randomUUID()
         this.backoff = new ExpBackoff()
@@ -64,9 +74,61 @@ export class HyrexExecutor {
         }
     }
 
+    private async refreshConcreteQueues(): Promise<void> {
+        console.log(`Refreshing concrete queue names with pattern ${JSON.stringify(this.queuePattern)}`)
+        const queueNamesSet = new Set<string>();
+        const queueNames = await this.dispatcher.fetchActiveQueueNames({ queuePattern: this.queuePattern.pattern })
 
-    async runExecutor({ queue }: { queue: string } = { queue: "*" }) {
-        // console.log("TaskRegistry", this.taskRegistry)
+        console.log("Pattern results are...", queueNames)
+
+        for (const queueName of queueNames) {
+
+            // Handle potentially conflicting concurrency limits
+            const exitingQueueSettings = this.taskRegistry.internalQueueRegistry[queueName]
+            if (exitingQueueSettings && this.queuePattern.concurrencyLimit) {
+                console.log(`Found potentially conflicting queue settings on name ${queueName}`)
+                const newConcurrencyLimit = exitingQueueSettings.concurrencyLimit ? Math.min(exitingQueueSettings.concurrencyLimit, this.queuePattern.concurrencyLimit) : this.queuePattern.concurrencyLimit
+                this.taskRegistry.internalQueueRegistry[queueName] = new HyrexQueue({
+                    name: queueName,
+                    concurrencyLimit: newConcurrencyLimit
+                })
+            }
+
+
+            queueNamesSet.add(queueName)
+        }
+
+        console.log("Got queue names set...", queueNamesSet)
+
+
+        this.queues = [...queueNamesSet].map((queueName) => {
+            return this.taskRegistry.internalQueueRegistry[queueName] ? this.taskRegistry.internalQueueRegistry[queueName] : new HyrexQueue({ name: queueName })
+        });
+
+        this.dispatcher.updateQueuesOnExecutor({ executorId: this.executorId, queues: this.queues })
+
+        console.log("Fetched queues", JSON.stringify(this.queues))
+    }
+
+    private async getNextQueueRoundRobin(): Promise<HyrexQueue | null> {
+        console.log("...getNextQueueRoundRobin", this.executorId, this.queues, this.queueListIndex)
+        // if (this.queues.length === 0) {
+        //     return null;
+        // }
+
+        // TODO: Is this the best way to do this?
+        if (this.queueListIndex === this.queues.length) {
+            this.queueListIndex = 0;
+            await this.refreshConcreteQueues();
+            return this.getNextQueueRoundRobin();
+        }
+
+        const queue = this.queues[this.queueListIndex++];
+        return queue;
+    }
+
+
+    async runExecutor() {
         let shouldStop = false
 
         const handleShutdown = (signal: string) => {
@@ -77,13 +139,35 @@ export class HyrexExecutor {
         process.on('SIGINT', handleShutdown);
         process.on('SIGTERM', handleShutdown);
 
-        await this.dispatcher.registerExecutor({ queue, executorId: this.executorId, executorName: this.name });
+        // TODO: Figure out how to register executor
+        await this.dispatcher.registerExecutor({
+            executorId: this.executorId,
+            queuePattern: this.queuePattern,
+            queues: this.queues,
+            executorName: this.name
+        });
 
         while (!shouldStop) {
-            // Process
-            const tasks = await this.dispatcher.dequeue({ numTasks: 1, executorId: this.executorId, queue })
+            //
+            // THIS IS THE FETCH LOOP
+            //
+
+            const nextQueue = await this.getNextQueueRoundRobin()
+            if (!nextQueue) {
+                console.log("No queues found... going to sleep", new Date())
+                await this.backoff.wait()
+                continue
+            }
+
+            const tasks = await this.dispatcher.dequeue({
+                numTasks: 1,
+                executorId: this.executorId,
+                queueName: nextQueue.name,
+                concurrencyLimit: nextQueue.concurrencyLimit
+            })
+
             if (tasks.length === 0) {
-                console.log("No tasks found... going to sleep", new Date())
+                console.log(`No tasks found on queue "${nextQueue.name}" going to sleep`, new Date())
                 await this.backoff.wait()
                 continue
             } else {
@@ -111,6 +195,6 @@ export class HyrexExecutor {
         }
 
         await this.dispatcher.disconnectExecutor({ executorId: this.executorId })
-        console.log(`Worker ${this.name} stopped.`)
+        console.log(`Executor ${this.name} stopped.`)
     }
 }

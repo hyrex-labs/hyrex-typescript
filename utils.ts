@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { TaskConfig } from "./dispatchers/HyrexDispatcher";
 import { TaskWrapper } from "./TaskWrapper";
+import { HyrexQueue, HyrexQueuePattern } from "./HyrexQueue";
 
 export const JsonSerializable = z.object({}).passthrough().refine(
     (obj) => {
@@ -16,30 +16,11 @@ export const JsonSerializable = z.object({}).passthrough().refine(
     }
 );
 
-// const literalSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-// type Literal = z.infer<typeof literalSchema>;
-
-// export const JsonSchema: z.ZodType<unknown> = z.lazy(() =>
-//     z.union([
-//         literalSchema,
-//         z.array(JsonSchema),
-//         z.record(JsonSchema),
-//     ])
-// );
-
-// export const CallableSchema = z.function().args(z.union([
-//     z.tuple([]),
-//     z.tuple([JsonSerializable])
-// ])).returns(z.union([JsonSerializable, z.undefined()]));
-
-// export type Callable = z.infer<typeof CallableSchema>
-
 type JsonPrimitive = string | number | boolean | null
 type JsonArray = JsonValue[]
 type JsonObject = { [key: string]: JsonValue }
 type JsonValue = JsonPrimitive | JsonObject | JsonArray
 
-// export type JsonType = z.infer<typeof JsonSerializable>;
 export type JsonType = JsonObject
 
 export const HyrexTaskFunctionSchema = z.union([
@@ -53,17 +34,6 @@ export const HyrexTaskFunctionSchema = z.union([
         .returns(z.union([JsonSerializable, z.undefined()]))
 ]);
 
-// export type HyrexTaskFunction =
-//     | (() => JsonType | void | Promise<JsonType | void>)
-//     | ((arg: JsonType) => JsonType | void | Promise<JsonType | void>);
-
-// export type HyrexTaskFunction = {
-//     // No argument variant
-//     <R extends JsonType>(): R | void | Promise<R | void>
-//     // Single argument variant - allows any object shape
-//     <T extends JsonType, R extends JsonType>(arg: T): R | void | Promise<R | void>
-// }
-
 export type HyrexTaskFunction<T extends JsonType = any, R extends JsonType = JsonType> =
     | ((arg: T) => R | void | Promise<R | void>)
     | (() => R | void | Promise<R | void>);
@@ -72,15 +42,34 @@ export type UUID = string
 
 export const uuidSchema = z.string().uuid();
 
+// const ThrottleSchema = z.object({
+//     periodInSeconds: z.number().int().positive(),
+//     limit: z.number().int().positive()
+// })
 
-// export interface JsonSerializableObject {
-//     [key: string]: any; // Allows any property with any value
-// }
+export const HyrexQueuePatternArgsSchema = z.object({
+    pattern: z.string(),
+    concurrencyLimit: z.number().int().positive().optional(),
+})
 
+export type HyrexQueuePatternArgsType = z.infer<typeof HyrexQueuePatternArgsSchema>
+
+const QueueObjectSchema = z.object({
+    name: z.string(),
+    concurrencyLimit: z.number().int().positive().optional(),
+})
+
+export const QueueSchema = z.union([
+    z.string(),
+    QueueObjectSchema
+])
+
+export type QueueType = z.infer<typeof QueueSchema>
 
 export const HyrexTaskConfigSchema = z.object({
     onInit: z.function().args(z.any()).returns(z.any()).optional(),
-    queue: z.string().default("default"),
+    queue: QueueSchema.default("default"),
+    queuePattern: HyrexQueuePatternArgsSchema.optional(),
     priority: z.number().min(1).max(10).default(3),
     maxRetries: z.number().min(0).max(10).default(3),
     cron: z.string().optional(),
@@ -101,9 +90,9 @@ export type InternalTaskRegistry = {
     [key: string]: TaskRegistration
 }
 
-// export type InternalTaskRegistry = {
-//     [key: string]: TaskRegistry
-// }
+export type InternalQueueRegistry = {
+    [key: string]: HyrexQueue
+}
 
 const HyrexCallableSchema = z.function()
     .args(JsonSerializable)  // Accepts any object as the argument

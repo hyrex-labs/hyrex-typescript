@@ -5,10 +5,98 @@ import * as sql from "./sql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
+import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
+import { UPDATE_QUEUES_ON_EXECUTOR } from "./sql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
 }
+
+/**
+ * Converts glob patterns to PostgreSQL LIKE patterns.
+ * Handles basic and extended glob syntax including *, ?, [], {}, and character classes.
+ */
+export function globToSqlLike(glob: string): string {
+    if (!glob) return '%';
+
+    let inCharClass = false;
+    let inCurlyBrace = false;
+    let escaped = false;
+    let result = '';
+
+    // Handle special case of '**' for recursive matching
+    glob = glob.replace(/\*\*/g, '{DOUBLE_STAR}');
+
+    for (let i = 0; i < glob.length; i++) {
+        const char = glob[i];
+
+        if (escaped) {
+            result += char;
+            escaped = false;
+            continue;
+        }
+
+        if (char === '\\') {
+            escaped = true;
+            continue;
+        }
+
+        if (char === '[' && !inCharClass) {
+            inCharClass = true;
+            result += '[';
+            continue;
+        }
+
+        if (char === ']' && inCharClass) {
+            inCharClass = false;
+            result += ']';
+            continue;
+        }
+
+        if (char === '{' && !inCurlyBrace) {
+            inCurlyBrace = true;
+            result += '(';
+            continue;
+        }
+
+        if (char === '}' && inCurlyBrace) {
+            inCurlyBrace = false;
+            result += ')';
+            continue;
+        }
+
+        if (char === ',' && inCurlyBrace) {
+            result += '|';
+            continue;
+        }
+
+        switch (char) {
+            case '*':
+                result += '%';
+                break;
+            case '?':
+                result += '_';
+                break;
+            case '%':
+                result += '\\%';
+                break;
+            case '_':
+                result += '\\_';
+                break;
+            case '|':
+                result += '\\|';
+                break;
+            default:
+                result += char;
+        }
+    }
+
+    // Replace the double star placeholder with the actual pattern
+    result = result.replace(/{DOUBLE_STAR}/g, '%');
+
+    return result;
+}
+
 
 export class PostgresDispatcher implements HyrexDispatcher {
     private pool: Pool
@@ -73,8 +161,12 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async dequeue(
-        { numTasks, executorId, queue }: { numTasks: number, executorId: string, queue: string }
-            = { numTasks: 1, executorId: "UnknownExecutor", queue: "*" }
+        { numTasks, executorId, queueName, concurrencyLimit }: {
+            numTasks: number,
+            executorId: string,
+            queueName: string,
+            concurrencyLimit?: number
+        }
     ): Promise<SerializedTask[]> {
         if (numTasks !== 1) {
             throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
@@ -84,10 +176,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
         const dequeuedTasks: SerializedTask[] = []
         try {
             let result
-            if (queue === "*") {
-                result = await client.query<SerializedTask>(sql.FETCH_TASK_FROM_ANY_QUEUE, [executorId])
+            if (concurrencyLimit) {
+                result = await client.query<SerializedTask>(sql.FETCH_TASK_WITH_CONCURRENCY_LIMIT, [queueName, executorId, concurrencyLimit])
             } else {
-                result = await client.query<SerializedTask>(sql.FETCH_TASK, [queue, executorId])
+                result = await client.query<SerializedTask>(sql.FETCH_TASK, [queueName, executorId])
             }
 
             dequeuedTasks.push(...result.rows);
@@ -133,14 +225,24 @@ export class PostgresDispatcher implements HyrexDispatcher {
         console.log("It would update the heartbeat here...", heartbeatMsg)
     }
 
-    async registerExecutor({ queue, executorId, executorName }: {
-        queue: string,
+    async registerExecutor({ queues, queuePattern, executorId, executorName }: {
+        queues: HyrexQueue[],
+        queuePattern: HyrexQueuePattern,
         executorId: string,
         executorName: string
     }): Promise<void> {
         const client = await this.pool.connect()
         try {
-            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, queue])
+            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, JSON.stringify(queuePattern), JSON.stringify(queues)])
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }) {
+        const client = await this.pool.connect()
+        try {
+            await client.query(sql.UPDATE_QUEUES_ON_EXECUTOR, [executorId, JSON.stringify(queues)])
         } finally {
             client.release();
         }
@@ -207,6 +309,17 @@ export class PostgresDispatcher implements HyrexDispatcher {
         try {
             const { rows } = await client.query<JsonType>(sql.FETCH_RESULT, [taskId])
             return rows[0]
+        } finally {
+            client.release()
+        }
+    }
+
+    async fetchActiveQueueNames({ queuePattern }: { queuePattern: string }): Promise<string[]> {
+        const client = await this.pool.connect()
+        const sqlPattern = globToSqlLike(queuePattern)
+        try {
+            const { rows } = await client.query<{queue: string}>(sql.FETCH_ACTIVE_QUEUE_NAMES, [sqlPattern])
+            return rows.map(r => r.queue)
         } finally {
             client.release()
         }

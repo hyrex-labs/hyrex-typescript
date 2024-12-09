@@ -48,7 +48,8 @@ create table if not exists hyrexexecutor
 (
     id      uuid    not null primary key,
     name    varchar not null,
-    queue   varchar not null,
+    queue_pattern json not null,
+    queues json not null,
     started timestamp with time zone,
     stopped timestamp with time zone,
     last_heartbeat timestamp with time zone
@@ -95,6 +96,49 @@ SET status = 'running', started = CURRENT_TIMESTAMP, executor_id = $2
 FROM next_task
 WHERE hyrextask.id = next_task.id
 RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;
+`
+
+export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
+WITH queue_lock AS (
+    SELECT pg_try_advisory_xact_lock(hashtext($1)) as lock_acquired
+),
+running_tasks AS (
+    SELECT COUNT(*) as running_count
+    FROM hyrextask
+    WHERE queue = $1 
+    AND status = 'running'
+    AND executor_id IS NOT NULL
+),
+next_task AS (
+    SELECT id
+    FROM hyrextask ht
+    WHERE queue = $1 
+    AND status = 'queued'
+    AND EXISTS (
+        SELECT 1
+        FROM running_tasks rt, queue_lock ql
+        WHERE rt.running_count < $3
+        AND ql.lock_acquired = true
+    )
+    ORDER BY priority DESC, queued
+    FOR UPDATE SKIP LOCKED
+    LIMIT 1
+)
+UPDATE hyrextask
+SET 
+    status = 'running',
+    started = CURRENT_TIMESTAMP,
+    executor_id = $2,
+    attempt_number = attempt_number + 1
+FROM next_task
+WHERE hyrextask.id = next_task.id
+RETURNING 
+    CASE WHEN (SELECT lock_acquired FROM queue_lock) 
+         THEN hyrextask.id 
+         ELSE NULL 
+    END as id,
+    hyrextask.task_name,
+    hyrextask.args;
 `
 
 export const FETCH_TASK_FROM_ANY_QUEUE = `
@@ -146,11 +190,18 @@ export const REGISTER_EXECUTOR = `
     INSERT INTO hyrexexecutor (
     id,
     name,
-    queue,
+    queue_pattern,
+    queues,
     started,
     stopped,
     last_heartbeat
-) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP);
+) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP);
+`
+
+export const UPDATE_QUEUES_ON_EXECUTOR = `
+    UPDATE hyrexexecutor
+    SET queues = $2
+    where id = $1;
 `
 
 export const DISCONNECT_EXECUTOR = `
@@ -170,3 +221,9 @@ export const SAVE_RESULT = `
 `
 
 export const FETCH_RESULT = `SELECT result FROM taskresult WHERE task_id = $1;`
+
+export const FETCH_ACTIVE_QUEUE_NAMES = `
+    SELECT distinct queue FROM hyrextask
+    WHERE status = 'queued'
+    AND queue LIKE $1
+`

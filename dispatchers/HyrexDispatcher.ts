@@ -1,17 +1,17 @@
 import { UUID, JsonType } from "../utils";
 
-import { z } from "zod";
+import { string, z } from "zod";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../types";
+import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 
-export const TaskConfigSchema = z.object({
-    queue: z.string().optional(),
-    priority: z.number().min(1).max(10).optional(),
-    maxRetries: z.number().min(0).max(10).optional(),
-    cron: z.string().optional(),
-
-})
-
-export type TaskConfig = z.infer<typeof TaskConfigSchema>
+// export const TaskConfigSchema = z.object({
+//     queue: z.string().optional(),
+//     priority: z.number().min(1).max(10).optional(),
+//     maxRetries: z.number().min(0).max(10).optional(),
+//     cron: z.string().optional(),
+// })
+//
+// export type TaskConfig = z.infer<typeof TaskConfigSchema>
 
 export type SerializedTaskRequest = {
     id: UUID,
@@ -35,15 +35,41 @@ export type DispatcherListenerCallbacks = {
 
 export interface HyrexDispatcher {
     enqueue: (serializedTasks: SerializedTaskRequest[]) => Promise<UUID[]>
-    dequeue: ({ numTasks, executorId, queue }: { numTasks: number, executorId: string, queue: string }) => Promise<SerializedTask[]>
+    dequeue: ({ numTasks, executorId, queueName, concurrencyLimit }: {
+        numTasks: number,
+        executorId: string,
+        queueName: string,
+        concurrencyLimit?: number
+    }) => Promise<SerializedTask[]>
+    fetchActiveQueueNames: ({ queuePattern }: { queuePattern: string }) => Promise<string[]>
+
     markTaskSuccess(taskId: UUID): Promise<void>
+
     markTaskFailed(taskId: UUID): Promise<void>
+
     markTaskCanceled(taskId: UUID): Promise<boolean>
+
     saveResult(taskId: UUID, result: JsonType): Promise<boolean>
+
     getResult(taskId: UUID): Promise<JsonType>
+
     updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void>
-    updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
-    registerExecutor({ queue, executorId, executorName }: { queue: string, executorId: string, executorName: string }): Promise<void>
+
+    // Executor settings
+    registerExecutor({ queues, queuePattern, executorId, executorName }: {
+        queues: HyrexQueue[],
+        queuePattern: HyrexQueuePattern,
+        executorId: string,
+        executorName: string
+    }): Promise<void>
+
     disconnectExecutor({ executorId }: { executorId: string }): Promise<void>
+
+    updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }): Promise<void>
+
+    updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
+
+
+    // Listening
     listen(hyrexListener: DispatcherListenerCallbacks): Promise<void>
 }

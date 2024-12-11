@@ -104,7 +104,7 @@ export class HyrexExecutor {
         const queueNamesSet = new Set<string>();
         const queueNames = await this.dispatcher.fetchActiveQueueNames({ queuePattern: this.queuePattern.pattern })
 
-        console.log("Pattern results are...", queueNames)
+        // console.log("Pattern results are...", queueNames)
 
         for (const queueName of queueNames) {
 
@@ -123,7 +123,7 @@ export class HyrexExecutor {
             queueNamesSet.add(queueName)
         }
 
-        console.log("Got queue names set...", queueNamesSet)
+        console.log("Got queue names set...", queueNamesSet.size)
 
         const concreteQueues = [...queueNamesSet].map((queueName) => {
             return this.taskRegistry.internalQueueRegistry[queueName] ? this.taskRegistry.internalQueueRegistry[queueName] : new HyrexQueue({ name: queueName })

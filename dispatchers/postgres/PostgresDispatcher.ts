@@ -106,6 +106,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
             connectionString: config.conn,
             max: 20,
             idleTimeoutMillis: 30000,
+            maxUses: 7500,
+            allowExitOnIdle: true
         })
 
         console.log("Successfully created postgres pool!")

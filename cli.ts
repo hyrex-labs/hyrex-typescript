@@ -296,7 +296,7 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage,
                 shutdownTimeout = setTimeout(() => {
                     console.log("No task IDs received. Proceeding with shutdown.");
                     shutdown();
-                }, 10000); // 10 seconds
+                }, 30000); // 30 seconds
             }
         }
 

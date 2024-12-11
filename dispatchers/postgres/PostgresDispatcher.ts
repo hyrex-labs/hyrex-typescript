@@ -1,6 +1,6 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
 import { JsonType, UUID, uuidSchema } from "../../utils";
-import { Notification, Pool } from 'pg';
+import { Notification, Pool, PoolClient } from 'pg';
 import * as sql from "./sql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
@@ -127,15 +127,58 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
     }
 
-    async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
-        const maxRetries = 3;
-        const retryDelay = 1000; // 1 second
+    private async queryWithRetry<T>(
+        queryFn: (client: PoolClient) => Promise<T>,
+        options: {
+            maxRetries?: number,
+            retryOnlyOnTooManyClients?: boolean
+        } = {}
+    ): Promise<T> {
+        const maxRetries = options.maxRetries ?? 5;
+        let lastError: unknown;
 
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            const client = await this.pool.connect()
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            let client = null;
             try {
-                await client.query('BEGIN');
+                if (attempt > 0) {
+                    const backoffMs = Math.min(1000 * Math.pow(2, attempt), 10000);
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
+                }
 
+                client = await this.pool.connect();
+                return await queryFn(client);
+
+            } catch (error: unknown) {
+                lastError = error;
+                // Type guard to check if error is an object with a message property
+                if (error && typeof error === 'object' && 'message' in error) {
+                    if (typeof error.message === 'string' && error.message.includes('too many clients')) {
+                        console.warn(`Connection pool exhausted, attempt ${attempt + 1}/${maxRetries}`);
+                        continue;
+                    }
+                    if (options.retryOnlyOnTooManyClients) {
+                        throw error;
+                    }
+                }
+                continue;
+            } finally {
+                if (client) {
+                    client.release();
+                }
+            }
+        }
+
+        // Handle the final error message with proper type checking
+        const errorMessage = lastError && typeof lastError === 'object' && 'message' in lastError
+            ? lastError.message
+            : 'Unknown error';
+        throw new Error(`Failed after ${maxRetries} attempts: ${errorMessage}`);
+    }
+
+    async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
+        return this.queryWithRetry(async (client) => {
+            await client.query('BEGIN');
+            try {
                 for (const task of serializedTasks) {
                     const { id, task_name, args, queue, max_retries, priority } = task;
                     await client.query(sql.ENQUEUE_TASKS, [
@@ -148,18 +191,13 @@ export class PostgresDispatcher implements HyrexDispatcher {
                         priority,
                     ]);
                 }
-
                 await client.query('COMMIT');
                 return serializedTasks.map(st => st.id);
             } catch (error) {
                 await client.query('ROLLBACK');
-                console.error("Error enqueuing tasks:", error);
                 throw error;
-            } finally {
-                client.release();
             }
-        }
-        throw new Error('Enqueue failed and max retries reached')
+        });
     }
 
     async dequeue(
@@ -174,21 +212,21 @@ export class PostgresDispatcher implements HyrexDispatcher {
             throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
         }
 
-        const client = await this.pool.connect()
-        const dequeuedTasks: SerializedTask[] = []
-        try {
-            let result
+        return this.queryWithRetry(async (client) => {
+            let result;
             if (concurrencyLimit) {
-                result = await client.query<SerializedTask>(sql.FETCH_TASK_WITH_CONCURRENCY_LIMIT, [queueName, executorId, concurrencyLimit])
+                result = await client.query<SerializedTask>(
+                    sql.FETCH_TASK_WITH_CONCURRENCY_LIMIT,
+                    [queueName, executorId, concurrencyLimit]
+                );
             } else {
-                result = await client.query<SerializedTask>(sql.FETCH_TASK, [queueName, executorId])
+                result = await client.query<SerializedTask>(
+                    sql.FETCH_TASK,
+                    [queueName, executorId]
+                );
             }
-
-            dequeuedTasks.push(...result.rows);
-            return dequeuedTasks
-        } finally {
-            client.release();
-        }
+            return result.rows;
+        });
     }
 
     async markTaskFailed(taskId: UUID): Promise<void> {
@@ -317,13 +355,13 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async fetchActiveQueueNames({ queuePattern }: { queuePattern: string }): Promise<string[]> {
-        const client = await this.pool.connect()
-        const sqlPattern = globToSqlLike(queuePattern)
-        try {
-            const { rows } = await client.query<{queue: string}>(sql.FETCH_ACTIVE_QUEUE_NAMES, [sqlPattern])
-            return rows.map(r => r.queue)
-        } finally {
-            client.release()
-        }
+        return this.queryWithRetry(async (client) => {
+            const sqlPattern = globToSqlLike(queuePattern);
+            const { rows } = await client.query<{queue: string}>(
+                sql.FETCH_ACTIVE_QUEUE_NAMES,
+                [sqlPattern]
+            );
+            return rows.map(r => r.queue);
+        });
     }
 }

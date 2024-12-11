@@ -4,15 +4,6 @@ import { string, z } from "zod";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 
-// export const TaskConfigSchema = z.object({
-//     queue: z.string().optional(),
-//     priority: z.number().min(1).max(10).optional(),
-//     maxRetries: z.number().min(0).max(10).optional(),
-//     cron: z.string().optional(),
-// })
-//
-// export type TaskConfig = z.infer<typeof TaskConfigSchema>
-
 export type SerializedTaskRequest = {
     id: UUID,
     task_name: string,
@@ -23,9 +14,15 @@ export type SerializedTaskRequest = {
 }
 
 export type SerializedTask = {
-    id: string
+    id: string,
+    root_id: string,
     task_name: string,
     args: JsonType,
+    queue: string,
+    priority: string,
+    scheduled_start: string | null,
+    queued: string,
+    started: string
 }
 
 export type DispatcherListenerCallbacks = {

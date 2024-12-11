@@ -24,8 +24,8 @@ const stringSchema = z.string()
 
 
 type WorkerConfig = {
-    queue: string
-    logLevel: string
+    queuePattern: string
+    logLevel?: string
 }
 
 export class HyrexWorker {
@@ -71,7 +71,12 @@ export class HyrexWorker {
         if (process.env[COMMANDS.INIT_DB]) {
             await this.initDB()
         } else if (process.env[COMMANDS.RUN_WORKER]) {
-            await this.runWorker()
+            const queuePattern = process.env[COMMANDS.QUEUE_PATTERN]
+            if (queuePattern) {
+                await this.runWorker({ queuePattern })
+            } else {
+                await this.runWorker()
+            }
         } else if (process.env[COMMANDS.RUN_WORKER_LISTENER]) {
             await this.runWorkerAdmin()
         }
@@ -85,8 +90,8 @@ export class HyrexWorker {
         }
     }
 
-    async runWorker({ queue, logLevel }: WorkerConfig = {
-        queue: "default",
+    async runWorker({ queuePattern, logLevel }: WorkerConfig = {
+        queuePattern: "*",
         logLevel: "INFO",
     }) {
         const workerName = process.env.HYREX_WORKER_NAME
@@ -94,9 +99,11 @@ export class HyrexWorker {
             throw new Error("No HYREX_WORKER_NAME Found. Ensure this command is being executed via the CLI.")
         }
 
+        console.log(`Received queue pattern: ${queuePattern}`)
+
         const executor = new HyrexExecutor({
             name: workerName,
-            queuePattern: new HyrexQueuePattern({pattern: "*"}),
+            queuePattern: new HyrexQueuePattern({ pattern: queuePattern }),
             taskRegistry: this.appTaskRegistry,
             dispatcher: this.dispatcher
         })

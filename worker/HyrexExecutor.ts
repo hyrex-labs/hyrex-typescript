@@ -1,11 +1,12 @@
 import { HyrexRegistry } from "../HyrexRegistry";
 import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher";
-import { HyrexTaskFunction, JsonType, QueueType, sleep, UUID } from "../utils";
+import { HyrexTaskFunction, JsonType, QueueType, shuffle, sleep, UUID } from "../utils";
 import { ExpBackoff } from "./ExpBackoff";
 import { randomUUID } from "node:crypto";
 import { ExecutorMessage } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
-
+import { clearHyrexContext, setHyrexContext } from "../HyrexContext";
+import { string } from "zod";
 
 type HyrexExecutorConfig = {
     name: string
@@ -53,13 +54,31 @@ export class HyrexExecutor {
     private async processTask(task: SerializedTask): Promise<JsonType | undefined> {
         const { task_name, args } = task
         const func: HyrexTaskFunction = this.taskRegistry.getFunction(task_name)
-        if (args) {
-            const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
-            return await withArgsFunc(args)
-        } else {
-            const noArgsFunc = func as (() => JsonType | undefined)
-            return await noArgsFunc()
+
+        try {
+            setHyrexContext({
+                taskId: task.id,
+                rootId: task.root_id,
+                taskName: task.task_name,
+                queue: task.queue,
+                priority: task.priority,
+                scheduledStart: task.scheduled_start,
+                queued: task.queued,
+                started: task.started,
+                executorId: this.executorId,
+            });
+
+            if (args) {
+                const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
+                return await withArgsFunc(args)
+            } else {
+                const noArgsFunc = func as (() => JsonType | undefined)
+                return await noArgsFunc()
+            }
+        } finally {
+            clearHyrexContext()
         }
+
     }
 
     private updateTaskId(taskId: string | null) {
@@ -106,10 +125,11 @@ export class HyrexExecutor {
 
         console.log("Got queue names set...", queueNamesSet)
 
-
-        this.queues = [...queueNamesSet].map((queueName) => {
+        const concreteQueues = [...queueNamesSet].map((queueName) => {
             return this.taskRegistry.internalQueueRegistry[queueName] ? this.taskRegistry.internalQueueRegistry[queueName] : new HyrexQueue({ name: queueName })
-        });
+        })
+
+        this.queues = shuffle(concreteQueues);
 
         this.dispatcher.updateQueuesOnExecutor({ executorId: this.executorId, queues: this.queues })
 
@@ -117,11 +137,6 @@ export class HyrexExecutor {
     }
 
     private async getNextQueueRoundRobin(): Promise<HyrexQueue | null> {
-        // console.log("...getNextQueueRoundRobin", this.executorId, this.queues, this.queueListIndex)
-        // if (this.queues.length === 0) {
-        //     return null;
-        // }
-
         if (this.queueListIndex === this.queues.length) {
             this.queueListIndex = 0;
 

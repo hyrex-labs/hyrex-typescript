@@ -5,6 +5,7 @@ import { HyrexTaskConfig } from "../utils";
 import { HyrexQueuePattern } from "../HyrexQueue";
 import { v4 as uuidv4 } from 'uuid';
 
+import { getHyrexContext } from "../index";
 
 const initPersonaConnection = async ({}) => {
     console.log(`INIT PERSONA CONNECTION`)
@@ -32,14 +33,16 @@ const submitOrderQueuePattern = new HyrexQueuePattern({
 // hy.addQueuePattern(queuePattern)
 
 const submitFraudToPersona = async ({ email }: { email: string }) => {
-    console.log(`Submitted fraud info to persona for ${email}`)
+    const ctx = getHyrexContext()
+    console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
     await sleep(500)
     // Note it could take 48 hours for persona to get back
     return { "result": true }
 }
 
 const restartDatabase = async () => {
-    console.log(`Restart Database`)
+    const ctx = getHyrexContext()
+    console.log(`Restart Database with context ${JSON.stringify(ctx)}`)
     return { "status": "ok" }
 }
 
@@ -76,22 +79,22 @@ const choices: sendTaskArgs[] = [
     const restartDatabaseTask = hy.task(restartDatabase)
 
     if (process.argv.includes('--submit')) {
-        for (const i of range(4)) {
+        for (const i of range(5)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 
-            for (const i of range(50)) {
+            for (const i of range(5000)) {
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4()
                 const taskConfig: HyrexTaskConfigInput = {
                     queue: `userId/${userId}`
                 }
-                submitFraudToPersonaTask.withConfig(taskConfig).send(args)
+                // submitFraudToPersonaTask.withConfig(taskConfig).send(args)
                 restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");
-            await sleep(2_000)
+            await sleep(5_000)
         }
     }
 })()

@@ -52,17 +52,24 @@ const argv = yargs(hideBin(process.argv))
                     alias: 'eos',
                     default: false
                 })
+                .option('queue', {
+                    describe: 'The name of the queue this worker should subscribe to. (Glob syntax is acceptable.)',
+                    type: 'string',
+                    alias: 'q',
+                    default: '*'
+                })
         },
         async (args) => {
             const scriptPath = path.resolve(process.cwd(), args.script as string);
             const count = args.count as number;
             const lifespan = args.lifespan as number | undefined;
             const exitOnSleep = args.exitOnSleep as boolean;
+            const queuePattern = args.queue as string
 
             console.log(`Spawning ${count} worker processes for script: ${scriptPath}`);
 
             for (let i = 0; i < count; i++) {
-                spawnExectuor(scriptPath, exitOnSleep, i + 1);
+                spawnExectuor({scriptPath, exitOnSleep, executorNumber: i + 1, queuePattern});
             }
 
             spawnAdmin(scriptPath)
@@ -170,13 +177,19 @@ const argv = yargs(hideBin(process.argv))
  * @param scriptPath Absolute path to the user script.
  * @param executorNumber Identifier for the worker.
  */
-function spawnExectuor(scriptPath: string, exitOnSleep: boolean, executorNumber: number) {
+function spawnExectuor({ scriptPath, exitOnSleep, executorNumber, queuePattern }: {
+    scriptPath: string,
+    exitOnSleep: boolean,
+    executorNumber: number,
+    queuePattern: string
+}) {
     // const workerScriptPath = path.resolve(__dirname, './worker/worker-runner.ts');
     const workerEnv = {
-            ...process.env,
-            [COMMANDS.RUN_WORKER]: "1",
-            HYREX_WORKER_NAME: `E${executorNumber}`,
-        }
+        ...process.env,
+        [COMMANDS.RUN_WORKER]: "1",
+        HYREX_WORKER_NAME: `E${executorNumber}`,
+        [COMMANDS.QUEUE_PATTERN]: queuePattern
+    }
 
     const executor: ChildProcess = spawn('ts-node', [scriptPath], {
         env: workerEnv,
@@ -203,7 +216,7 @@ function spawnExectuor(scriptPath: string, exitOnSleep: boolean, executorNumber:
         // Optionally, respawn the executor if it exited unexpectedly
         if (!isShuttingDown) {
             console.log(`Respawning Executor ${executorNumber}...`);
-            spawnExectuor(scriptPath, exitOnSleep, executorNumber);
+            spawnExectuor({scriptPath, exitOnSleep, executorNumber, queuePattern});
         }
     });
 

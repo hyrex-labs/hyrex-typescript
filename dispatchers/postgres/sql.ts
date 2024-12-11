@@ -91,71 +91,62 @@ ORDER BY priority DESC, queued
 FOR UPDATE SKIP LOCKED
 LIMIT 1
 )
-UPDATE hyrextask
+UPDATE hyrextask as ht
 SET status = 'running', started = CURRENT_TIMESTAMP, executor_id = $2
 FROM next_task
-WHERE hyrextask.id = next_task.id
-RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;
+WHERE ht.id = next_task.id
+RETURNING ht.id, ht.root_id, ht.task_name, ht.args, ht.queue, ht.priority, ht.scheduled_start, ht.queued, ht.started;
 `
 
 export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
-WITH queue_lock AS (
-    SELECT pg_try_advisory_xact_lock(hashtext($1)) as lock_acquired
-),
-running_tasks AS (
-    SELECT COUNT(*) as running_count
-    FROM hyrextask
-    WHERE queue = $1 
-    AND status = 'running'
-    AND executor_id IS NOT NULL
-),
-next_task AS (
-    SELECT id
-    FROM hyrextask ht
-    WHERE queue = $1 
-    AND status = 'queued'
-    AND EXISTS (
-        SELECT 1
-        FROM running_tasks rt, queue_lock ql
-        WHERE rt.running_count < $3
-        AND ql.lock_acquired = true
-    )
-    ORDER BY priority DESC, queued
-    FOR UPDATE SKIP LOCKED
+    WITH queue_lock AS (SELECT pg_try_advisory_xact_lock(hashtext($1)) as lock_acquired),
+         running_tasks AS (SELECT COUNT(*) as running_count
+                           FROM hyrextask
+                           WHERE queue = $1
+                             AND status = 'running'
+                             AND executor_id IS NOT NULL),
+         next_task AS (SELECT id
+                       FROM hyrextask ht
+                       WHERE queue = $1
+                         AND status = 'queued'
+                         AND EXISTS (SELECT 1
+                                     FROM running_tasks rt,
+                                          queue_lock ql
+                                     WHERE rt.running_count < $3
+                                       AND ql.lock_acquired = true)
+                       ORDER BY priority DESC, queued
+        FOR UPDATE SKIP LOCKED
     LIMIT 1
 )
-UPDATE hyrextask
-SET 
-    status = 'running',
-    started = CURRENT_TIMESTAMP,
-    executor_id = $2,
-    attempt_number = attempt_number + 1
-FROM next_task
-WHERE hyrextask.id = next_task.id
-RETURNING 
-    CASE WHEN (SELECT lock_acquired FROM queue_lock) 
-         THEN hyrextask.id 
-         ELSE NULL 
-    END as id,
-    hyrextask.task_name,
-    hyrextask.args;
+    UPDATE hyrextask as ht
+    SET status         = 'running',
+        started        = CURRENT_TIMESTAMP,
+        executor_id    = $2,
+        attempt_number = attempt_number + 1 FROM next_task
+    WHERE hyrextask.id = next_task.id
+        RETURNING
+        CASE WHEN (SELECT lock_acquired FROM queue_lock)
+        THEN hyrextask.id
+        ELSE NULL
+    END as 
+    ht.id, ht.root_id, ht.task_name, ht.args, ht.queue, ht.priority, ht.scheduled_start, ht.queued, ht.started;
 `
 
-export const FETCH_TASK_FROM_ANY_QUEUE = `
-WITH next_task AS (
-    SELECT id
-FROM hyrextask
-WHERE status = 'queued'
-ORDER BY priority DESC, queued
-FOR UPDATE SKIP LOCKED
-LIMIT 1
-)
-UPDATE hyrextask
-SET status = 'running', started = CURRENT_TIMESTAMP, executor_id = $1
-FROM next_task
-WHERE hyrextask.id = next_task.id
-RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;
-`
+// export const FETCH_TASK_FROM_ANY_QUEUE = `
+// WITH next_task AS (
+//     SELECT id
+// FROM hyrextask
+// WHERE status = 'queued'
+// ORDER BY priority DESC, queued
+// FOR UPDATE SKIP LOCKED
+// LIMIT 1
+// )
+// UPDATE hyrextask
+// SET status = 'running', started = CURRENT_TIMESTAMP, executor_id = $1
+// FROM next_task
+// WHERE hyrextask.id = next_task.id
+// RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;
+// `
 
 export const MARK_TASK_FAILED = `
 UPDATE hyrextask
@@ -223,7 +214,28 @@ export const SAVE_RESULT = `
 export const FETCH_RESULT = `SELECT result FROM taskresult WHERE task_id = $1;`
 
 export const FETCH_ACTIVE_QUEUE_NAMES = `
-    SELECT distinct queue FROM hyrextask
-    WHERE status = 'queued'
-    AND queue LIKE $1
+    WITH distinct_queues AS (SELECT DISTINCT queue
+                             FROM hyrextask
+                             WHERE status = 'queued'
+                               AND queue LIKE $1),
+         queue_count AS (SELECT COUNT(*) AS cnt
+                         FROM distinct_queues)
+    SELECT queue
+    FROM (
+             -- If count <= 100000, just select all queues
+             SELECT dq.queue
+             FROM distinct_queues dq,
+                  queue_count qc
+             WHERE qc.cnt <= 100000
+
+             UNION ALL
+
+             -- If count > 100000, select a random subset
+             SELECT queue
+             FROM (SELECT dq.queue,
+                          row_number() OVER (ORDER BY random()) AS rn
+                   FROM distinct_queues dq,
+                        queue_count qc
+                   WHERE qc.cnt > 100000) sub
+             WHERE rn <= 100000) final_result;
 `

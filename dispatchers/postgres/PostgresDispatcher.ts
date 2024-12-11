@@ -130,11 +130,14 @@ export class PostgresDispatcher implements HyrexDispatcher {
     private async queryWithRetry<T>(
         queryFn: (client: PoolClient) => Promise<T>,
         options: {
-            maxRetries?: number,
-            retryOnlyOnTooManyClients?: boolean
-        } = {}
+            maxRetries: number,
+            retryOnlyOnTooManyClients: boolean
+        } = {
+            maxRetries: 5,
+            retryOnlyOnTooManyClients: true
+        }
     ): Promise<T> {
-        const maxRetries = options.maxRetries ?? 5;
+        const { maxRetries } = options;
         let lastError: unknown;
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {

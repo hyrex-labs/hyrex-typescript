@@ -8,6 +8,29 @@ import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMes
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { UPDATE_QUEUES_ON_EXECUTOR } from "./sql";
 
+class Averager {
+    private count: number
+    private runningSum: number
+
+    constructor() {
+        this.count = 0
+        this.runningSum = 0
+    }
+
+    avg() {
+        return this.runningSum / this.count
+    }
+
+    submit(x: number) {
+        this.count++
+        this.runningSum += x
+    }
+
+}
+
+import { performance } from 'perf_hooks';
+import { randomInt } from "node:crypto";
+
 type HyrexPostgresDispatcherConfig = {
     conn: string
 }
@@ -100,6 +123,7 @@ export function globToSqlLike(glob: string): string {
 
 export class PostgresDispatcher implements HyrexDispatcher {
     private pool: Pool
+    private dequeueAvgr: Averager
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
         this.pool = new Pool({
@@ -109,6 +133,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
             maxUses: 7500,
             allowExitOnIdle: true
         })
+
+        this.dequeueAvgr = new Averager()
 
         console.log("Successfully created postgres pool!")
     }
@@ -215,7 +241,9 @@ export class PostgresDispatcher implements HyrexDispatcher {
             throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
         }
 
-        return this.queryWithRetry(async (client) => {
+        const start = performance.now()
+
+        const result = await this.queryWithRetry(async (client) => {
             let result;
             if (concurrencyLimit) {
                 result = await client.query<SerializedTask>(
@@ -230,6 +258,14 @@ export class PostgresDispatcher implements HyrexDispatcher {
             }
             return result.rows;
         });
+
+        const end = performance.now()
+
+        this.dequeueAvgr.submit(end-start)
+
+        if (randomInt(1, 100) === 1) {
+            console.log("Current dequeue-avg-time:", this.dequeueAvgr.avg())
+        }
     }
 
     async markTaskFailed(taskId: UUID): Promise<void> {

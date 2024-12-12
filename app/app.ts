@@ -83,7 +83,7 @@ const choices: sendTaskArgs[] = [
             console.log("Submitting tasks...");
             console.time("Submission time");
 
-            for (const i of range(5000)) {
+            for (const i of range(50)) {
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4()

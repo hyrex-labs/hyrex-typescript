@@ -53,6 +53,7 @@ create table if not exists hyrexexecutor
     started timestamp with time zone,
     stopped timestamp with time zone,
     last_heartbeat timestamp with time zone
+    stats json,
 );
 `
 
@@ -197,7 +198,7 @@ export const UPDATE_QUEUES_ON_EXECUTOR = `
 
 export const DISCONNECT_EXECUTOR = `
     UPDATE hyrexexecutor
-    SET stopped = CURRENT_TIMESTAMP, last_heartbeat = CURRENT_TIMESTAMP
+    SET stopped = CURRENT_TIMESTAMP, last_heartbeat = CURRENT_TIMESTAMP, stats=$2
     where id = $1;
 `
 

@@ -8,29 +8,6 @@ import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMes
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { UPDATE_QUEUES_ON_EXECUTOR } from "./sql";
 
-class Averager {
-    private count: number
-    private runningSum: number
-
-    constructor() {
-        this.count = 0
-        this.runningSum = 0
-    }
-
-    avg() {
-        return this.runningSum / this.count
-    }
-
-    submit(x: number) {
-        this.count++
-        this.runningSum += x
-    }
-
-}
-
-import { performance } from 'perf_hooks';
-import { randomInt } from "node:crypto";
-
 type HyrexPostgresDispatcherConfig = {
     conn: string
 }
@@ -123,7 +100,6 @@ export function globToSqlLike(glob: string): string {
 
 export class PostgresDispatcher implements HyrexDispatcher {
     private pool: Pool
-    private dequeueAvgr: Averager
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
         this.pool = new Pool({
@@ -134,7 +110,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
             allowExitOnIdle: true
         })
 
-        this.dequeueAvgr = new Averager()
 
         console.log("Successfully created postgres pool!")
     }
@@ -241,8 +216,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
             throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
         }
 
-        const start = performance.now()
-
         const result = await this.queryWithRetry(async (client) => {
             let result;
             if (concurrencyLimit) {
@@ -258,14 +231,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
             }
             return result.rows;
         });
-
-        const end = performance.now()
-
-        this.dequeueAvgr.submit(end-start)
-
-        if (randomInt(1, 1000) === 1) {
-            console.log("Current dequeue-avg-time:", this.dequeueAvgr.avg())
-        }
 
         return result
     }
@@ -329,10 +294,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
     }
 
-    async disconnectExecutor({ executorId }: { executorId: string }): Promise<void> {
+    async disconnectExecutor({ executorId, stats }: { executorId: string, stats: object }): Promise<void> {
         const client = await this.pool.connect()
         try {
-            await client.query(sql.DISCONNECT_EXECUTOR, [executorId])
+            await client.query(sql.DISCONNECT_EXECUTOR, [executorId, JSON.stringify(stats)])
         } finally {
             client.release();
         }
@@ -398,7 +363,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     async fetchActiveQueueNames({ queuePattern }: { queuePattern: string }): Promise<string[]> {
         return this.queryWithRetry(async (client) => {
             const sqlPattern = globToSqlLike(queuePattern);
-            const { rows } = await client.query<{queue: string}>(
+            const { rows } = await client.query<{ queue: string }>(
                 sql.FETCH_ACTIVE_QUEUE_NAMES,
                 [sqlPattern]
             );

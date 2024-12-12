@@ -60,7 +60,7 @@ export interface HyrexDispatcher {
         executorName: string
     }): Promise<void>
 
-    disconnectExecutor({ executorId }: { executorId: string }): Promise<void>
+    disconnectExecutor({ executorId, stats }: { executorId: string, stats: object }): Promise<void>
 
     updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }): Promise<void>
 

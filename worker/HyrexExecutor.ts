@@ -7,6 +7,27 @@ import { ExecutorMessage } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { clearHyrexContext, setHyrexContext } from "../HyrexContext";
 import { string } from "zod";
+import { performance } from "perf_hooks";
+
+class Averager {
+    private count: number
+    private runningSum: number
+
+    constructor() {
+        this.count = 0
+        this.runningSum = 0
+    }
+
+    avg() {
+        return this.runningSum / this.count
+    }
+
+    submit(x: number) {
+        this.count++
+        this.runningSum += x
+    }
+
+}
 
 type HyrexExecutorConfig = {
     name: string
@@ -178,6 +199,8 @@ export class HyrexExecutor {
 
         await this.refreshConcreteQueues()
 
+        const dequeueDurationAvgr = new Averager()
+
         while (!shouldStop) {
             //
             // THIS IS THE FETCH LOOP
@@ -190,12 +213,21 @@ export class HyrexExecutor {
                 continue
             }
 
+            // Perf monitoring
+            const start = performance.now()
+            //
+
             const tasks = await this.dispatcher.dequeue({
                 numTasks: 1,
                 executorId: this.executorId,
                 queueName: nextQueue.name,
                 concurrencyLimit: nextQueue.concurrencyLimit
             })
+
+            // Perf monitoring
+            const end = performance.now()
+            dequeueDurationAvgr.submit(end-start)
+            //
 
             if (tasks.length === 0) {
                 console.log(`No tasks found on queue "${nextQueue.name}". EmptyQueueCounter: ${this.emptyQueueCounter++}`, new Date())
@@ -233,7 +265,9 @@ export class HyrexExecutor {
 
         }
 
-        await this.dispatcher.disconnectExecutor({ executorId: this.executorId })
+        const stats = {"avgDequeueDurationMS": dequeueDurationAvgr.avg()}
+
+        await this.dispatcher.disconnectExecutor({ executorId: this.executorId, stats })
         console.log(`Executor ${this.name} stopped.`)
     }
 }

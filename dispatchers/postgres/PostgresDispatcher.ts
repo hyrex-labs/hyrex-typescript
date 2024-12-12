@@ -266,6 +266,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
         if (randomInt(1, 100) === 1) {
             console.log("Current dequeue-avg-time:", this.dequeueAvgr.avg())
         }
+
+        return result
     }
 
     async markTaskFailed(taskId: UUID): Promise<void> {

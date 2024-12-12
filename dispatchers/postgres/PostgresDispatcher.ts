@@ -263,7 +263,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
         this.dequeueAvgr.submit(end-start)
 
-        if (randomInt(1, 100) === 1) {
+        if (randomInt(1, 1000) === 1) {
             console.log("Current dequeue-avg-time:", this.dequeueAvgr.avg())
         }
 

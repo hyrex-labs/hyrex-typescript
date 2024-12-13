@@ -15,6 +15,7 @@ import {
     ListenerResultMessage,
     TaskHeartbeatResultMessage
 } from "./types";
+import { generateWorkerName } from "./WorkerContext";
 
 // Settings
 const SHUTDOWN_TIMEOUT = 25_000
@@ -66,10 +67,12 @@ const argv = yargs(hideBin(process.argv))
             const exitOnSleep = args.exitOnSleep as boolean;
             const queuePattern = args.queue as string
 
+            const workerName = generateWorkerName()
+
             console.log(`Spawning ${count} worker processes for script: ${scriptPath}`);
 
             for (let i = 0; i < count; i++) {
-                spawnExectuor({scriptPath, exitOnSleep, executorNumber: i + 1, queuePattern});
+                spawnExectuor({workerName, scriptPath, exitOnSleep, executorNumber: i + 1, queuePattern});
             }
 
             spawnAdmin(scriptPath)
@@ -177,7 +180,8 @@ const argv = yargs(hideBin(process.argv))
  * @param scriptPath Absolute path to the user script.
  * @param executorNumber Identifier for the worker.
  */
-function spawnExectuor({ scriptPath, exitOnSleep, executorNumber, queuePattern }: {
+function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, queuePattern }: {
+    workerName: string,
     scriptPath: string,
     exitOnSleep: boolean,
     executorNumber: number,
@@ -187,8 +191,9 @@ function spawnExectuor({ scriptPath, exitOnSleep, executorNumber, queuePattern }
     const workerEnv = {
         ...process.env,
         [COMMANDS.RUN_WORKER]: "1",
-        HYREX_WORKER_NAME: `E${executorNumber}`,
-        [COMMANDS.QUEUE_PATTERN]: queuePattern
+        [COMMANDS.EXECUTOR_NAME]: `E${executorNumber}`,
+        [COMMANDS.WORKER_NAME]: workerName,
+        [COMMANDS.QUEUE_PATTERN]: queuePattern,
     }
 
     const executor: ChildProcess = spawn('ts-node', [scriptPath], {
@@ -216,7 +221,7 @@ function spawnExectuor({ scriptPath, exitOnSleep, executorNumber, queuePattern }
         // Optionally, respawn the executor if it exited unexpectedly
         if (!isShuttingDown) {
             console.log(`Respawning Executor ${executorNumber}...`);
-            spawnExectuor({scriptPath, exitOnSleep, executorNumber, queuePattern});
+            spawnExectuor({workerName, scriptPath, exitOnSleep, executorNumber, queuePattern});
         }
     });
 

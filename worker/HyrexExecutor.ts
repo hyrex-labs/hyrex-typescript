@@ -6,7 +6,6 @@ import { randomUUID } from "node:crypto";
 import { ExecutorMessage } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { clearHyrexContext, setHyrexContext } from "../HyrexContext";
-import { string } from "zod";
 import { performance } from "perf_hooks";
 
 class Averager {
@@ -30,6 +29,7 @@ class Averager {
 }
 
 type HyrexExecutorConfig = {
+    workerName: string
     name: string
     queuePattern: HyrexQueuePattern
     taskRegistry: HyrexRegistry
@@ -40,6 +40,7 @@ export class HyrexExecutor {
     private dispatcher: HyrexDispatcher
     private taskRegistry: HyrexRegistry
     private name: string
+    private workerName: string
 
     // Queue stuff
     private queuePattern: HyrexQueuePattern
@@ -58,10 +59,11 @@ export class HyrexExecutor {
     constructor(config: HyrexExecutorConfig) {
         const defaultConfig = {}
         const mergedConfig = { ...defaultConfig, ...config }
-        const { dispatcher, taskRegistry, name, queuePattern } = mergedConfig
+        const { dispatcher, taskRegistry, name, queuePattern, workerName } = mergedConfig
         this.dispatcher = dispatcher
         this.taskRegistry = taskRegistry
         this.name = name
+        this.workerName = workerName
 
         // Queue stuff
         this.queuePattern = queuePattern
@@ -205,6 +207,7 @@ export class HyrexExecutor {
         // TODO: Figure out how to register executor
         await this.dispatcher.registerExecutor({
             executorId: this.executorId,
+            workerName: this.workerName,
             queuePattern: this.queuePattern,
             queues: this.queues,
             executorName: this.name

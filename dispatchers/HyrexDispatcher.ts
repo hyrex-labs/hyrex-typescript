@@ -53,11 +53,12 @@ export interface HyrexDispatcher {
     updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void>
 
     // Executor settings
-    registerExecutor({ queues, queuePattern, executorId, executorName }: {
+    registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
+        executorId: string,
         queues: HyrexQueue[],
         queuePattern: HyrexQueuePattern,
-        executorId: string,
-        executorName: string
+        executorName: string,
+        workerName: string
     }): Promise<void>
 
     disconnectExecutor({ executorId, stats }: { executorId: string, stats: object }): Promise<void>

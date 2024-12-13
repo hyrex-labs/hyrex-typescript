@@ -271,15 +271,16 @@ export class PostgresDispatcher implements HyrexDispatcher {
         console.log("It would update the heartbeat here...", heartbeatMsg)
     }
 
-    async registerExecutor({ queues, queuePattern, executorId, executorName }: {
+    async registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
         queues: HyrexQueue[],
         queuePattern: HyrexQueuePattern,
         executorId: string,
-        executorName: string
+        executorName: string,
+        workerName: string
     }): Promise<void> {
         const client = await this.pool.connect()
         try {
-            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, JSON.stringify(queuePattern), JSON.stringify(queues)])
+            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, JSON.stringify(queuePattern), JSON.stringify(queues), workerName])
         } finally {
             client.release();
         }

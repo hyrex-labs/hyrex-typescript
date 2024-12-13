@@ -48,6 +48,7 @@ create table if not exists hyrexexecutor
 (
     id      uuid    not null primary key,
     name    varchar not null,
+    worker_name varchar not null,
     queue_pattern json not null,
     queues json not null,
     started timestamp with time zone,
@@ -184,10 +185,11 @@ export const REGISTER_EXECUTOR = `
     name,
     queue_pattern,
     queues,
+    worker_name,
     started,
     stopped,
     last_heartbeat
-) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP);
+) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP);
 `
 
 export const UPDATE_QUEUES_ON_EXECUTOR = `

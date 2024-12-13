@@ -94,7 +94,12 @@ export class HyrexWorker {
         queuePattern: "*",
         logLevel: "INFO",
     }) {
-        const workerName = process.env.HYREX_WORKER_NAME
+        const executorName = process.env[COMMANDS.EXECUTOR_NAME]
+        if (!executorName) {
+            throw new Error("No HYREX_EXECUTOR_NAME Found. Ensure this command is being executed via the CLI.")
+        }
+
+        const workerName = process.env[COMMANDS.WORKER_NAME]
         if (!workerName) {
             throw new Error("No HYREX_WORKER_NAME Found. Ensure this command is being executed via the CLI.")
         }
@@ -102,7 +107,8 @@ export class HyrexWorker {
         console.log(`Received queue pattern: ${queuePattern}`)
 
         const executor = new HyrexExecutor({
-            name: workerName,
+            workerName: workerName,
+            name: executorName,
             queuePattern: new HyrexQueuePattern({ pattern: queuePattern }),
             taskRegistry: this.appTaskRegistry,
             dispatcher: this.dispatcher

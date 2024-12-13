@@ -53,6 +53,7 @@ export class HyrexExecutor {
 
     // Perf metrics
     private refreshQueueDurationAvgr: Averager
+    private numDistinctQueuesAvgr: Averager
 
     constructor(config: HyrexExecutorConfig) {
         const defaultConfig = {}
@@ -76,6 +77,7 @@ export class HyrexExecutor {
 
         // Perf metrics
         this.refreshQueueDurationAvgr = new Averager()
+        this.numDistinctQueuesAvgr = new Averager()
     }
 
     private async processTask(task: SerializedTask): Promise<JsonType | undefined> {
@@ -134,6 +136,7 @@ export class HyrexExecutor {
         const queueNames = await this.dispatcher.fetchActiveQueueNames({ queuePattern: this.queuePattern.pattern })
         const end = performance.now()
         this.refreshQueueDurationAvgr.submit(end - start)
+        this.numDistinctQueuesAvgr.submit(queueNames.length)
 
         // console.log("Pattern results are...", queueNames)
 
@@ -277,7 +280,8 @@ export class HyrexExecutor {
 
         const stats = {
             "avgDequeueDurationMS": dequeueDurationAvgr.avg(),
-            "avgRefreshQueueDuration": this.refreshQueueDurationAvgr.avg()
+            "avgRefreshQueueDurationMS": this.refreshQueueDurationAvgr.avg(),
+            "numDistinctQueues": this.numDistinctQueuesAvgr.avg()
         }
 
         await this.dispatcher.disconnectExecutor({ executorId: this.executorId, stats })

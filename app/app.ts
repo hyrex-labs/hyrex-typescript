@@ -96,7 +96,7 @@ const choices: sendTaskArgs[] = [
 
                 const userId = uuidv4()
                 submitFraudToPersonaTask.send(args)
-                // restartDatabaseTask.send()
+                restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");
             await sleep(2_000)

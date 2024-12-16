@@ -6,7 +6,7 @@ import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
-import { FETCH_TASK_WITH_CONCURRENCY_LIMIT, UPDATE_QUEUES_ON_EXECUTOR } from "./sql";
+import { CreateSystemLogTable, FETCH_TASK_WITH_CONCURRENCY_LIMIT, UPDATE_QUEUES_ON_EXECUTOR } from "./sql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -120,6 +120,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(sql.CreateHyrexTaskTable);
             await client.query(sql.CreateExecutorTable);
             await client.query(sql.CreateResultsTable);
+            await client.query(sql.CreateSystemLogTable);
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error(error);

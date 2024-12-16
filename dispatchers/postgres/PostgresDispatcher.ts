@@ -6,7 +6,7 @@ import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
-import { UPDATE_QUEUES_ON_EXECUTOR } from "./sql";
+import { FETCH_TASK_WITH_CONCURRENCY_LIMIT, UPDATE_QUEUES_ON_EXECUTOR } from "./sql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -215,13 +215,14 @@ export class PostgresDispatcher implements HyrexDispatcher {
         if (numTasks !== 1) {
             throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
         }
+        console.log("concurrencyLimit", concurrencyLimit)
 
         const result = await this.queryWithRetry(async (client) => {
             let result;
             if (concurrencyLimit) {
                 result = await client.query<SerializedTask>(
                     sql.FETCH_TASK_WITH_CONCURRENCY_LIMIT,
-                    [queueName, executorId, concurrencyLimit]
+                    [queueName, concurrencyLimit, executorId]
                 );
             } else {
                 result = await client.query<SerializedTask>(

@@ -30,7 +30,7 @@ type WorkerConfig = {
 
 export class HyrexWorker {
     private dispatcher: HyrexDispatcher
-    private appTaskRegistry: HyrexRegistry
+    private appRegistry: HyrexRegistry
     private appId: string
     private conn?: string
     private apiKey?: string
@@ -64,7 +64,7 @@ export class HyrexWorker {
             // this.dispatcher = new Sqlite3Dispatcher("tasks.db")
         }
 
-        this.appTaskRegistry = new HyrexRegistry()
+        this.appRegistry = new HyrexRegistry()
     }
 
     async init() {
@@ -83,10 +83,14 @@ export class HyrexWorker {
     }
 
     addRegistry(taskRegistry: HyrexRegistry) {
-        console.log("Calling add Registry!")
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
             const { taskFunc, taskConfig } = taskRegistry.internalTaskRegistry[key]
-            this.appTaskRegistry.addFunction(key, taskFunc, taskConfig)
+            this.appRegistry.addFunction(key, taskFunc, taskConfig)
+        }
+
+        for (const key of Object.keys(taskRegistry.internalQueueRegistry)) {
+            const queue = taskRegistry.internalQueueRegistry[key]
+            this.appRegistry.addQueue(queue)
         }
     }
 
@@ -110,7 +114,7 @@ export class HyrexWorker {
             workerName: workerName,
             name: executorName,
             queuePattern: new HyrexQueuePattern({ pattern: queuePattern }),
-            taskRegistry: this.appTaskRegistry,
+            taskRegistry: this.appRegistry,
             dispatcher: this.dispatcher
         })
 
@@ -146,7 +150,7 @@ export class HyrexWorker {
             throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
         }
 
-        this.appTaskRegistry.addFunction(taskFunction.name, taskFunction, taskConfig)
+        this.appRegistry.addFunction(taskFunction.name, taskFunction, taskConfig)
     }
 
 }

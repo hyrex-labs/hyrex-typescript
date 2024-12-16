@@ -12,6 +12,7 @@ create table if not exists hyrextask
     id              uuid       not null
 primary key,
     root_id         uuid       not null,
+    parent_id       uuid,
     task_name       varchar    not null,
     args            json       not null,
     queue           varchar    not null,
@@ -101,37 +102,26 @@ RETURNING ht.id, ht.root_id, ht.task_name, ht.args, ht.queue, ht.priority, ht.sc
 `
 
 export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
-    WITH queue_lock AS (SELECT pg_try_advisory_xact_lock(hashtext($1)) as lock_acquired),
-         running_tasks AS (SELECT COUNT(*) as running_count
-                           FROM hyrextask
-                           WHERE queue = $1
-                             AND status = 'running'
-                             AND executor_id IS NOT NULL),
-         next_task AS (SELECT id
-                       FROM hyrextask ht
-                       WHERE queue = $1
-                         AND status = 'queued'
-                         AND EXISTS (SELECT 1
-                                     FROM running_tasks rt,
-                                          queue_lock ql
-                                     WHERE rt.running_count < $3
-                                       AND ql.lock_acquired = true)
-                       ORDER BY priority DESC, queued
-        FOR UPDATE SKIP LOCKED
-    LIMIT 1
+WITH lock_result AS (
+    SELECT pg_try_advisory_xact_lock(hashtext($1)) AS lock_acquired
+),
+next_task AS (
+    SELECT id
+FROM hyrextask, lock_result
+WHERE
+lock_acquired = TRUE
+AND queue = $1
+AND status = 'queued'
+AND (SELECT COUNT(*) FROM hyrextask WHERE queue = $1 AND status = 'running') < $2
+ORDER BY priority DESC, queued
+FOR UPDATE SKIP LOCKED
+LIMIT 1
 )
-    UPDATE hyrextask as ht
-    SET status         = 'running',
-        started        = CURRENT_TIMESTAMP,
-        executor_id    = $2,
-        attempt_number = attempt_number + 1 FROM next_task
-    WHERE hyrextask.id = next_task.id
-        RETURNING
-        CASE WHEN (SELECT lock_acquired FROM queue_lock)
-        THEN hyrextask.id
-        ELSE NULL
-    END as 
-    ht.id, ht.root_id, ht.task_name, ht.args, ht.queue, ht.priority, ht.scheduled_start, ht.queued, ht.started;
+UPDATE hyrextask as ht
+SET status = 'running', started = CURRENT_TIMESTAMP, last_heartbeat = CURRENT_TIMESTAMP, executor_id = $3
+FROM next_task
+WHERE ht.id = next_task.id
+RETURNING ht.id, ht.root_id, ht.parent_id, ht.task_name, ht.args, ht.queue, ht.priority, ht.scheduled_start, ht.queued, ht.started;
 `
 
 // export const FETCH_TASK_FROM_ANY_QUEUE = `

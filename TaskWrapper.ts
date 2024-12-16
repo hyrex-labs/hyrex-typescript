@@ -9,7 +9,12 @@ import {
 } from "./utils";
 import { HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispatcher";
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
+import { string, z } from "zod";
+
+// Concurrency limit cannot be set at send time. This type removes concurrency limit at send time.
+type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
+    queue: string | { name: string };
+};
 
 export class TaskWrapper<U extends JsonType> {
     private taskFunction: HyrexTaskFunction
@@ -22,7 +27,7 @@ export class TaskWrapper<U extends JsonType> {
         this.taskConfig =  HyrexTaskConfigSchema.parse(defaultTaskConfig)
     }
 
-    withConfig(taskConfig: HyrexTaskConfigInput) : TaskWrapper<U> {
+    withConfig(taskConfig: SendableHyrexTaskConfig) : TaskWrapper<U> {
         const newTaskConfig = {...this.taskConfig, ...taskConfig}
         return new TaskWrapper(this.dispatcher, this.taskFunction, newTaskConfig)
     }

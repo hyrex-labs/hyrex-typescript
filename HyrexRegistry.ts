@@ -70,6 +70,7 @@ export class HyrexRegistry {
         }
 
         if (taskConfig.queue) {
+            console.log("Adding queue!!", taskName, taskConfig.queue)
             if (typeof taskConfig.queue === "string") {
                 this.addQueue(new HyrexQueue({ name: taskConfig.queue }))
             } else {

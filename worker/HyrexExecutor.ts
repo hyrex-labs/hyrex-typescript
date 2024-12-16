@@ -169,7 +169,7 @@ export class HyrexExecutor {
 
         this.dispatcher.updateQueuesOnExecutor({ executorId: this.executorId, queues: this.queues })
 
-        // console.log("Fetched queues", JSON.stringify(this.queues))
+        console.log("Fetched queues", JSON.stringify(this.queues))
     }
 
     private async getNextQueueRoundRobin(): Promise<HyrexQueue | null> {

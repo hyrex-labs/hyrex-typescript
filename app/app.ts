@@ -2,7 +2,7 @@ import { HyrexQueuePatternArgsType, HyrexTaskConfigInput, HyrexTaskFunction, Jso
 import { HyrexRegistry } from "../HyrexRegistry";
 import 'dotenv/config';
 import { HyrexTaskConfig } from "../utils";
-import { HyrexQueuePattern } from "../HyrexQueue";
+import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { v4 as uuidv4 } from 'uuid';
 
 import { getHyrexContext } from "../index";
@@ -35,7 +35,7 @@ const submitOrderQueuePattern = new HyrexQueuePattern({
 const submitFraudToPersona = async ({ email }: { email: string }) => {
     const ctx = getHyrexContext()
     console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
-    await sleep(500)
+    await sleep(1000)
     // Note it could take 48 hours for persona to get back
     return { "result": true }
 }
@@ -43,6 +43,7 @@ const submitFraudToPersona = async ({ email }: { email: string }) => {
 const restartDatabase = async () => {
     const ctx = getHyrexContext()
     console.log(`Restart Database with context ${JSON.stringify(ctx)}`)
+    // await sleep(3000)
     return { "status": "ok" }
 }
 
@@ -53,7 +54,7 @@ const sayHello = async () => {
 
 // const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
 // const restartDatabaseTask = hy.task(restartDatabase)
-const sayHelloTask = hy.task(sayHello)
+// const sayHelloTask = hy.task(sayHello)
 
 // submitFraudToPersonaTask.withConfig({
 //         queue: "low-priority",
@@ -76,7 +77,14 @@ const choices: sendTaskArgs[] = [
 
 (async () => {
     const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
-    const restartDatabaseTask = hy.task(restartDatabase)
+    const taskConfig: HyrexTaskConfigInput = {
+        queue: new HyrexQueue({
+            name: "serial-queue",
+            concurrencyLimit: 2
+        })
+    }
+
+    const restartDatabaseTask = hy.task(restartDatabase, taskConfig)
 
     if (process.argv.includes('--submit')) {
         for (const i of range(5)) {
@@ -87,14 +95,11 @@ const choices: sendTaskArgs[] = [
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4()
-                const taskConfig: HyrexTaskConfigInput = {
-                    queue: `userId/${userId}`
-                }
-                // submitFraudToPersonaTask.withConfig(taskConfig).send(args)
-                restartDatabaseTask.send()
+                submitFraudToPersonaTask.send(args)
+                // restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");
-            await sleep(5_000)
+            await sleep(2_000)
         }
     }
 })()

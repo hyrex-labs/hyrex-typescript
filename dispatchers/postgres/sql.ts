@@ -80,6 +80,7 @@ export const CreateResultsTable = `
 export const ENQUEUE_TASKS = `
     INSERT INTO hyrex_task (id,
                            root_id,
+                           parent_id,
                            task_name,
                            args,
                            queue,
@@ -88,7 +89,7 @@ export const ENQUEUE_TASKS = `
                            status,
                            attempt_number,
                            queued)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, 'queued', 0, CURRENT_TIMESTAMP);
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'queued', 0, CURRENT_TIMESTAMP);
 `
 
 export const FETCH_TASK = `
@@ -107,6 +108,7 @@ export const FETCH_TASK = `
     WHERE ht.id = next_task.id
     RETURNING ht.id
         , ht.root_id
+        , ht.parent_id
         , ht.task_name
         , ht.args
         , ht.queue

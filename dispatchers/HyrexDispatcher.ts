@@ -6,6 +6,7 @@ import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 
 export type SerializedTaskRequest = {
     id: UUID,
+    parent_id: string | null,
     task_name: string,
     args: JsonType,
     queue: string,
@@ -16,6 +17,7 @@ export type SerializedTaskRequest = {
 export type SerializedTask = {
     id: string,
     root_id: string,
+    parent_id: string | null,
     task_name: string,
     args: JsonType,
     queue: string,

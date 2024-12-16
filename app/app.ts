@@ -32,19 +32,31 @@ const submitOrderQueuePattern = new HyrexQueuePattern({
 //
 // hy.addQueuePattern(queuePattern)
 
-const submitFraudToPersona = async ({ email }: { email: string }) => {
-    const ctx = getHyrexContext()
-    console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
-    await sleep(1000)
-    // Note it could take 48 hours for persona to get back
-    return { "result": true }
-}
+
 
 const restartDatabase = async () => {
     const ctx = getHyrexContext()
     console.log(`Restart Database with context ${JSON.stringify(ctx)}`)
     // await sleep(3000)
     return { "status": "ok" }
+}
+
+const taskConfig: HyrexTaskConfigInput = {
+    queue: new HyrexQueue({
+        name: "serial-queue",
+        concurrencyLimit: 2
+    })
+}
+
+const restartDatabaseTask = hy.task(restartDatabase, taskConfig)
+
+const submitFraudToPersona = async ({ email }: { email: string }) => {
+    const ctx = getHyrexContext()
+    console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
+    await sleep(1000)
+    // Note it could take 48 hours for persona to get back
+    restartDatabaseTask.send()
+    return { "result": true }
 }
 
 const sayHello = async () => {
@@ -77,14 +89,6 @@ const choices: sendTaskArgs[] = [
 
 (async () => {
     const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
-    const taskConfig: HyrexTaskConfigInput = {
-        queue: new HyrexQueue({
-            name: "serial-queue",
-            concurrencyLimit: 2
-        })
-    }
-
-    const restartDatabaseTask = hy.task(restartDatabase, taskConfig)
 
     if (process.argv.includes('--submit')) {
         for (const i of range(5)) {
@@ -96,7 +100,6 @@ const choices: sendTaskArgs[] = [
 
                 const userId = uuidv4()
                 submitFraudToPersonaTask.send(args)
-                restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");
             await sleep(2_000)

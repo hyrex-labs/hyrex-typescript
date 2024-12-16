@@ -7,6 +7,7 @@ import { ExecutorMessage } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { clearHyrexContext, setHyrexContext } from "../HyrexContext";
 import { performance } from "perf_hooks";
+import { COMMANDS } from "../commands";
 
 class Averager {
     private count: number
@@ -90,6 +91,7 @@ export class HyrexExecutor {
             setHyrexContext({
                 taskId: task.id,
                 rootId: task.root_id,
+                parentId: task.parent_id,
                 taskName: task.task_name,
                 queue: task.queue,
                 priority: task.priority,
@@ -98,6 +100,8 @@ export class HyrexExecutor {
                 started: task.started,
                 executorId: this.executorId,
             });
+
+            process.env[COMMANDS.PARENT_ID] = task.id
 
             if (args) {
                 const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
@@ -108,6 +112,7 @@ export class HyrexExecutor {
             }
         } finally {
             clearHyrexContext()
+            delete process.env[COMMANDS.PARENT_ID]
         }
 
     }

@@ -90,6 +90,7 @@ export class HyrexExecutor {
         try {
             setHyrexContext({
                 taskId: task.id,
+                durableId: task.durable_id,
                 rootId: task.root_id,
                 parentId: task.parent_id,
                 taskName: task.task_name,
@@ -102,6 +103,7 @@ export class HyrexExecutor {
             });
 
             process.env[COMMANDS.PARENT_ID] = task.id
+            process.env[COMMANDS.ROOT_ID] = task.root_id
 
             if (args) {
                 const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
@@ -113,6 +115,7 @@ export class HyrexExecutor {
         } finally {
             clearHyrexContext()
             delete process.env[COMMANDS.PARENT_ID]
+            delete process.env[COMMANDS.ROOT_ID]
         }
 
     }

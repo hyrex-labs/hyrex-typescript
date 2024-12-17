@@ -11,6 +11,7 @@ create table if not exists hyrex_task
 (
     id              uuid       not null
 primary key,
+    durable_id      uuid not null,
     root_id         uuid       not null,
     parent_id       uuid,
     task_name       varchar    not null,
@@ -79,17 +80,18 @@ export const CreateResultsTable = `
 `
 export const ENQUEUE_TASKS = `
     INSERT INTO hyrex_task (id,
-                           root_id,
-                           parent_id,
-                           task_name,
-                           args,
-                           queue,
-                           max_retries,
-                           priority,
-                           status,
-                           attempt_number,
-                           queued)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'queued', 0, CURRENT_TIMESTAMP);
+                            durable_id,
+                            root_id,
+                            parent_id,
+                            task_name,
+                            args,
+                            queue,
+                            max_retries,
+                            priority,
+                            status,
+                            attempt_number,
+                            queued)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'queued', 0, CURRENT_TIMESTAMP);
 `
 
 export const FETCH_TASK = `
@@ -200,13 +202,13 @@ export const MARK_TASK_LOST = `
 
 export const REGISTER_EXECUTOR = `
     INSERT INTO hyrex_executor (id,
-                               name,
-                               queue_pattern,
-                               queues,
-                               worker_name,
-                               started,
-                               stopped,
-                               last_heartbeat)
+                                name,
+                                queue_pattern,
+                                queues,
+                                worker_name,
+                                started,
+                                stopped,
+                                last_heartbeat)
     VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP);
 `
 

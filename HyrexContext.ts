@@ -4,6 +4,7 @@ import { string } from "zod";
 
 export type HyrexContext = {
     taskId: string,
+    durableId: string,
     rootId: string,
     parentId: string | null,
     taskName: string,

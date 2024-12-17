@@ -8,7 +8,7 @@ import {
     HyrexTaskConfigInput
 } from "./utils";
 import { HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispatcher";
-import { randomUUID } from "node:crypto";
+import { v6 as uuidv6 } from 'uuid';
 import { string, z } from "zod";
 import { COMMANDS } from "./commands";
 
@@ -41,11 +41,13 @@ export class TaskWrapper<U extends JsonType> {
 
         JsonSerializable.parse(context)
 
-
+        const currentId = uuidv6()
         const serializedTaskRequest: SerializedTaskRequest = {
-            id: randomUUID(),
-            queue: typeof this.taskConfig.queue === 'string' ? this.taskConfig.queue : this.taskConfig.queue.name,
+            id: currentId,
+            durable_id: currentId,
+            root_id: process.env[COMMANDS.ROOT_ID] ?? currentId,
             parent_id: process.env[COMMANDS.PARENT_ID] ?? null,
+            queue: typeof this.taskConfig.queue === 'string' ? this.taskConfig.queue : this.taskConfig.queue.name,
             task_name: this.taskFunction.name,
             args: context,
             max_retries: this.taskConfig.maxRetries,

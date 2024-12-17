@@ -185,10 +185,11 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query('BEGIN');
             try {
                 for (const task of serializedTasks) {
-                    const { id, parent_id, task_name, args, queue, max_retries, priority } = task;
+                    const { id, root_id, parent_id, task_name, args, queue, max_retries, priority } = task;
                     await client.query(sql.ENQUEUE_TASKS, [
                         id,
                         id,
+                        root_id,
                         parent_id,
                         task_name,
                         args,

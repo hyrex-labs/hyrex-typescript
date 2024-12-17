@@ -11,6 +11,7 @@ import { HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispa
 import { v7 as uuidv7 } from 'uuid';
 import { string, z } from "zod";
 import { COMMANDS } from "./commands";
+import { getHyrexContext } from "./HyrexContext";
 
 // Concurrency limit cannot be set at send time. This type removes concurrency limit at send time.
 type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
@@ -38,6 +39,7 @@ export class TaskWrapper<U extends JsonType> {
             context = {}
         }
 
+        const hyrexContext = getHyrexContext()
 
         JsonSerializable.parse(context)
 
@@ -45,8 +47,8 @@ export class TaskWrapper<U extends JsonType> {
         const serializedTaskRequest: SerializedTaskRequest = {
             id: currentId,
             durable_id: currentId,
-            root_id: process.env[COMMANDS.ROOT_ID] ?? currentId,
-            parent_id: process.env[COMMANDS.PARENT_ID] ?? null,
+            root_id: hyrexContext ? hyrexContext.rootId : currentId,
+            parent_id: hyrexContext ? hyrexContext.taskId : null,
             queue: typeof this.taskConfig.queue === 'string' ? this.taskConfig.queue : this.taskConfig.queue.name,
             task_name: this.taskFunction.name,
             args: context,

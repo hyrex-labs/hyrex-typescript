@@ -38,7 +38,6 @@ const restartDatabase = async () => {
     const ctx = getHyrexContext()
     console.log(`Restart Database with context ${JSON.stringify(ctx)}`)
     // await sleep(3000)
-    throw new Error("I failed!")
     return { "status": "ok" }
 }
 
@@ -100,8 +99,8 @@ const choices: sendTaskArgs[] = [
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4();
-                // submitFraudToPersonaTask.send(args)
-                await restartDatabaseTask.send()
+                submitFraudToPersonaTask.send(args)
+                // await restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");
             await sleep(2_000)

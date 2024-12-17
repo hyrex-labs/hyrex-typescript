@@ -285,6 +285,7 @@ export class HyrexExecutor {
                 await this.dispatcher.markTaskFailed(task.id)
                 console.log(`Failed processing on ${task.id}`)
                 this.updateTaskId(null)
+                await this.dispatcher.attemptRetry(task.id)
             }
 
         }

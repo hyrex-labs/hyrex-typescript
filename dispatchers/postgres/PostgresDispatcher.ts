@@ -6,7 +6,7 @@ import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
-import { CreateSystemLogTable, FETCH_TASK_WITH_CONCURRENCY_LIMIT, UPDATE_QUEUES_ON_EXECUTOR } from "./sql";
+import { v7 as uuidv7 } from 'uuid';
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -363,6 +363,13 @@ export class PostgresDispatcher implements HyrexDispatcher {
         } finally {
             client.release()
         }
+    }
+
+    async attemptRetry(taskId: UUID): Promise<void> {
+        const newTaskId = uuidv7()
+        return this.queryWithRetry(async (client) => {
+            await client.query(sql.CONDITIONALLY_RETRY_TASK, [taskId, newTaskId])
+        })
     }
 
     async fetchActiveQueueNames({ queuePattern }: { queuePattern: string }): Promise<string[]> {

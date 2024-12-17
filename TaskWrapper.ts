@@ -8,7 +8,7 @@ import {
     HyrexTaskConfigInput
 } from "./utils";
 import { HyrexDispatcher, SerializedTaskRequest } from "./dispatchers/HyrexDispatcher";
-import { v6 as uuidv6 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { string, z } from "zod";
 import { COMMANDS } from "./commands";
 
@@ -41,7 +41,7 @@ export class TaskWrapper<U extends JsonType> {
 
         JsonSerializable.parse(context)
 
-        const currentId = uuidv6()
+        const currentId = uuidv7()
         const serializedTaskRequest: SerializedTaskRequest = {
             id: currentId,
             durable_id: currentId,

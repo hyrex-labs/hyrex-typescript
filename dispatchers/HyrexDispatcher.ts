@@ -57,6 +57,8 @@ export interface HyrexDispatcher {
 
     updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void>
 
+    attemptRetry(taskId: UUID): Promise<void>
+
     // Executor settings
     registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
         executorId: string,

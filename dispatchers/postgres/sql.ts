@@ -266,3 +266,49 @@ export const FETCH_ACTIVE_QUEUE_NAMES = `
                    WHERE qc.cnt > 100000) sub
              WHERE rn <= 100000) final_result;
 `
+
+export const CONDITIONALLY_RETRY_TASK = `
+WITH existing_task AS (
+    SELECT
+        durable_id,
+        root_id,
+        parent_id,
+        task_name,
+        args,
+        queue,
+        attempt_number,
+        max_retries,
+        priority
+    FROM hyrex_task
+    WHERE id = $1
+      AND attempt_number < max_retries
+)
+INSERT INTO hyrex_task (
+    id,
+    durable_id,
+    root_id,
+    parent_id,
+    queued,
+    status,
+    task_name,
+    args,
+    queue,
+    attempt_number,
+    max_retries,
+    priority
+)
+SELECT
+    $2 AS id,
+    durable_id,
+    root_id,
+    parent_id,
+    CURRENT_TIMESTAMP as queued,
+    'queued' AS status,
+    task_name,
+    args,
+    queue,
+    attempt_number + 1 AS attempt_number,
+    max_retries,
+    priority
+FROM existing_task;
+`

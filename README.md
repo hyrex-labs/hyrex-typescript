@@ -23,3 +23,10 @@ Hyrex Worker listens to two channels in a Postgres database:
 
 `TASK_CANCEL`
 
+
+## Task Config Options
+
+`idempotencyKey` - Idempotency keys are set on a task execution. If you attempt to send a task that has the same 
+idempotency key as an existing task, then the task execution will not be enqueued. Instead, an `IDEMPOTENCY_COLLISION` 
+will be recorded in the System Log table. This effect will last as long as the `idempotencyKey` is present in the 
+`task_execution`.

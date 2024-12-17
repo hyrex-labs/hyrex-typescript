@@ -46,7 +46,7 @@ const taskConfig: HyrexTaskConfigInput = {
         name: "serial-queue",
         concurrencyLimit: 2
     }),
-    // cron: "* * * * *"
+    cron: "* * * * *"
 }
 
 const restartDatabaseTask = hy.task(restartDatabase, taskConfig)
@@ -92,7 +92,7 @@ const choices: sendTaskArgs[] = [
     const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
 
     if (process.argv.includes('--submit')) {
-        for (const i of range(5)) {
+        for (const i of range(2)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 
@@ -100,7 +100,7 @@ const choices: sendTaskArgs[] = [
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4();
-                submitFraudToPersonaTask.send(args)
+                submitFraudToPersonaTask.withConfig({idempotencyKey: "apple" }).send(args)
                 // await restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");

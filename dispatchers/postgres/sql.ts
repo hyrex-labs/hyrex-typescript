@@ -55,7 +55,7 @@ CREATE INDEX IF NOT EXISTS index_queue_status
     ON public.hyrex_task_execution (status, queue, scheduled_start, task_name);
 
 CREATE UNIQUE INDEX IF NOT EXISTS ix_hyrex_task_execution_idempotency_key 
-    ON public.hyrex_task_execution (idempotency_key)
+    ON public.hyrex_task_execution (task_name, idempotency_key)
     WHERE idempotency_key IS NOT NULL;
 `
 
@@ -103,19 +103,55 @@ export const CreateResultsTable = `
 `
 
 export const ENQUEUE_TASKS = `
-    INSERT INTO hyrex_task_execution (id,
-                                      durable_id,
-                                      root_id,
-                                      parent_id,
-                                      task_name,
-                                      args,
-                                      queue,
-                                      max_retries,
-                                      priority,
-                                      status,
-                                      attempt_number,
-                                      queued)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'queued', 0, CURRENT_TIMESTAMP);
+    WITH task_insertion AS (
+        INSERT INTO hyrex_task_execution (
+                                          id,
+                                          durable_id,
+                                          root_id,
+                                          parent_id,
+                                          task_name,
+                                          args,
+                                          queue,
+                                          max_retries,
+                                          priority,
+                                          status,
+                                          attempt_number,
+                                          queued,
+                                          idempotency_key
+            )
+            VALUES (
+                       $1, $2, $3, $4, $5, $6, $7, $8, $9,
+                       'queued',
+                       0,
+                       CURRENT_TIMESTAMP,
+                       $10
+                   )
+            ON CONFLICT (task_name, idempotency_key)
+                WHERE idempotency_key IS NOT NULL
+                DO NOTHING
+            RETURNING id
+    ),
+         log_entry AS (
+             INSERT INTO hyrex_system_logs (
+                                            id,
+                                            timestamp,
+                                            event_name,
+                                            event_body
+                 )
+                 SELECT
+                     gen_random_uuid(),
+                     CURRENT_TIMESTAMP,
+                     'IDEMPOTENCY_COLLISION',
+                     json_build_object(
+                             'attempted_task_id', $1,
+                             'idempotency_key', $10,
+                             'task_name', $5,
+                             'queue', $7
+                     )
+                 WHERE NOT EXISTS (SELECT 1 FROM task_insertion)
+                   AND $10 IS NOT NULL
+         )
+    SELECT EXISTS (SELECT 1 FROM task_insertion) as task_created;
 `
 
 export const FETCH_TASK = `

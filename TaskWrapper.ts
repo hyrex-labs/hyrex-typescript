@@ -15,7 +15,7 @@ import { getHyrexContext } from "./HyrexContext";
 
 // Concurrency limit cannot be set at send time. This type removes concurrency limit at send time.
 type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
-    queue: string | { name: string };
+    queue?: string | { name: string };
 };
 
 export class TaskWrapper<U extends JsonType> {
@@ -53,7 +53,8 @@ export class TaskWrapper<U extends JsonType> {
             task_name: this.taskFunction.name,
             args: context,
             max_retries: this.taskConfig.maxRetries,
-            priority: this.taskConfig.priority
+            priority: this.taskConfig.priority,
+            idempotency_key: this.taskConfig.idempotencyKey
         }
 
         return (await this.dispatcher.enqueue([serializedTaskRequest]))[0]

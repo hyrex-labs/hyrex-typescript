@@ -68,6 +68,7 @@ export type QueueType = z.infer<typeof QueueSchema>
 
 export const HyrexTaskConfigSchema = z.object({
     onInit: z.function().args(z.any()).returns(z.any()).optional(),
+    idempotencyKey: z.string().optional(),
     queue: QueueSchema.default("default"),
     queuePattern: HyrexQueuePatternArgsSchema.optional(),
     priority: z.number().min(1).max(10).default(3),

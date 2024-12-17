@@ -74,6 +74,8 @@ export interface HyrexDispatcher {
 
     updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
 
+    // Tasks
+    registerTask({ taskName, cronExpr, sourceCode}: { taskName: string, cronExpr?: string, sourceCode?: string }): Promise<void>
 
     // Listening
     listen(hyrexListener: DispatcherListenerCallbacks): Promise<void>

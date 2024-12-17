@@ -1,51 +1,74 @@
-export const CreateHyrexTaskTable = `
--- create type public.statusenum as enum ('success', 'failed', 'up_for_retry', 'running', 'queued');
+export const CreateHyrexTaskExecutionTable = `
+-- Create status enum type if it doesn't exist
 DO $$
 BEGIN
-IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statusenum' AND typnamespace = 'public'::regnamespace) THEN
-CREATE TYPE public.statusenum AS ENUM ('success', 'failed', 'up_for_retry', 'running', 'queued', 'up_for_cancel', 'canceled', 'waiting');
-END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statusenum' AND typnamespace = 'public'::regnamespace) THEN
+        CREATE TYPE public.statusenum AS ENUM (
+            'success',
+            'failed',
+            'up_for_retry',
+            'running',
+            'queued',
+            'up_for_cancel',
+            'canceled',
+            'waiting'
+        );
+    END IF;
 END $$;
 
-create table if not exists hyrex_task
-(
-    id              uuid       not null
-primary key,
-    durable_id      uuid not null,
-    root_id         uuid       not null,
-    parent_id       uuid,
-    task_name       varchar    not null,
-    args            json       not null,
-    queue           varchar    not null,
-    max_retries     smallint   not null,
-    priority        smallint   not null,
-    status          statusenum not null,
-    attempt_number  smallint   not null,
-    scheduled_start timestamp with time zone,
-    executor_id       uuid,
-    queued          timestamp with time zone,
-    started         timestamp with time zone,
-    finished        timestamp with time zone,
-    last_heartbeat  timestamp with time zone
+-- Create task execution table
+CREATE TABLE IF NOT EXISTS hyrex_task_execution (
+    id              UUID                        NOT NULL PRIMARY KEY,
+    durable_id      UUID                        NOT NULL,
+    root_id         UUID                        NOT NULL,
+    parent_id       UUID,
+    task_name       VARCHAR                     NOT NULL,
+    args            JSON                        NOT NULL,
+    queue           VARCHAR                     NOT NULL,
+    max_retries     SMALLINT                    NOT NULL,
+    priority        SMALLINT                    NOT NULL,
+    status          STATUSENUM                  NOT NULL,
+    attempt_number  SMALLINT                    NOT NULL,
+    scheduled_start TIMESTAMP WITH TIME ZONE,
+    executor_id     UUID,
+    queued          TIMESTAMP WITH TIME ZONE,
+    started         TIMESTAMP WITH TIME ZONE,
+    finished        TIMESTAMP WITH TIME ZONE,
+    last_heartbeat  TIMESTAMP WITH TIME ZONE,
+    idempotency_key VARCHAR
 );
 
-create index if not exists ix_hyrex_task_task_name
-on public.hyrex_task (task_name);
+-- Create indexes
+CREATE INDEX IF NOT EXISTS ix_hyrex_task_execution_task_name
+    ON public.hyrex_task_execution (task_name);
 
-create index if not exists ix_hyrex_task_status
-on public.hyrex_task (status);
+CREATE INDEX IF NOT EXISTS ix_hyrex_task_execution_status
+    ON public.hyrex_task_execution (status);
 
-create index if not exists ix_hyrex_task_queue
-on public.hyrex_task (queue);
+CREATE INDEX IF NOT EXISTS ix_hyrex_task_execution_queue
+    ON public.hyrex_task_execution (queue);
 
-create index if not exists ix_hyrex_task_scheduled_start
-on public.hyrex_task (scheduled_start);
+CREATE INDEX IF NOT EXISTS ix_hyrex_task_execution_scheduled_start
+    ON public.hyrex_task_execution (scheduled_start);
 
-create index if not exists index_queue_status
-on public.hyrex_task (status, queue, scheduled_start, task_name);
+CREATE INDEX IF NOT EXISTS index_queue_status
+    ON public.hyrex_task_execution (status, queue, scheduled_start, task_name);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ix_hyrex_task_execution_idempotency_key 
+    ON public.hyrex_task_execution (idempotency_key)
+    WHERE idempotency_key IS NOT NULL;
 `
 
-// language=SQL format=false
+export const CreateHyrexTaskTable = `
+    CREATE TABLE IF NOT EXISTS hyrex_task
+    (
+        task_name   varchar not null primary key,
+        cron_expr   varchar,
+        source_code varchar,
+        last_updated TIMESTAMP WITH TIME ZONE
+    )
+`
+
 export const CreateSystemLogTable = `
 CREATE TABLE IF NOT EXISTS hyrex_system_logs (
     id UUID NOT NULL PRIMARY KEY,
@@ -73,36 +96,37 @@ export const CreateExecutorTable = `
 export const CreateResultsTable = `
     CREATE TABLE IF NOT EXISTS hyrex_task_result
     (
-        task_id    UUID PRIMARY KEY REFERENCES public.hyrex_task (id) ON DELETE CASCADE,
+        task_id    UUID PRIMARY KEY REFERENCES public.hyrex_task_execution (id) ON DELETE CASCADE,
         result     JSON,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 `
+
 export const ENQUEUE_TASKS = `
-    INSERT INTO hyrex_task (id,
-                            durable_id,
-                            root_id,
-                            parent_id,
-                            task_name,
-                            args,
-                            queue,
-                            max_retries,
-                            priority,
-                            status,
-                            attempt_number,
-                            queued)
+    INSERT INTO hyrex_task_execution (id,
+                                      durable_id,
+                                      root_id,
+                                      parent_id,
+                                      task_name,
+                                      args,
+                                      queue,
+                                      max_retries,
+                                      priority,
+                                      status,
+                                      attempt_number,
+                                      queued)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'queued', 0, CURRENT_TIMESTAMP);
 `
 
 export const FETCH_TASK = `
     WITH next_task AS (SELECT id
-                       FROM hyrex_task
+                       FROM hyrex_task_execution
                        WHERE queue = $1
                          AND status = 'queued'
                        ORDER BY priority DESC, queued
                            FOR UPDATE SKIP LOCKED
                        LIMIT 1)
-    UPDATE hyrex_task as ht
+    UPDATE hyrex_task_execution as ht
     SET status      = 'running',
         started     = CURRENT_TIMESTAMP,
         executor_id = $2
@@ -123,16 +147,16 @@ export const FETCH_TASK = `
 export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
     WITH lock_result AS (SELECT pg_try_advisory_xact_lock(hashtext($1)) AS lock_acquired),
          next_task AS (SELECT id
-                       FROM hyrex_task,
+                       FROM hyrex_task_execution,
                             lock_result
                        WHERE lock_acquired = TRUE
                          AND queue = $1
                          AND status = 'queued'
-                         AND (SELECT COUNT(*) FROM hyrex_task WHERE queue = $1 AND status = 'running') < $2
+                         AND (SELECT COUNT(*) FROM hyrex_task_execution WHERE queue = $1 AND status = 'running') < $2
                        ORDER BY priority DESC, queued
                            FOR UPDATE SKIP LOCKED
                        LIMIT 1)
-    UPDATE hyrex_task as ht
+    UPDATE hyrex_task_execution as ht
     SET status         = 'running',
         started        = CURRENT_TIMESTAMP,
         last_heartbeat = CURRENT_TIMESTAMP,
@@ -151,31 +175,15 @@ export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
         , ht.started;
 `
 
-// export const FETCH_TASK_FROM_ANY_QUEUE = `
-// WITH next_task AS (
-//     SELECT id
-// FROM hyrextask
-// WHERE status = 'queued'
-// ORDER BY priority DESC, queued
-// FOR UPDATE SKIP LOCKED
-// LIMIT 1
-// )
-// UPDATE hyrextask
-// SET status = 'running', started = CURRENT_TIMESTAMP, executor_id = $1
-// FROM next_task
-// WHERE hyrextask.id = next_task.id
-// RETURNING hyrextask.id, hyrextask.task_name, hyrextask.args;
-// `
-
 export const MARK_TASK_FAILED = `
-    UPDATE hyrex_task
+    UPDATE hyrex_task_execution
     SET status   = 'failed',
         finished = CURRENT_TIMESTAMP
     WHERE id = $1
 `
 
 export const MARK_TASK_SUCCESS = `
-    UPDATE hyrex_task
+    UPDATE hyrex_task_execution
     SET status   = CASE
                        WHEN status = 'running' THEN 'success'::statusenum
                        WHEN status = 'up_for_cancel' THEN 'canceled'::statusenum
@@ -186,7 +194,7 @@ export const MARK_TASK_SUCCESS = `
 `
 
 export const MARK_TASK_CANCELED = `
-    UPDATE hyrex_task
+    UPDATE hyrex_task_execution
     SET status   = 'canceled'::statusenum,
         finished = CURRENT_TIMESTAMP
     WHERE id = $1
@@ -194,7 +202,7 @@ export const MARK_TASK_CANCELED = `
 `
 
 export const MARK_TASK_LOST = `
-    UPDATE hyrex_task
+    UPDATE hyrex_task_execution
     SET status   = 'lost'::statusenum,
         finished = CURRENT_TIMESTAMP
     WHERE id = $1
@@ -242,7 +250,7 @@ export const FETCH_RESULT = `SELECT result
 
 export const FETCH_ACTIVE_QUEUE_NAMES = `
     WITH distinct_queues AS (SELECT DISTINCT queue
-                             FROM hyrex_task
+                             FROM hyrex_task_execution
                              WHERE status = 'queued'
                                AND queue LIKE $1),
          queue_count AS (SELECT COUNT(*) AS cnt
@@ -279,11 +287,11 @@ WITH existing_task AS (
         attempt_number,
         max_retries,
         priority
-    FROM hyrex_task
+    FROM hyrex_task_execution
     WHERE id = $1
       AND attempt_number < max_retries
 )
-INSERT INTO hyrex_task (
+INSERT INTO hyrex_task_execution (
     id,
     durable_id,
     root_id,
@@ -311,4 +319,14 @@ SELECT
     max_retries,
     priority
 FROM existing_task;
+`
+
+export const UPSERT_TASK = `
+INSERT INTO hyrex_task (task_name, cron_expr, source_code, last_updated)
+VALUES ($1, $2, $3, NOW())
+ON CONFLICT (task_name)
+DO UPDATE SET 
+    cron_expr = EXCLUDED.cron_expr,
+    source_code = EXCLUDED.source_code,
+    last_updated = NOW();
 `

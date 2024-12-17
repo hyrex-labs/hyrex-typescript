@@ -82,10 +82,19 @@ export class HyrexWorker {
         }
     }
 
+    registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+        this.dispatcher.registerTask({
+            taskName,
+            cronExpr: taskConfig.cron,
+            sourceCode: taskFunc.toString()
+        })
+    }
+
     addRegistry(taskRegistry: HyrexRegistry) {
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
             const { taskFunc, taskConfig } = taskRegistry.internalTaskRegistry[key]
             this.appRegistry.addFunction(key, taskFunc, taskConfig)
+            this.registerTaskWithServer(key, taskFunc, taskConfig)
         }
 
         for (const key of Object.keys(taskRegistry.internalQueueRegistry)) {

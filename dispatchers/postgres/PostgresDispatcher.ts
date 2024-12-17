@@ -117,10 +117,11 @@ export class PostgresDispatcher implements HyrexDispatcher {
     async initPostgresDB() {
         const client = await this.pool.connect()
         try {
-            await client.query(sql.CreateHyrexTaskTable);
+            await client.query(sql.CreateHyrexTaskExecutionTable);
             await client.query(sql.CreateExecutorTable);
             await client.query(sql.CreateResultsTable);
             await client.query(sql.CreateSystemLogTable);
+            await client.query(sql.CreateHyrexTaskTable);
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error(error);
@@ -381,5 +382,11 @@ export class PostgresDispatcher implements HyrexDispatcher {
             );
             return rows.map(r => r.queue);
         });
+    }
+
+    async registerTask({ taskName, cronExpr, sourceCode}: { taskName: string, cronExpr?: string , sourceCode?: string  }) {
+        return this.queryWithRetry(async (client) => {
+            await client.query(sql.UPSERT_TASK, [taskName, cronExpr, sourceCode])
+        })
     }
 }

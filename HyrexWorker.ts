@@ -82,7 +82,7 @@ export class HyrexWorker {
         }
     }
 
-    registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+    private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
         this.dispatcher.registerTask({
             taskName,
             cronExpr: taskConfig.cron,
@@ -94,7 +94,6 @@ export class HyrexWorker {
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
             const { taskFunc, taskConfig } = taskRegistry.internalTaskRegistry[key]
             this.appRegistry.addFunction(key, taskFunc, taskConfig)
-            this.registerTaskWithServer(key, taskFunc, taskConfig)
         }
 
         for (const key of Object.keys(taskRegistry.internalQueueRegistry)) {
@@ -160,6 +159,7 @@ export class HyrexWorker {
         }
 
         this.appRegistry.addFunction(taskFunction.name, taskFunction, taskConfig)
+        this.registerTaskWithServer(taskFunction.name, taskFunction, taskConfig)
     }
 
 }

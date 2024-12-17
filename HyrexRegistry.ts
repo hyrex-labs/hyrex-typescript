@@ -11,6 +11,8 @@ import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { TaskWrapper } from "./TaskWrapper";
 import { z } from "zod";
 import { HyrexQueue } from "./HyrexQueue";
+import { isValidCron } from 'cron-validator'
+
 
 export class HyrexRegistry {
     private dispatcher: HyrexDispatcher
@@ -51,6 +53,14 @@ export class HyrexRegistry {
         this.addFunction(taskFunction.name, taskFunction, taskConfig)
     }
 
+    private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+        this.dispatcher.registerTask({
+            taskName,
+            cronExpr: taskConfig.cron,
+            sourceCode: taskFunc.toString()
+        })
+    }
+
     addQueue(queue: HyrexQueue) {
         if (this.internalQueueRegistry[queue.name] && !this.internalQueueRegistry[queue.name].equals(queue)) {
             throw new Error(`Conflicting concurrency limits set on queue ${queue.name}`)
@@ -69,6 +79,10 @@ export class HyrexRegistry {
             throw new Error(`Function with name "${taskName}" is already in the registry.`);
         }
 
+        if (taskConfig.cron && !isValidCron(taskConfig.cron)) {
+            throw new Error(`Cron expr '${taskConfig.cron}' is invalid.`)
+        }
+
         if (taskConfig.queue) {
             console.log("Adding queue!!", taskName, taskConfig.queue)
             if (typeof taskConfig.queue === "string") {
@@ -79,6 +93,7 @@ export class HyrexRegistry {
         }
 
         this.internalTaskRegistry[taskName] = taskRegistration
+        this.registerTaskWithServer(taskName, taskFunc, taskConfig)
     }
 
     getFunction(key: string): HyrexTaskFunction {

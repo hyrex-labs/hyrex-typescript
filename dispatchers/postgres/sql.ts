@@ -60,13 +60,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_hyrex_task_execution_idempotency_key
 `
 
 export const CreateHyrexTaskTable = `
-    CREATE TABLE IF NOT EXISTS hyrex_task
-    (
-        task_name   varchar not null primary key,
-        cron_expr   varchar,
-        source_code varchar,
-        last_updated TIMESTAMP WITH TIME ZONE
-    )
+    CREATE TABLE IF NOT EXISTS hyrex_task (
+      task_name    TEXT NOT NULL PRIMARY KEY,
+      cron_expr    TEXT,
+      source_code  TEXT,
+      last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
 `
 
 export const CreateSystemLogTable = `

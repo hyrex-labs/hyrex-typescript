@@ -105,6 +105,14 @@ const choices: sendTaskArgs[] = [
             }
             console.timeEnd("Submission time");
             await sleep(2_000)
+
+            // // Options bag
+            // submitFraudToPersonaTask.withConfig({
+            //     scheduledStart: new Date("2025-01-01")
+            // }).send(args)
+            //
+            // // Builder pattern
+            // submitFraudToPersonaTask.scheduledStart(new Date("2025-01-01")).send(args)
         }
     }
 })()

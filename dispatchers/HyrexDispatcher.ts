@@ -76,8 +76,15 @@ export interface HyrexDispatcher {
     updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
 
     // Tasks
-    registerTask({ taskName, cronExpr, sourceCode}: { taskName: string, cronExpr?: string, sourceCode?: string }): Promise<void>
+    registerTask({ taskName, cronExpr, sourceCode }: {
+        taskName: string,
+        cronExpr?: string,
+        sourceCode?: string
+    }): Promise<void>
 
     // Listening
     listen(hyrexListener: DispatcherListenerCallbacks): Promise<void>
+
+    // Cron scheduling
+    acquireSchedulerLock({ workerId, workerName }: { workerId: string, workerName: string }): Promise<number | null>
 }

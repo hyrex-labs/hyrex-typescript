@@ -2,8 +2,8 @@ export const CreateHyrexTaskExecutionTable = `
 -- Create status enum type if it doesn't exist
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statusenum' AND typnamespace = 'public'::regnamespace) THEN
-        CREATE TYPE public.statusenum AS ENUM (
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_enum' AND typnamespace = 'public'::regnamespace) THEN
+        CREATE TYPE public.status_enum AS ENUM (
             'success',
             'failed',
             'up_for_retry',
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS hyrex_task_execution (
     queue           VARCHAR                     NOT NULL,
     max_retries     SMALLINT                    NOT NULL,
     priority        SMALLINT                    NOT NULL,
-    status          STATUSENUM                  NOT NULL,
+    status          STATUS_ENUM                 NOT NULL,
     attempt_number  SMALLINT                    NOT NULL,
     scheduled_start TIMESTAMP WITH TIME ZONE,
     executor_id     UUID,
@@ -365,4 +365,38 @@ DO UPDATE SET
     cron_expr = EXCLUDED.cron_expr,
     source_code = EXCLUDED.source_code,
     last_updated = NOW();
+`
+
+// Specifically modeled on cron.job table in pg_cron
+export const CreateHyrexCronJobTable = `
+CREATE TABLE IF NOT EXISTS hyrex_cron_job (
+    jobid        bigserial PRIMARY KEY,
+    schedule     text        NOT NULL,
+    command      text        NOT NULL,
+    active       boolean     NOT NULL DEFAULT true,
+    jobname      text        NOT NULL
+);
+`
+
+// Specifically modeled on cron.job_run_details table in pg_cron
+export const CreateHyrexCronJobRunDetailsTable = `
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'cron_job_status_enum' AND typnamespace = 'public'::regnamespace) THEN
+        CREATE TYPE public.cron_job_status_enum AS ENUM (
+            'success',
+            'queued',
+            'failed'
+        );
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS hyrex_cron_job_run_details (
+  jobid        bigint      NOT NULL,
+  runid        bigserial   PRIMARY KEY,
+  command      text        NOT NULL,
+  status       cron_job_status_enum,
+  start_time   timestamptz NOT NULL DEFAULT now(),
+  end_time     timestamptz
+)
 `

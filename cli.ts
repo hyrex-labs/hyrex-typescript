@@ -26,6 +26,7 @@ const taskIdToProcess = new Map<string, ChildProcess>();
 const executorIdToProcess = new Map<string, ChildProcess>();
 const childProcesses: ChildProcess[] = [];
 const adminProcesses: ChildProcess[] = [];
+const cronSchedulerProcesses: ChildProcess[] = [];
 
 const argv = yargs(hideBin(process.argv))
     .command(
@@ -76,6 +77,7 @@ const argv = yargs(hideBin(process.argv))
             }
 
             spawnAdmin(scriptPath)
+            spawnCronScheduler(workerName, scriptPath)
 
             if (lifespan) {
                 console.log(`Process will shutdown after ${lifespan} seconds`);
@@ -230,17 +232,55 @@ function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, qu
     });
 }
 
+function spawnCronScheduler(workerName: string, scriptPath: string) {
+    const schedulerProcess: ChildProcess = spawn('ts-node', [scriptPath], {
+        env: {
+            ...process.env,
+            [COMMANDS.RUN_CRON_SCHEDULER]: "1",
+            [COMMANDS.WORKER_NAME]: workerName,
+        },
+        stdio: ['ignore', 'inherit', 'inherit', "ipc"],
+    })
+
+    childProcesses.push(schedulerProcess);
+    cronSchedulerProcesses.push(schedulerProcess)
+
+    // schedulerProcess.on('error', (err) => {
+    //     console.error('CronScheduler encountered an error:', err);
+    // });
+    //
+    // schedulerProcess.stderr!.on('data', (data) => {
+    //     console.error(`CronScheduler stderr: ${data}`);
+    // });
+
+    schedulerProcess.on('exit', (code, signal) => {
+        if (code !== null) {
+            console.log(`CronScheduler exited with code ${code}`);
+        } else if (signal !== null) {
+            console.log(`CronScheduler killed by signal ${signal}`);
+        } else {
+            console.log(`CronScheduler exited`);
+        }
+
+        // Optionally, respawn the worker if it exited unexpectedly
+        if (!isShuttingDown) {
+            console.log(`Respawning CronScheduler...`);
+            spawnCronScheduler(workerName, scriptPath);
+        }
+    })
+}
+
 function spawnAdmin(scriptPath: string) {
     const adminProcess: ChildProcess = spawn('ts-node', [scriptPath], {
         env: {
             ...process.env,
-            [COMMANDS.RUN_WORKER_LISTENER]: "1",
+            [COMMANDS.RUN_ADMIN]: "1",
         },
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     });
 
     childProcesses.push(adminProcess);
-    adminProcesses.push(adminProcess)
+    adminProcesses.push(adminProcess);
 
     adminProcess.on('message', (message) => {
         handleAdminMessage(adminProcess, message as ListenerMessage);
@@ -248,11 +288,11 @@ function spawnAdmin(scriptPath: string) {
 
     adminProcess.on('exit', (code, signal) => {
         if (code !== null) {
-            console.log(`Listener exited with code ${code}`);
+            console.log(`Admin exited with code ${code}`);
         } else if (signal !== null) {
-            console.log(`Listener was killed by signal ${signal}`);
+            console.log(`Admin was killed by signal ${signal}`);
         } else {
-            console.log(`Listener exited`);
+            console.log(`Admin exited`);
         }
 
         // Optionally, respawn the worker if it exited unexpectedly

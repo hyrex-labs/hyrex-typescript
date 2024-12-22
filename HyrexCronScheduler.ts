@@ -1,5 +1,6 @@
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import parser from 'cron-parser';
+import { sleep } from "./utils";
 import { ListenerMessage, ListenerResultMessage } from "./types";
 
 export type CronJob = {
@@ -21,7 +22,7 @@ export type HyrexCronProcessArgs = {
     workerName: string
 }
 
-export class HyrexCronProcess {
+export class HyrexCronScheduler {
     private dispatcher: HyrexDispatcher
     private workerId: string
     private workerName: string
@@ -34,6 +35,7 @@ export class HyrexCronProcess {
     }
 
     private async acquireSchedulerLock(): Promise<number | null> {
+        console.log("Acquiring lock!")
         return await this.dispatcher.acquireSchedulerLock({ workerId: this.workerId, workerName: this.workerName })
     }
 
@@ -52,12 +54,17 @@ export class HyrexCronProcess {
     }
 
     async runCronScheduler(): Promise<void> {
+        console.log("Running cron scheduler!")
         while (true) {
+            // Acquire lock
+            await this.acquireSchedulerLock()
+
             // Pull cron expressions
 
             // Queue cron job runs
 
             // Execute cron job runs
+            await sleep(10000)
         }
     }
 }

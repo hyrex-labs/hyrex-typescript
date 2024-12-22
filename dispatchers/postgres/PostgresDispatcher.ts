@@ -8,6 +8,7 @@ import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMes
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJobRun } from "../../HyrexCronScheduler";
+import { ACQUIRE_SCHEDULER_LOCK, CreateHyrexCronJobTable, CreateHyrexSchedulerLockTable } from "./sql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -123,6 +124,9 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(sql.CreateResultsTable);
             await client.query(sql.CreateSystemLogTable);
             await client.query(sql.CreateHyrexTaskTable);
+            await client.query(sql.CreateHyrexCronJobTable);
+            await client.query(sql.CreateHyrexCronJobRunDetailsTable);
+            await client.query(sql.CreateHyrexSchedulerLockTable);
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error(error);
@@ -392,9 +396,18 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
     }
 
-    // Cron things
+    // Cron methods
     async acquireSchedulerLock({ workerId, workerName }: { workerId: string, workerName: string }): Promise<number | null> {
-        return 1
+        const lockDuration = "2 minutes"
+        return this.queryWithRetry(async (client) => {
+            const { rows } = await client.query(sql.ACQUIRE_SCHEDULER_LOCK, [workerName, lockDuration])
+            if (rows.length > 0) {
+                return rows[0].lockId
+            } else {
+                // No rows => couldn't acquire
+                return null
+            }
+        })
     }
 
     async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {

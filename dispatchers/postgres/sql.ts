@@ -368,13 +368,24 @@ DO UPDATE SET
 
 // Specifically modeled on cron.job table in pg_cron
 export const CreateHyrexCronJobTable = `
-CREATE TABLE IF NOT EXISTS hyrex_cron_job (
-    jobid        bigserial PRIMARY KEY,
-    schedule     text        NOT NULL,
-    command      text        NOT NULL,
-    active       boolean     NOT NULL DEFAULT true,
-    jobname      text        NOT NULL
-);
+    CREATE TABLE IF NOT EXISTS hyrex_cron_job
+    (
+        jobid             bigserial PRIMARY KEY,
+        schedule          text    NOT NULL,
+        command           text    NOT NULL,
+        active            boolean NOT NULL DEFAULT true,
+        jobname           text    NOT NULL,
+        activated_at      timestamptz,
+
+        -- Internal scheduling fields
+        next_run          timestamptz, -- Next scheduled run time
+        last_run          timestamptz, -- Last completed run time
+        last_run_status   boolean,     -- Status of last run (true = success)
+        last_run_duration interval,    -- Duration of last run
+        total_runs        bigint,      -- Total number of times job has run
+        max_runs          bigint,      -- Maximum number of runs (optional)
+        UNIQUE (jobname)
+    );
 `
 
 // Specifically modeled on cron.job_run_details table in pg_cron
@@ -398,4 +409,43 @@ CREATE TABLE IF NOT EXISTS hyrex_cron_job_run_details (
   start_time   timestamptz NOT NULL DEFAULT now(),
   end_time     timestamptz
 )
+`
+
+export const CreateHyrexSchedulerLockTable = `
+CREATE TABLE IF NOT EXISTS hyrex_scheduler_lock (
+    lockid          bigserial   PRIMARY KEY,
+    worker_name     text        NOT NULL,
+    acquired_at     timestamptz NOT NULL DEFAULT now(),
+    heartbeat_at    timestamptz NOT NULL DEFAULT now(),
+    release_at      timestamptz NOT NULL,
+    is_active       boolean     NOT NULL DEFAULT true
+);
+`
+
+export const ACQUIRE_SCHEDULER_LOCK = `
+INSERT INTO hyrex_scheduler_lock (
+    lockid, worker_name, acquired_at, heartbeat_at, release_at, is_active
+)
+VALUES (
+    1,                  -- single global lock id
+    $1,                 -- workerName
+    now(),              -- acquired_at
+    now(),              -- heartbeat_at
+    now() + CAST($2 AS interval),  -- release_at (e.g. now + '5 minutes')
+    true                -- is_active
+)
+ON CONFLICT (lockid)
+  DO UPDATE 
+     SET worker_name  = EXCLUDED.worker_name,
+         acquired_at  = EXCLUDED.acquired_at,
+         heartbeat_at = EXCLUDED.heartbeat_at,
+         release_at   = EXCLUDED.release_at,
+         is_active    = EXCLUDED.is_active
+   WHERE (
+       -- Only update if the lock is not truly active,
+       -- i.e. is already inactive or expired:
+       hyrex_scheduler_lock.is_active = false
+       OR hyrex_scheduler_lock.release_at <= now()
+   )
+RETURNING lockid;
 `

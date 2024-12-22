@@ -10,6 +10,7 @@ import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
 import { HyrexAdmin } from "./HyrexAdmin";
 import { HyrexQueue, HyrexQueuePattern } from "./HyrexQueue";
+import { HyrexCronScheduler } from "./HyrexCronScheduler";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -77,8 +78,10 @@ export class HyrexWorker {
             } else {
                 await this.runWorker()
             }
-        } else if (process.env[COMMANDS.RUN_WORKER_LISTENER]) {
+        } else if (process.env[COMMANDS.RUN_ADMIN]) {
             await this.runWorkerAdmin()
+        } else if (process.env[COMMANDS.RUN_CRON_SCHEDULER]){
+            await this.runCronScheduler()
         }
     }
 
@@ -135,6 +138,21 @@ export class HyrexWorker {
         })
 
         listener.runAdmin()
+    }
+
+    async runCronScheduler() {
+        const workerName = process.env[COMMANDS.WORKER_NAME]
+        if (!workerName) {
+            throw new Error("No HYREX_WORKER_NAME Found. Ensure this command is being executed via the CLI.")
+        }
+
+        const cronScheduler = new HyrexCronScheduler({
+            dispatcher: this.dispatcher,
+            workerName,
+            workerId: workerName
+        })
+
+        cronScheduler.runCronScheduler()
     }
 
     async initDB() {

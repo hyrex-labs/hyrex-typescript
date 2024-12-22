@@ -3,6 +3,7 @@ import { UUID, JsonType } from "../utils";
 import { string, z } from "zod";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
+import { CronJob, CronJobRun } from "../HyrexCronScheduler";
 
 export type SerializedTaskRequest = {
     id: UUID,
@@ -87,4 +88,7 @@ export interface HyrexDispatcher {
 
     // Cron scheduling
     acquireSchedulerLock({ workerId, workerName }: { workerId: string, workerName: string }): Promise<number | null>
+    updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void>
+    releaseSchedulerLock({ lockId }: { lockId: number }): Promise<void>
+    scheduleCronJobRun(cronJobRun: CronJobRun): Promise<void>
 }

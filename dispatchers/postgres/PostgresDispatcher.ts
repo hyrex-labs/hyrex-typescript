@@ -7,6 +7,7 @@ import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
+import { CronJobRun } from "../../HyrexCronScheduler";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -389,5 +390,22 @@ export class PostgresDispatcher implements HyrexDispatcher {
         return this.queryWithRetry(async (client) => {
             await client.query(sql.UPSERT_TASK, [taskName, cronExpr, sourceCode])
         })
+    }
+
+    // Cron things
+    async acquireSchedulerLock({ workerId, workerName }: { workerId: string, workerName: string }): Promise<number | null> {
+        return 1
+    }
+
+    async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
+
+    }
+
+    async releaseSchedulerLock({ lockId }: { lockId: number }): Promise<void> {
+
+    }
+
+    async scheduleCronJobRun(cronJobRun: CronJobRun): Promise<void> {
+
     }
 }

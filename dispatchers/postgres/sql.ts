@@ -1,3 +1,5 @@
+import { CronJobRun } from "../../HyrexCronScheduler";
+
 export const CreateHyrexTaskExecutionTable = `
 -- Create status enum type if it doesn't exist
 DO $$
@@ -366,6 +368,10 @@ DO UPDATE SET
     last_updated = NOW();
 `
 
+//
+// CRON SQL STATEMENTS
+//
+
 // Specifically modeled on cron.job table in pg_cron
 export const CreateHyrexCronJobTable = `
     CREATE TABLE IF NOT EXISTS hyrex_cron_job
@@ -375,15 +381,8 @@ export const CreateHyrexCronJobTable = `
         command           text    NOT NULL,
         active            boolean NOT NULL DEFAULT true,
         jobname           text    NOT NULL,
-        activated_at      timestamptz,
-
-        -- Internal scheduling fields
-        next_run          timestamptz, -- Next scheduled run time
-        last_run          timestamptz, -- Last completed run time
-        last_run_status   boolean,     -- Status of last run (true = success)
-        last_run_duration interval,    -- Duration of last run
-        total_runs        bigint,      -- Total number of times job has run
-        max_runs          bigint,      -- Maximum number of runs (optional)
+        activated_at      timestamptz default now(),
+        scheduled_jobs_confirmed_until timestamptz default now(),
         UNIQUE (jobname)
     );
 `
@@ -406,8 +405,10 @@ CREATE TABLE IF NOT EXISTS hyrex_cron_job_run_details (
   runid        bigserial   PRIMARY KEY,
   command      text        NOT NULL,
   status       cron_job_status_enum,
-  start_time   timestamptz NOT NULL DEFAULT now(),
-  end_time     timestamptz
+  schedule_time timestamptz not null,
+  start_time   timestamptz,
+  end_time     timestamptz,
+  UNIQUE (jobid, schedule_time)
 )
 `
 
@@ -449,3 +450,61 @@ ON CONFLICT (lockid)
    )
 RETURNING lockid;
 `
+
+export const RELEASE_SCHEDULER_LOCK = `
+    UPDATE hyrex_scheduler_lock
+    SET is_active    = false,
+        release_at   = now(),
+        heartbeat_at = now()
+    WHERE lockid = 1
+      AND worker_name = $1
+    RETURNING lockid;
+`
+
+// export const INSERT_NEW_CRON_JOB_RUN = `
+//     INSERT INTO hyrex_cron_job_run_details (jobid, command, status, start_time)
+//     SELECT $1, $2, 'queued', $3
+//     WHERE NOT EXISTS (SELECT 1
+//                       FROM hyrex_cron_job_run_details
+//                       WHERE jobid = $1
+//                         AND start_time = $3
+//                         AND status = 'queued')
+//     RETURNING runid
+// `
+
+export const PULL_ACTIVE_CRON_EXPRESSIONS = `
+    SELECT jobid,
+           schedule,
+           command,
+           active,
+           jobname,
+           activated_at,
+           scheduled_jobs_confirmed_until
+    FROM hyrex_cron_job
+    WHERE active = true
+--       AND activated_at > NOW();
+`
+
+export const UPDATE_CRON_JOB_CONFIRMATION_TS = `
+    UPDATE hyrex_cron_job
+    SET scheduled_jobs_confirmed_until = now()
+    WHERE jobid = $1;
+`
+
+export function cronJobRunsToSQL(runs: CronJobRun[]): string {
+    // Format each run into a SQL values tuple
+    const valueStrings = runs.map(run => {
+        const formattedDate = run.schedule_time.toISOString();
+        return `(${run.jobid}, '${run.command}', 'queued', '${formattedDate}')`
+    });
+
+    return `
+        INSERT INTO hyrex_cron_job_run_details 
+            (jobid, command, status, schedule_time)
+        VALUES 
+            ${valueStrings.join(',\n            ')}
+        ON CONFLICT (jobid, schedule_time) DO NOTHING
+        RETURNING runid;
+    `;
+}
+

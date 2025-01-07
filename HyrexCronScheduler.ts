@@ -48,19 +48,7 @@ export class HyrexCronScheduler {
         await this.dispatcher.updateLockHeartbeat({ lockId })
     }
 
-    private calculateNextRun(schedule: string, fromTime: Date = new Date()): Date {
-        try {
-            const interval = parser.parseExpression(schedule, {
-                currentDate: fromTime
-            });
-            return interval.next().toDate();
-        } catch (error) {
-            console.error(`Error parsing schedule: ${schedule}`, error);
-            throw error;
-        }
-    }
-
-    private async getScheduledCronJobRunsList(cronJob: CronJob): Promise<CronJobRun[]> {
+    private async imputeScheduledCronJobRunsList(cronJob: CronJob): Promise<CronJobRun[]> {
         const interval = parser.parseExpression(cronJob.schedule, {
             currentDate: cronJob.scheduled_jobs_confirmed_until,
             iterator: true
@@ -83,6 +71,10 @@ export class HyrexCronScheduler {
 
         return cronJobRuns
     }
+
+    // private async getQueuedCronJobRunList(): Promise<CronJobRun[]> {
+    //
+    // }
 
 
 
@@ -116,12 +108,15 @@ export class HyrexCronScheduler {
                     // Queue cron job runs
                     for (const cronJob of cronExpressions) {
                         console.log("Got cron job", cronJob)
-                        const scheduledJobs = await this.getScheduledCronJobRunsList(cronJob)
+                        const scheduledJobs = await this.imputeScheduledCronJobRunsList(cronJob)
                         await this.dispatcher.scheduleCronJobRuns(scheduledJobs)
                     }
 
                     // Execute cron job runs
-                    // ...
+                    let result = await this.dispatcher.executeQueuedCronJobRun()
+                    while (result === 'executed') {
+                        result = await this.dispatcher.executeQueuedCronJobRun()
+                    }
 
                 } catch (error) {
                     console.error("Error in scheduler loop:", error)

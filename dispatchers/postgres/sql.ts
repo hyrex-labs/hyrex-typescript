@@ -472,6 +472,8 @@ export const RELEASE_SCHEDULER_LOCK = `
 //     RETURNING runid
 // `
 
+
+
 export const PULL_ACTIVE_CRON_EXPRESSIONS = `
     SELECT jobid,
            schedule,
@@ -508,3 +510,48 @@ export function cronJobRunsToSQL(runs: CronJobRun[]): string {
     `;
 }
 
+export const CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION = `
+CREATE OR REPLACE FUNCTION execute_queued_command()
+RETURNS text AS $$
+DECLARE
+    cmd text;
+    selected_runid bigint;
+BEGIN
+    -- Select and lock the first queued command
+    SELECT command, runid INTO cmd, selected_runid
+    FROM hyrex_cron_job_run_details
+    WHERE status = 'queued'
+    AND schedule_time <= NOW()
+    ORDER BY schedule_time
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED;
+
+    IF FOUND THEN
+        -- Execute the command
+        EXECUTE cmd;
+
+        -- Update status to success using runid
+        UPDATE hyrex_cron_job_run_details
+        SET status = 'success',
+            start_time = NOW(),
+            end_time = NOW()
+        WHERE runid = selected_runid
+        AND status = 'queued';
+        
+        RETURN 'executed';
+    END IF;
+
+    RETURN 'not_found';
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Update status to failed if there's an error using runid
+        UPDATE hyrex_cron_job_run_details
+        SET status = 'failed',
+            start_time = NOW(),
+            end_time = NOW()
+        WHERE runid = selected_runid
+        AND status = 'queued';
+        RAISE;
+END;
+$$ LANGUAGE plpgsql;
+`

@@ -8,7 +8,7 @@ import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMes
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../HyrexCronScheduler";
-import { cronJobRunsToSQL } from "./sql";
+import { CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION, cronJobRunsToSQL } from "./sql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -127,6 +127,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(sql.CreateHyrexCronJobTable);
             await client.query(sql.CreateHyrexCronJobRunDetailsTable);
             await client.query(sql.CreateHyrexSchedulerLockTable);
+            await client.query(sql.CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION);
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error(error);
@@ -465,5 +466,15 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
 
         return result
+    }
+
+    async executeQueuedCronJobRun(): Promise<string> {
+        return this.queryWithRetry(async (client) => {
+            const { rows } = await client.query<{execute_queued_command: "executed" | "not_found"}>("SELECT execute_queued_command();")
+            if (rows.length === 0) {
+                throw new Error("Hyrex framework error.")
+            }
+            return rows[0].execute_queued_command
+        })
     }
 }

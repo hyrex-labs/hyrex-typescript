@@ -92,4 +92,5 @@ export interface HyrexDispatcher {
     releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void>
     pullCronJobExpressions(): Promise<CronJob[]>
     scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void>
+    executeQueuedCronJobRun(): Promise<string>
 }

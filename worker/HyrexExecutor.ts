@@ -138,7 +138,7 @@ export class HyrexExecutor {
             console.log(`\\         FINISHED [Executing ${task.task_name}]       /`)
             console.log(` \\-------------------------------------------------------/`)
             clearHyrexContext()
-            s3Logger.endCapture();
+            await s3Logger.endCapture();
         }
 
     }

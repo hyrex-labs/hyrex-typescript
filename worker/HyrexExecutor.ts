@@ -7,6 +7,7 @@ import { ExecutorMessage } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { clearHyrexContext, setHyrexContext } from "../HyrexContext";
 import { performance } from "perf_hooks";
+import { s3Logger } from "../S3Logger";
 import { COMMANDS } from "../commands";
 
 class Averager {
@@ -102,6 +103,10 @@ export class HyrexExecutor {
                 executorId: this.executorId,
             });
 
+            s3Logger.startCapture(
+                `${task.id}`  // Creates a hierarchy of logs under id
+            );
+
             if (args) {
                 const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
                 return await withArgsFunc(args)
@@ -111,6 +116,7 @@ export class HyrexExecutor {
             }
         } finally {
             clearHyrexContext()
+            s3Logger.endCapture();
         }
 
     }

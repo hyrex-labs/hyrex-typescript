@@ -12,6 +12,7 @@ import { TaskWrapper } from "./TaskWrapper";
 import { z } from "zod";
 import { HyrexQueue } from "./HyrexQueue";
 import { isValidCron } from 'cron-validator'
+import { envVariables } from "./EnvironmentVariables";
 
 
 export class HyrexRegistry {
@@ -23,8 +24,9 @@ export class HyrexRegistry {
         this.internalTaskRegistry = {}
         this.internalQueueRegistry = {}
 
-        if (process.env.HYREX_DATABASE_URL) {
-            this.dispatcher = new PostgresDispatcher({ conn: process.env.HYREX_DATABASE_URL })
+        const databaseUrl = envVariables.getDatabaseUrl()
+        if (databaseUrl) {
+            this.dispatcher = new PostgresDispatcher({ conn: databaseUrl })
         } else if (process.env.HYREX_API_KEY) {
             throw new Error("Registry is not implemented")
         } else {
@@ -56,7 +58,7 @@ export class HyrexRegistry {
     private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
         this.dispatcher.registerTask({
             taskName,
-            cronExpr: taskConfig.cron,
+            taskConfig: taskConfig,
             sourceCode: taskFunc.toString()
         })
     }

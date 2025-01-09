@@ -1,4 +1,4 @@
-import { UUID, JsonType } from "../utils";
+import { UUID, JsonType, HyrexTaskConfig } from "../utils";
 
 import { string, z } from "zod";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../types";
@@ -77,9 +77,9 @@ export interface HyrexDispatcher {
     updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
 
     // Tasks
-    registerTask({ taskName, cronExpr, sourceCode }: {
+    registerTask({ taskName, taskConfig, sourceCode }: {
         taskName: string,
-        cronExpr?: string,
+        taskConfig?: HyrexTaskConfig,
         sourceCode?: string
     }): Promise<void>
 

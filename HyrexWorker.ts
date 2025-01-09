@@ -88,7 +88,7 @@ export class HyrexWorker {
     private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
         this.dispatcher.registerTask({
             taskName,
-            cronExpr: taskConfig.cron,
+            taskConfig,
             sourceCode: taskFunc.toString()
         })
     }

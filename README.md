@@ -30,3 +30,9 @@ Hyrex Worker listens to two channels in a Postgres database:
 idempotency key as an existing task, then the task execution will not be enqueued. Instead, an `IDEMPOTENCY_COLLISION` 
 will be recorded in the System Log table. This effect will last as long as the `idempotencyKey` is present in the 
 `task_execution`.
+
+## Logging with AWS S3
+
+If configured, Hyrex will automatically send task logs to S3. 
+Simply set the env vars `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` for credentials.
+Then set `HYREX_S3_LOG_BUCKET_NAME` for the log name.

@@ -1,7 +1,6 @@
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import parser from 'cron-parser';
 import { sleep } from "./utils";
-import { ListenerMessage, ListenerResultMessage } from "./types";
 
 export type CronJob = {
     jobid: number;
@@ -71,10 +70,6 @@ export class HyrexCronScheduler {
 
         return cronJobRuns
     }
-
-    // private async getQueuedCronJobRunList(): Promise<CronJobRun[]> {
-    //
-    // }
 
 
 

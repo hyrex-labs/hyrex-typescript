@@ -100,7 +100,9 @@ const choices: sendTaskArgs[] = [
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4();
-                submitFraudToPersonaTask.withConfig({idempotencyKey: "apple" }).send(args)
+                submitFraudToPersonaTask.withConfig({
+                    // {idempotencyKey: "apple" }
+                }).send(args)
                 // await restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");

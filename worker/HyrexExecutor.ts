@@ -107,13 +107,19 @@ export class HyrexExecutor {
                 `${task.id}`  // Creates a hierarchy of logs under id
             );
 
+            let result;
+
             if (args) {
                 const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
-                return await withArgsFunc(args)
+                result = await withArgsFunc(args)
             } else {
                 const noArgsFunc = func as (() => JsonType | undefined)
-                return await noArgsFunc()
+                result = await noArgsFunc()
             }
+
+            console.log(`HYREX: Returning with result: ${JSON.stringify(result)}`)
+            return result
+
         } finally {
             clearHyrexContext()
             s3Logger.endCapture();

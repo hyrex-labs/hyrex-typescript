@@ -24,7 +24,6 @@ export class S3Logger {
 
     public startCapture(taskId: string) {
         const s3LogBucket =  envVariables.getS3LogBucket()
-        console.log("<==== S3 Logger =====>", s3LogBucket)
         if (!s3LogBucket) {
             return
         }

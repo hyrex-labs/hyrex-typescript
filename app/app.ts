@@ -54,6 +54,7 @@ const restartDatabaseTask = hy.task(restartDatabase, taskConfig)
 const submitFraudToPersona = async ({ email }: { email: string }) => {
     const ctx = getHyrexContext()
     console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
+    console.log("it's going well!")
     await sleep(1000)
     // Note it could take 48 hours for persona to get back
     restartDatabaseTask.send()
@@ -92,11 +93,11 @@ const choices: sendTaskArgs[] = [
     const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
 
     if (process.argv.includes('--submit')) {
-        for (const i of range(2)) {
+        for (const i of range(4)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 
-            for (const i of range(5)) {
+            for (const i of range(10)) {
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4();

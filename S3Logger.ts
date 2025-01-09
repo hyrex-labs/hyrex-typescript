@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { envVariables } from "./EnvironmentVariables";
 
-class S3Logger {
+export class S3Logger {
     private currentLogs: string[] = [];
     private originalStdout: typeof process.stdout.write | null = null;
     private originalStderr: typeof process.stderr.write | null = null;
@@ -84,6 +84,3 @@ class S3Logger {
         }));
     }
 }
-
-// Create and export single instance
-export const s3Logger = new S3Logger();

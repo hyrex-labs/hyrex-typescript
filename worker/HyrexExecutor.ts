@@ -1,6 +1,6 @@
 import { HyrexRegistry } from "../HyrexRegistry";
 import { HyrexDispatcher, SerializedTask } from "../dispatchers/HyrexDispatcher";
-import { HyrexTaskFunction, JsonType, QueueType, shuffle, sleep, UUID } from "../utils";
+import { HyrexTaskFunction, JsonType, QueueType, shuffle, sleep, timeoutWrapper, UUID } from "../utils";
 import { ExpBackoff } from "./ExpBackoff";
 import { randomUUID } from "node:crypto";
 import { ExecutorMessage } from "../types";
@@ -85,6 +85,8 @@ export class HyrexExecutor {
     }
 
     private async processTask(task: SerializedTask): Promise<JsonType | undefined> {
+        console.log(` /------------------------------------------------------\\`)
+        console.log(`/            STARTED [Executing ${task.task_name}]     \\`)
         const { task_name, args } = task
         const func: HyrexTaskFunction = this.taskRegistry.getFunction(task_name)
         const s3Logger = new S3Logger()
@@ -97,6 +99,7 @@ export class HyrexExecutor {
                 taskName: task.task_name,
                 queue: task.queue,
                 priority: task.priority,
+                timeoutSeconds: task.timeout_seconds,
                 scheduledStart: task.scheduled_start,
                 queued: task.queued,
                 started: task.started,
@@ -107,20 +110,33 @@ export class HyrexExecutor {
                 `${task.id}`  // Creates a hierarchy of logs under id
             );
 
-            let result;
+            let funcToExecute: () => Promise<any>;
 
             if (args) {
                 const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
-                result = await withArgsFunc(args)
+                funcToExecute = async () => withArgsFunc(args)
             } else {
                 const noArgsFunc = func as (() => JsonType | undefined)
-                result = await noArgsFunc()
+                funcToExecute = async () => noArgsFunc()
             }
+
+            if (task.timeout_seconds) {
+                console.log("=====> Got a task timeout!!")
+                funcToExecute = timeoutWrapper(funcToExecute, task.timeout_seconds * 1000)
+            } else {
+                console.log("=====> No timeout set.")
+            }
+
+            const result = await funcToExecute()
 
             console.log(`HYREX: Returning with result: ${JSON.stringify(result)}`)
             return result
 
+
         } finally {
+            await sleep(2000)
+            console.log(`\\         FINISHED [Executing ${task.task_name}]       /`)
+            console.log(` \\-------------------------------------------------------/`)
             clearHyrexContext()
             s3Logger.endCapture();
         }

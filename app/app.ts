@@ -37,7 +37,7 @@ const submitOrderQueuePattern = new HyrexQueuePattern({
 const restartDatabase = async () => {
     const ctx = getHyrexContext()
     console.log(`Restart Database with context ${JSON.stringify(ctx)}`)
-    // await sleep(3000)
+    await sleep(3000)
     return { "status": "ok" }
 }
 
@@ -46,7 +46,8 @@ const taskConfig: HyrexTaskConfigInput = {
         name: "serial-queue",
         concurrencyLimit: 2
     }),
-    cron: "* * * * *"
+    cron: "* * * * *",
+    timeoutSeconds: 1
 }
 
 const restartDatabaseTask = hy.task(restartDatabase, taskConfig)
@@ -55,9 +56,9 @@ const submitFraudToPersona = async ({ email }: { email: string }) => {
     const ctx = getHyrexContext()
     console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
     console.log("it's going well!")
-    await sleep(1000)
+    await sleep(3000)
     // Note it could take 48 hours for persona to get back
-    restartDatabaseTask.send()
+    // restartDatabaseTask.send()
     return { "result": true }
 }
 
@@ -90,10 +91,10 @@ const choices: sendTaskArgs[] = [
 ];
 
 (async () => {
-    const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
+    const submitFraudToPersonaTask = hy.task(submitFraudToPersona, {timeoutSeconds: 1})
 
     if (process.argv.includes('--submit')) {
-        for (const i of range(4)) {
+        for (const i of range(2)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 

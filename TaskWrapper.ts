@@ -54,6 +54,7 @@ export class TaskWrapper<U extends JsonType> {
             args: context,
             max_retries: this.taskConfig.maxRetries,
             priority: this.taskConfig.priority,
+            timeout_seconds: this.taskConfig.timeoutSeconds,
             idempotency_key: this.taskConfig.idempotencyKey
         }
 

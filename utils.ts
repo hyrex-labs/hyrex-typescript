@@ -74,6 +74,7 @@ export const HyrexTaskConfigSchema = z.object({
     priority: z.number().min(1).max(10).default(3),
     maxRetries: z.number().min(0).max(10).default(3),
     cron: z.string().optional(),
+    timeoutSeconds: z.number().min(1).max(60 * 60 * 24 * 7).optional(),
 });
 
 export type HyrexTaskConfigInput = z.input<typeof HyrexTaskConfigSchema>
@@ -114,3 +115,23 @@ export function shuffle<T>(array: T[]): T[] {
     }
     return array;
 }
+
+export const timeoutWrapper = <T>(
+    fn: () => Promise<T>,
+    timeLimit: number
+): () => Promise<T> => {
+    const timeLimitSeconds = timeLimit / 1000;
+    const errorMsg = `Hyrex Error: Task timed out. Timeout limit is ${timeLimitSeconds} second${timeLimitSeconds !== 1 ? 's' : ''}.`
+    return () => Promise.race([
+        fn(),
+        new Promise<T>((_, reject) =>
+            setTimeout(async () => {
+                console.log("~~~Doing the console log thing!!!!")
+                console.log(errorMsg);
+                await sleep(1000)
+                return reject(new Error(errorMsg))
+            }, timeLimit)
+        )
+    ]);
+};
+

@@ -21,6 +21,7 @@ export type HyrexContext = {
     queue: string;
     /** Task priority level */
     priority: string;
+    timeoutSeconds: number | null;
     /** ISO timestamp when the task is scheduled to start, null for immediate execution */
     scheduledStart: string | null;
     /** ISO timestamp when the task was queued */

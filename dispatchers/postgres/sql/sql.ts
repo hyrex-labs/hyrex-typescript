@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS hyrex_task_execution (
     queue           VARCHAR                     NOT NULL,
     max_retries     SMALLINT                    NOT NULL,
     priority        SMALLINT                    NOT NULL,
+    timeout_seconds INT                         DEFAULT NULL CHECK (timeout_seconds IS NULL OR timeout_seconds > 0),
     status          STATUS_ENUM                 NOT NULL,
     attempt_number  SMALLINT                    NOT NULL,
     scheduled_start TIMESTAMP WITH TIME ZONE,
@@ -113,17 +114,18 @@ export const ENQUEUE_TASKS = `
                                           queue,
                                           max_retries,
                                           priority,
+                                          timeout_seconds,
                                           status,
                                           attempt_number,
                                           queued,
                                           idempotency_key
             )
             VALUES (
-                       $1, $2, $3, $4, $5, $6, $7, $8, $9,
-                       'queued',
+                       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                       'queued'::STATUS_ENUM,
                        0,
                        CURRENT_TIMESTAMP,
-                       $10
+                       $11
                    )
             ON CONFLICT (task_name, idempotency_key)
                 WHERE idempotency_key IS NOT NULL
@@ -143,12 +145,12 @@ export const ENQUEUE_TASKS = `
                      'IDEMPOTENCY_COLLISION',
                      json_build_object(
                              'attempted_task_id', $1,
-                             'idempotency_key', $10,
+                             'idempotency_key', $11,
                              'task_name', $5,
                              'queue', $7
                      )
                  WHERE NOT EXISTS (SELECT 1 FROM task_insertion)
-                   AND $10 IS NOT NULL
+                   AND $11 IS NOT NULL
          )
     SELECT EXISTS (SELECT 1 FROM task_insertion) as task_created;
 `
@@ -174,6 +176,7 @@ export const FETCH_TASK = `
         , ht.args
         , ht.queue
         , ht.priority
+        , ht.timeout_seconds
         , ht.scheduled_start
         , ht.queued
         , ht.started;
@@ -205,6 +208,7 @@ export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
         , ht.args
         , ht.queue
         , ht.priority
+        , ht.timeout_seconds
         , ht.scheduled_start
         , ht.queued
         , ht.started;

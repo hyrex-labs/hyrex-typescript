@@ -201,6 +201,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                         queue,
                         max_retries,
                         priority,
+                        timeout_seconds,
                         idempotency_key
                     } = task;
                     await client.query(sql.ENQUEUE_TASKS, [
@@ -213,6 +214,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                         queue,
                         max_retries,
                         priority,
+                        timeout_seconds,
                         idempotency_key
                     ]);
                 }

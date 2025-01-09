@@ -134,11 +134,12 @@ export class HyrexExecutor {
 
 
         } finally {
-            await sleep(2000)
+            // await sleep(2000)
             console.log(`\\         FINISHED [Executing ${task.task_name}]       /`)
             console.log(` \\-------------------------------------------------------/`)
             clearHyrexContext()
             await s3Logger.endCapture();
+            s3Logger.uploadLogs()
         }
 
     }

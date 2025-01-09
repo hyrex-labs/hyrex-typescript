@@ -10,6 +10,14 @@ export class S3Logger {
     private taskId: string | null = null;
 
     constructor() {
+        const s3LogBucket = envVariables.getS3LogBucket()
+        if (s3LogBucket) {
+            this.bucket = s3LogBucket
+        } else {
+            this.handleMissingBucketError()
+            return
+        }
+
         try {
             this.s3Client = new S3Client({});
         } catch (err) {
@@ -17,18 +25,20 @@ export class S3Logger {
         }
     }
 
+    private handleMissingBucketError() {
+        this.s3Client = null;
+    }
+
     private handleCredentialsError(err: any) {
-        console.error('AWS Credentials not found or invalid. Logs will only be written to console:', err);
+        // console.error('AWS Credentials not found or invalid. Logs will only be written to console:', err);
         this.s3Client = null;
     }
 
     public startCapture(taskId: string) {
-        const s3LogBucket =  envVariables.getS3LogBucket()
-        if (!s3LogBucket) {
+        if (!this.s3Client) {
             return
         }
 
-        this.bucket = s3LogBucket;
         this.taskId = taskId;
 
         this.originalStdout = process.stdout.write.bind(process.stdout);
@@ -50,33 +60,19 @@ export class S3Logger {
 
     public async endCapture() {
         if (this.originalStdout && this.originalStderr) {
-            try {
-                await this.uploadLogs();
-            } catch (err) {
-                console.error('Failed to upload logs to S3:', err);
-            } finally {
-                // Restore original stdout/stderr
-                process.stdout.write = this.originalStdout;
-                process.stderr.write = this.originalStderr;
-
-                // Clear state
-                this.originalStdout = null;
-                this.originalStderr = null;
-                this.currentLogs = [];
-                this.bucket = null;
-                this.taskId = null;
-
-            }
+            // Restore original stdout/stderr
+            process.stdout.write = this.originalStdout;
+            process.stderr.write = this.originalStderr;
         }
     }
 
-    private async uploadLogs() {
-        if (!this.currentLogs.length || !this.bucket || !this.taskId || !this.s3Client) {
+    public async uploadLogs() {
+        if ( !this.bucket || !this.s3Client) {
             return;
         }
 
         await this.s3Client.send(new PutObjectCommand({
-            Bucket: this.bucket!,
+            Bucket: this.bucket,
             Key: `hyrex-logs/${this.taskId}.log`,
             Body: this.currentLogs.join(''),
             ContentType: 'text/plain',

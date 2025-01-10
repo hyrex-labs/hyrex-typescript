@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS hyrex_task_execution (
     started         TIMESTAMP WITH TIME ZONE,
     finished        TIMESTAMP WITH TIME ZONE,
     last_heartbeat  TIMESTAMP WITH TIME ZONE,
-    idempotency_key VARCHAR
+    idempotency_key VARCHAR,
+    loglink         VARCHAR
 );
 
 -- Create indexes
@@ -370,10 +371,10 @@ DO UPDATE SET
     last_updated = NOW();
 `
 
-//
-// CRON SQL STATEMENTS
-//
-
-// Specifically modeled on cron.job table in pg_cron
+export const SET_LOG_LINK = `
+    UPDATE hyrex_task_execution
+    SET loglink = $2
+    WHERE id = $1
+`
 
 

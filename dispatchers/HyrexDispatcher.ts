@@ -95,4 +95,7 @@ export interface HyrexDispatcher {
     pullCronJobExpressions(): Promise<CronJob[]>
     scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void>
     executeQueuedCronJobRun(): Promise<string>
+
+    // Remote Logs
+    setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void>
 }

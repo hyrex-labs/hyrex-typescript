@@ -5,7 +5,7 @@ export type LogFeature =
     | 'postgres'
     | 'task-processing'
     | 'flow-control'
-    | 's3logging'
+    | 'remote-logging'
     | 'cron-scheduling'
     | 'process-management'
     | 'misc'

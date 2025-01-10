@@ -89,7 +89,7 @@ export class HyrexExecutor {
         hyrexLogger.info('task-processing', `▶ Starting task: task_name=${task.task_name}, task_id=${task.id}`, 'green')
         const { task_name, args } = task
         const func: HyrexTaskFunction = this.taskRegistry.getFunction(task_name)
-        const s3Logger = new S3Logger()
+        const s3Logger = new S3Logger({ dispatcher: this.dispatcher })
         try {
             setHyrexContext({
                 taskId: task.id,

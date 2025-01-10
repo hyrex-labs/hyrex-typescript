@@ -425,7 +425,9 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }): Promise<number | null> {
         const lockDuration = "2 minutes"
         return this.queryWithRetry(async (client) => {
-            const { rows } = await client.query<{lockid: string}>(cronSQL.ACQUIRE_SCHEDULER_LOCK, [workerName, lockDuration])
+            const { rows } = await client.query<{
+                lockid: string
+            }>(cronSQL.ACQUIRE_SCHEDULER_LOCK, [workerName, lockDuration])
             if (rows.length > 0) {
                 return Number(rows[0].lockid)
             } else {
@@ -477,11 +479,19 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     async executeQueuedCronJobRun(): Promise<string> {
         return this.queryWithRetry(async (client) => {
-            const { rows } = await client.query<{execute_queued_command: "executed" | "not_found"}>("SELECT execute_queued_command();")
+            const { rows } = await client.query<{
+                execute_queued_command: "executed" | "not_found"
+            }>("SELECT execute_queued_command();")
             if (rows.length === 0) {
                 throw new Error("Hyrex framework error.")
             }
             return rows[0].execute_queued_command
+        })
+    }
+
+    async setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void> {
+        return this.queryWithRetry(async (client) => {
+            await client.query(sql.SET_LOG_LINK, [taskId, logLink])
         })
     }
 }

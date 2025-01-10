@@ -1,7 +1,10 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { envVariables } from "./EnvironmentVariables";
+import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
+import { hyrexLogger } from "./logging/FrameworkLogger";
 
 export class S3Logger {
+    private dispatcher: HyrexDispatcher;
     private currentLogs: string[] = [];
     private originalStdout: typeof process.stdout.write | null = null;
     private originalStderr: typeof process.stderr.write | null = null;
@@ -9,10 +12,13 @@ export class S3Logger {
     private bucket: string | null = null;
     private taskId: string | null = null;
 
-    constructor() {
+    constructor({ dispatcher }: { dispatcher: HyrexDispatcher }) {
+        this.dispatcher = dispatcher
+
         const s3LogBucket = envVariables.getS3LogBucket()
         if (s3LogBucket) {
             this.bucket = s3LogBucket
+
         } else {
             this.handleMissingBucketError()
             return
@@ -67,15 +73,26 @@ export class S3Logger {
     }
 
     public async uploadLogs() {
-        if ( !this.bucket || !this.s3Client) {
+        if (!this.bucket || !this.s3Client) {
             return;
         }
 
-        await this.s3Client.send(new PutObjectCommand({
+        if (!this.taskId) {
+            throw new Error('No taskId provided.');
+        }
+
+        const sendToS3Promise = this.s3Client.send(new PutObjectCommand({
             Bucket: this.bucket,
             Key: `hyrex-logs/${this.taskId}.log`,
             Body: this.currentLogs.join(''),
             ContentType: 'text/plain',
         }));
+
+        // Construct the S3 link
+        const logLink = `https://${this.bucket}.s3.amazonaws.com/hyrex-logs/${this.taskId}.log`;
+        const setLogLinkPromise = this.dispatcher.setLogLink({ taskId: this.taskId, logLink });
+
+        await Promise.all([sendToS3Promise, setLogLinkPromise])
+        hyrexLogger.info("remote-logging", `Logs successfully uploaded to S3. logLink=${logLink}`, 'dim');
     }
 }

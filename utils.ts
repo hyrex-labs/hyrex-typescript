@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TaskWrapper } from "./TaskWrapper";
 import { HyrexQueue, HyrexQueuePattern } from "./HyrexQueue";
+import { hyrexLogger } from "./logging/FrameworkLogger";
 
 export const JsonSerializable = z.object({}).passthrough().refine(
     (obj) => {
@@ -126,12 +127,11 @@ export const timeoutWrapper = <T>(
         fn(),
         new Promise<T>((_, reject) =>
             setTimeout(async () => {
-                console.log("~~~Doing the console log thing!!!!")
                 console.log(errorMsg);
+                hyrexLogger.error('timeout', errorMsg, 'red')
                 await sleep(1000)
                 return reject(new Error(errorMsg))
             }, timeLimit)
         )
     ]);
 };
-

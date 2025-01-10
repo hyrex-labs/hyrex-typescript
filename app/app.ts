@@ -55,7 +55,6 @@ const restartDatabaseTask = hy.task(restartDatabase, taskConfig)
 const submitFraudToPersona = async ({ email }: { email: string }) => {
     const ctx = getHyrexContext()
     console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
-    console.log("it's going well!")
     await sleep(3000)
     // Note it could take 48 hours for persona to get back
     // restartDatabaseTask.send()

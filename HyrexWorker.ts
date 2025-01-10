@@ -11,6 +11,7 @@ import { COMMANDS } from "./commands";
 import { HyrexAdmin } from "./HyrexAdmin";
 import { HyrexQueue, HyrexQueuePattern } from "./HyrexQueue";
 import { HyrexCronScheduler } from "./HyrexCronScheduler";
+import { hyrexLogger } from "./logging/FrameworkLogger";
 
 const AppConfigSchema = z.object({
     appId: z.string(),
@@ -59,6 +60,7 @@ export class HyrexWorker {
         this.errorCallback = errorCallback
 
         if (this.conn) {
+            hyrexLogger.info("postgres", `Created New PostgresDispatcher in worker. pid=${process.pid}`, 'magenta')
             this.dispatcher = new PostgresDispatcher({ conn: this.conn })
         } else {
             throw new Error("Could not find conn...")
@@ -119,7 +121,7 @@ export class HyrexWorker {
             throw new Error("No HYREX_WORKER_NAME Found. Ensure this command is being executed via the CLI.")
         }
 
-        console.log(`Received queue pattern: ${queuePattern}`)
+        hyrexLogger.info("flow-control", `Received queue pattern: ${queuePattern}`, 'blue')
 
         const executor = new HyrexExecutor({
             workerName: workerName,

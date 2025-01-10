@@ -1,6 +1,7 @@
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import parser from 'cron-parser';
 import { sleep } from "./utils";
+import { hyrexLogger, kvFormatForLogging } from "./logging/FrameworkLogger";
 
 export type CronJob = {
     jobid: number;
@@ -37,9 +38,9 @@ export class HyrexCronScheduler {
     }
 
     private async acquireSchedulerLock(): Promise<number | null> {
-        console.log("Acquiring lock!")
+        hyrexLogger.info("cron-scheduling", "Acquiring lock...", "dim")
         const result = await this.dispatcher.acquireSchedulerLock({ workerId: this.workerId, workerName: this.workerName })
-        console.log("lock result", result)
+        hyrexLogger.info("cron-scheduling", `lockId=${result}`, "dim")
         return result
     }
 
@@ -76,7 +77,7 @@ export class HyrexCronScheduler {
     // TODO: Require LockId when scheduling jobs and have the database determine that the lockid is still valid
     // Before doing any writes with the lockid
     async runCronScheduler(): Promise<void> {
-        console.log("Running cron scheduler!")
+        hyrexLogger.info('cron-scheduling', "Kicking off cron scheduler.", 'dim')
         let lockId: number | null = null
 
         try {
@@ -84,12 +85,12 @@ export class HyrexCronScheduler {
             while (!lockId) {
                 lockId = await this.acquireSchedulerLock()
                 if (!lockId) {
-                    console.log("Could not acquire lock. Going to sleep...")
+                    hyrexLogger.info('cron-scheduling', "Could not acquire lock. Going to sleep.", 'dim')
                     await sleep(15 * 1000) // Sleep 15 secs
                 }
             }
 
-            console.log("Acquired lock!")
+            hyrexLogger.info('cron-scheduling', "Acquired Lock.", 'dim')
 
             const LOOP_RATE_SEC = 30
 
@@ -102,7 +103,7 @@ export class HyrexCronScheduler {
 
                     // Queue cron job runs
                     for (const cronJob of cronExpressions) {
-                        console.log("Got cron job", cronJob)
+                        hyrexLogger.info('cron-scheduling', `Got Cron Job. ${kvFormatForLogging(cronJob)}`, 'dim')
                         const scheduledJobs = await this.imputeScheduledCronJobRunsList(cronJob)
                         await this.dispatcher.scheduleCronJobRuns(scheduledJobs)
                     }
@@ -114,7 +115,7 @@ export class HyrexCronScheduler {
                     }
 
                 } catch (error) {
-                    console.error("Error in scheduler loop:", error)
+                    hyrexLogger.error('cron-scheduling', `Error in scheduler loop`, 'red')
                     // Maybe add some error backoff/handling here
                     break // Or handle differently depending on error type
                 }
@@ -122,7 +123,7 @@ export class HyrexCronScheduler {
                 // Sleep
                 const elapsedMs = Date.now() - loopStartTime.getTime()
                 const remainingMs = Math.max(LOOP_RATE_SEC * 1000 - elapsedMs, 0)
-                console.log("remainingMs", remainingMs)
+                hyrexLogger.error('cron-scheduling', `Waiting remaining loop time. remainingMs=${remainingMs}`, 'dim')
                 await sleep(remainingMs) // Sleep a little
             }
 

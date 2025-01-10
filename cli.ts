@@ -16,6 +16,8 @@ import {
     TaskHeartbeatResultMessage
 } from "./types";
 import { generateWorkerName } from "./WorkerContext";
+import { hyrexLogger } from "./logging/FrameworkLogger";
+import { asciiHyrexLogo } from "./constants";
 
 // Settings
 const SHUTDOWN_TIMEOUT = 25_000
@@ -70,8 +72,9 @@ const argv = yargs(hideBin(process.argv))
 
             const workerName = generateWorkerName()
 
-            console.log(`Spawning ${count} worker processes for script: ${scriptPath}`);
+            hyrexLogger.info('system', asciiHyrexLogo, 'green')
 
+            hyrexLogger.info("process-management", `Kicking off with workers. workerCount=${count} scriptPath=${scriptPath}`, 'magenta')
             for (let i = 0; i < count; i++) {
                 spawnExectuor({workerName, scriptPath, exitOnSleep, executorNumber: i + 1, queuePattern});
             }
@@ -205,7 +208,7 @@ function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, qu
 
     childProcesses.push(executor);
 
-    console.log(`Executor ${executorNumber} started with PID: ${executor.pid}`);
+    hyrexLogger.info("process-management", `Executor ${executorNumber} Spawned. pid=${executor.pid}`, 'magenta')
 
     executor.on('message', (message) => {
         handleExecutorMessage(executor, message as ExecutorMessage, exitOnSleep);
@@ -213,11 +216,11 @@ function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, qu
 
     executor.on('exit', (code, signal) => {
         if (code !== null) {
-            console.log(`Executor ${executorNumber} exited with code ${code}`);
+            hyrexLogger.info("process-management", `Executor ${executorNumber} exited with code ${code}.`, "magenta")
         } else if (signal !== null) {
-            console.log(`Executor ${executorNumber} was killed by signal ${signal}`);
+            hyrexLogger.info("process-management", `Executor ${executorNumber} was killed by signal ${signal}.`, "magenta")
         } else {
-            console.log(`Executor ${executorNumber} exited`);
+            hyrexLogger.info("process-management", `Executor ${executorNumber} exited.`, "magenta")
         }
 
         // Optionally, respawn the executor if it exited unexpectedly
@@ -242,6 +245,8 @@ function spawnCronScheduler(workerName: string, scriptPath: string) {
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     })
 
+    hyrexLogger.info("process-management", `Cron Scheduler Spawned. pid=${schedulerProcess.pid}`, 'magenta')
+
     childProcesses.push(schedulerProcess);
     cronSchedulerProcesses.push(schedulerProcess)
 
@@ -255,16 +260,16 @@ function spawnCronScheduler(workerName: string, scriptPath: string) {
 
     schedulerProcess.on('exit', (code, signal) => {
         if (code !== null) {
-            console.log(`CronScheduler exited with code ${code}`);
+            hyrexLogger.info("process-management", `CronScheduler exited with code ${code}`, "magenta");
         } else if (signal !== null) {
-            console.log(`CronScheduler killed by signal ${signal}`);
+            hyrexLogger.info("process-management", `CronScheduler killed by signal ${signal}`, "magenta");
         } else {
-            console.log(`CronScheduler exited`);
+            hyrexLogger.info("process-management", "CronScheduler exited", "magenta");
         }
 
         // Optionally, respawn the worker if it exited unexpectedly
         if (!isShuttingDown) {
-            console.log(`Respawning CronScheduler...`);
+            hyrexLogger.info("process-management", "Respawning CronScheduler...", "magenta");
             spawnCronScheduler(workerName, scriptPath);
         }
     })
@@ -279,6 +284,8 @@ function spawnAdmin(scriptPath: string) {
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     });
 
+    hyrexLogger.info("process-management", `Admin Spawned. pid=${adminProcess.pid}`, 'magenta')
+
     childProcesses.push(adminProcess);
     adminProcesses.push(adminProcess);
 
@@ -288,16 +295,16 @@ function spawnAdmin(scriptPath: string) {
 
     adminProcess.on('exit', (code, signal) => {
         if (code !== null) {
-            console.log(`Admin exited with code ${code}`);
+            hyrexLogger.info("process-management", `Admin exited with code ${code}`, 'magenta')
         } else if (signal !== null) {
-            console.log(`Admin was killed by signal ${signal}`);
+            hyrexLogger.info("process-management", `Admin was killed by signal ${signal}`, 'magenta')
         } else {
-            console.log(`Admin exited`);
+            hyrexLogger.info("process-management", `Admin exited.`, 'magenta')
         }
 
         // Optionally, respawn the worker if it exited unexpectedly
         if (!isShuttingDown) {
-            console.log(`Respawning Listener...`);
+            hyrexLogger.info("process-management", "Respawning Admin...", "magenta")
             spawnAdmin(scriptPath);
         }
     });
@@ -313,7 +320,7 @@ let shutdownTimeout: NodeJS.Timeout | null = null;
 function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage, exitOnSleep: boolean) {
     if (message.messageType === "UPDATE_TASK_ID") {
         const { taskId, name } = message;
-        console.log(`${name} (Worker PID ${executor.pid}) is working on Task ID ${taskId}`);
+        hyrexLogger.info('process-management', `Setting taskID on Worker. workerName=${name}, pid=${executor.pid}, taskId=${taskId}`, 'magenta');
         // Remove any existing mapping of this worker to a task ID
         for (const [existingTaskId, existingExecutor] of taskIdToProcess.entries()) {
             if (existingExecutor === executor) {
@@ -324,7 +331,6 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage,
 
         // Map the new task ID to the worker
         if (taskId !== null) {
-            console.log("Setting taskId", taskId)
             taskIdToProcess.set(taskId, executor);
         }
 
@@ -406,7 +412,7 @@ function killTask(taskId: string) {
 
 // Handle shutdown signals
 const shutdown = () => {
-    console.log("Shutting down all workers...");
+    hyrexLogger.info("process-management", "Shutting down all workers...", 'magenta')
     isShuttingDown = true;
 
     const workerExitPromises = childProcesses.map((worker) => {
@@ -424,7 +430,7 @@ const shutdown = () => {
     const timeoutHandle = setTimeout(() => {
         for (const worker of childProcesses) {
             if (!worker.killed) {
-                console.warn(`Worker with PID ${worker.pid} did not exit in time. Sending SIGKILL.`);
+                hyrexLogger.warn('process-management', `Worker with PID ${worker.pid} did not exit in time. Sending SIGKILL.`, 'yellow')
                 worker.kill('SIGKILL');
             }
         }
@@ -434,7 +440,7 @@ const shutdown = () => {
     Promise.all(workerExitPromises)
         .then(() => {
             clearTimeout(timeoutHandle); // Clear the timeout if all workers have exited
-            console.log("All workers have exited. Shutting down parent process.");
+            hyrexLogger.info("process-management", "All workers have exited. Shutting down parent process.", 'magenta');
             process.exit(0);
         })
         .catch((err) => {

@@ -9,6 +9,7 @@ import { clearHyrexContext, setHyrexContext } from "../HyrexContext";
 import { performance } from "perf_hooks";
 import { S3Logger } from "../S3Logger";
 import { COMMANDS } from "../commands";
+import { hyrexLogger } from "../logging/FrameworkLogger";
 
 class Averager {
     private count: number
@@ -85,8 +86,7 @@ export class HyrexExecutor {
     }
 
     private async processTask(task: SerializedTask): Promise<JsonType | undefined> {
-        console.log(` /------------------------------------------------------\\`)
-        console.log(`/            STARTED [Executing ${task.task_name}]     \\`)
+        hyrexLogger.info('task-processing', `▶ Starting task: task_name=${task.task_name}, task_id=${task.id}`, 'green')
         const { task_name, args } = task
         const func: HyrexTaskFunction = this.taskRegistry.getFunction(task_name)
         const s3Logger = new S3Logger()
@@ -121,22 +121,17 @@ export class HyrexExecutor {
             }
 
             if (task.timeout_seconds) {
-                console.log("=====> Got a task timeout!!")
                 funcToExecute = timeoutWrapper(funcToExecute, task.timeout_seconds * 1000)
-            } else {
-                console.log("=====> No timeout set.")
             }
 
             const result = await funcToExecute()
 
-            console.log(`HYREX: Returning with result: ${JSON.stringify(result)}`)
+            hyrexLogger.info('task-processing', `Returning Task Function. result=${JSON.stringify(result)}`, 'green')
             return result
 
 
         } finally {
-            // await sleep(2000)
-            console.log(`\\         FINISHED [Executing ${task.task_name}]       /`)
-            console.log(` \\-------------------------------------------------------/`)
+            hyrexLogger.info('task-processing', `⏹ Ending task: task_name=${task.task_name}, task_id=${task.id}`, 'green')
             clearHyrexContext()
             await s3Logger.endCapture();
             s3Logger.uploadLogs()
@@ -163,7 +158,7 @@ export class HyrexExecutor {
     private async refreshConcreteQueues(): Promise<void> {
         this.queueListIndex = 0;
 
-        console.log(`Refreshing concrete queue names with pattern ${JSON.stringify(this.queuePattern)}`)
+        hyrexLogger.info('flow-control', `Refreshing concrete queues. queuePattern=${JSON.stringify(this.queuePattern)}.`, 'blue')
         const queueNamesSet = new Set<string>();
 
         const start = performance.now()
@@ -191,7 +186,7 @@ export class HyrexExecutor {
             queueNamesSet.add(queueName)
         }
 
-        console.log("Got queue names set...", queueNamesSet.size)
+        hyrexLogger.info('flow-control', `Succesfully refreshed queue names. queueNamesSetSize=${queueNamesSet.size}`, 'blue')
 
         const concreteQueues = [...queueNamesSet].map((queueName) => {
             return this.taskRegistry.internalQueueRegistry[queueName] ? this.taskRegistry.internalQueueRegistry[queueName] : new HyrexQueue({ name: queueName })
@@ -201,7 +196,7 @@ export class HyrexExecutor {
 
         this.dispatcher.updateQueuesOnExecutor({ executorId: this.executorId, queues: this.queues })
 
-        console.log("Fetched queues", JSON.stringify(this.queues))
+        hyrexLogger.info('flow-control', `concreteQueues=${JSON.stringify(this.queues)}`, 'blue')
     }
 
     private async getNextQueueRoundRobin(): Promise<HyrexQueue | null> {
@@ -220,7 +215,7 @@ export class HyrexExecutor {
         }
 
         const queue = this.queues[this.queueListIndex++];
-        console.log("queueIndex", this.queueListIndex, "queueLength", this.queues.length)
+        hyrexLogger.info("flow-control", `queueIndex=${this.queueListIndex}, queueLength=${this.queues.length}`, 'blue')
         return queue;
     }
 
@@ -229,7 +224,7 @@ export class HyrexExecutor {
         let shouldStop = false
 
         const handleShutdown = (signal: string) => {
-            console.log(`\nReceived ${signal}. Stopping worker...`);
+            hyrexLogger.info("process-management", `Received ${signal}. Stopping executor...`, 'magenta')
             shouldStop = true; // Set flag to stop the loop
         };
 
@@ -256,7 +251,7 @@ export class HyrexExecutor {
 
             const nextQueue = await this.getNextQueueRoundRobin()
             if (!nextQueue) {
-                console.log("No queues found... going to sleep", new Date())
+                hyrexLogger.info("flow-control", "No queues found. Going to sleep", "blue")
                 await this.backoff.wait()
                 continue
             }
@@ -278,11 +273,9 @@ export class HyrexExecutor {
             //
 
             if (tasks.length === 0) {
-                console.log(`No tasks found on queue "${nextQueue.name}". EmptyQueueCounter: ${this.emptyQueueCounter++}`, new Date())
+                hyrexLogger.info(`flow-control`, `No tasks found on queue "${nextQueue.name}". EmptyQueueCounter=${this.emptyQueueCounter++}`, 'blue')
                 if (this.emptyQueueCounter >= 5) {
-                    console.log("<===============================>")
-                    console.log("QUEUEING REFRESH BECAUSE OF EMPTY QUEUE COUNTRY")
-                    console.log("<===============================>")
+                    hyrexLogger.info(`flow-control`, `Queue Refresh Because Empty Queue Counter Hit.`, 'blue')
                     this.emptyQueueCounter = 0
                     await this.refreshConcreteQueues()
                 }
@@ -295,19 +288,17 @@ export class HyrexExecutor {
             const task = tasks[0]
 
             try {
-                console.log(`Starting to process task ${task.id}`)
                 this.updateTaskId(task.id)
                 const result = await this.processTask(task)
                 if (result) {
                     await this.dispatcher.saveResult(task.id, result)
                 }
                 await this.dispatcher.markTaskSuccess(task.id)
-                console.log(`Successfully processed ${task.id}`)
                 this.updateTaskId(null)
             } catch (error) {
                 console.error(error)
                 await this.dispatcher.markTaskFailed(task.id)
-                console.log(`Failed processing on ${task.id}`)
+                hyrexLogger.error('task-processing', `Failed processing. taskId=${task.id}`, 'red')
                 this.updateTaskId(null)
                 await this.dispatcher.attemptRetry(task.id)
             }
@@ -321,6 +312,6 @@ export class HyrexExecutor {
         }
 
         await this.dispatcher.disconnectExecutor({ executorId: this.executorId, stats })
-        console.log(`Executor ${this.name} stopped.`)
+        hyrexLogger.info('task-processing', `Executor ${this.name} stopped.`, 'green')
     }
 }

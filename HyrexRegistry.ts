@@ -13,6 +13,7 @@ import { z } from "zod";
 import { HyrexQueue } from "./HyrexQueue";
 import { isValidCron } from 'cron-validator'
 import { envVariables } from "./EnvironmentVariables";
+import { hyrexLogger } from "./logging/FrameworkLogger";
 
 
 export class HyrexRegistry {
@@ -26,6 +27,7 @@ export class HyrexRegistry {
 
         const databaseUrl = envVariables.getDatabaseUrl()
         if (databaseUrl) {
+            hyrexLogger.info("postgres", `Created New PostgresDispatcher in registry. pid=${process.pid}`, 'magenta')
             this.dispatcher = new PostgresDispatcher({ conn: databaseUrl })
         } else if (process.env.HYREX_API_KEY) {
             throw new Error("Registry is not implemented")

@@ -9,6 +9,7 @@ import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMes
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../HyrexCronScheduler";
+import { hyrexLogger } from "../../logging/FrameworkLogger";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -113,7 +114,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
 
 
-        console.log("Successfully created postgres pool!")
+        hyrexLogger.info('postgres', `Created Postgres Pool. pid=${process.pid}`, 'magenta')
     }
 
     async initPostgresDB() {
@@ -238,7 +239,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         if (numTasks !== 1) {
             throw new Error("Dequeued multiple tasks is not implemented. Set numTasks to 1.");
         }
-        console.log("concurrencyLimit", concurrencyLimit)
+        hyrexLogger.info("flow-control", `Dequeuing. concurrencyLimit=${concurrencyLimit}`, 'blue')
 
         const result = await this.queryWithRetry(async (client) => {
             let result;
@@ -329,7 +330,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async listen(hyrexListener: DispatcherListenerCallbacks) {
-        console.log("Starting listener!")
+        hyrexLogger.info("postgres", "Starting postgres listener.", "dim")
         const TASK_HEARTBEAT = "TASK_HEARTBEAT"
         const TASK_CANCEL = "TASK_CANCEL"
         // For the listener, we need a dedicated client connection that stays open

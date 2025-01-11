@@ -46,8 +46,8 @@ const taskConfig: HyrexTaskConfigInput = {
         name: "serial-queue",
         concurrencyLimit: 2
     }),
-    cron: "*/15 * * * *",
-    timeoutSeconds: 1
+    cron: "* * * * *",
+    // timeoutSeconds: 1
 }
 
 const restartDatabaseTask = hy.task(restartDatabase, taskConfig)

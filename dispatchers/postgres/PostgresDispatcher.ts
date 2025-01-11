@@ -489,7 +489,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         const result = await this.queryWithRetry(async (client) => {
 
             const { sql, values } = cronSQL.cronJobRunsToSQL(cronJobRuns)
-            hyrexLogger.info("cron-scheduling", `<====== Running SQL =======>:\n\n${sql}\n\n${values}\n\n<==== DONE =====>\n\n`, 'yellow')
+            hyrexLogger.info("cron-scheduling", `<====== Running SQL =======>:\n\n${sql}\n\n${values}\n\n<==== DONE =====>\n\n`, 'dim')
             await client.query(sql, values)
         })
 

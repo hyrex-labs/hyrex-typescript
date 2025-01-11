@@ -93,11 +93,11 @@ const choices: sendTaskArgs[] = [
     const submitFraudToPersonaTask = hy.task(submitFraudToPersona, {timeoutSeconds: 1})
 
     if (process.argv.includes('--submit')) {
-        for (const i of range(2)) {
+        for (const i of range(5)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 
-            for (const i of range(10)) {
+            for (const i of range(20)) {
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4();

@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS hyrex_task_execution (
     finished        TIMESTAMP WITH TIME ZONE,
     last_heartbeat  TIMESTAMP WITH TIME ZONE,
     idempotency_key VARCHAR,
-    loglink         VARCHAR
+    log_link         VARCHAR
 );
 
 -- Create indexes
@@ -373,7 +373,7 @@ DO UPDATE SET
 
 export const SET_LOG_LINK = `
     UPDATE hyrex_task_execution
-    SET loglink = $2
+    SET log_link = $2
     WHERE id = $1
 `
 

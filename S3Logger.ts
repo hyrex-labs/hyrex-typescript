@@ -1,3 +1,4 @@
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { envVariables } from "./EnvironmentVariables";
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
@@ -81,15 +82,18 @@ export class S3Logger {
             throw new Error('No taskId provided.');
         }
 
-        const sendToS3Promise = this.s3Client.send(new PutObjectCommand({
+        const objectKey = `hyrex-logs/${this.taskId}.log`;
+        const putObjectCommand: PutObjectCommand = new PutObjectCommand({
             Bucket: this.bucket,
-            Key: `hyrex-logs/${this.taskId}.log`,
+            Key: objectKey,
             Body: this.currentLogs.join(''),
             ContentType: 'text/plain',
-        }));
+        })
+
+        const sendToS3Promise = this.s3Client.send(putObjectCommand);
 
         // Construct the S3 link
-        const logLink = `https://${this.bucket}.s3.amazonaws.com/hyrex-logs/${this.taskId}.log`;
+        const logLink = `s3://${this.bucket}/${objectKey}`;
         const setLogLinkPromise = this.dispatcher.setLogLink({ taskId: this.taskId, logLink });
 
         await Promise.all([sendToS3Promise, setLogLinkPromise])

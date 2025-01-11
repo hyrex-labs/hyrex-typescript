@@ -15,8 +15,8 @@ export type SerializedTaskRequest = {
     queue: string,
     max_retries: number,
     priority: number,
-    timeout_seconds?: number,
-    idempotency_key?: string,
+    timeout_seconds: number | null,
+    idempotency_key: string | null,
 }
 
 export type SerializedTask = {

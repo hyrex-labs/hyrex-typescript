@@ -10,6 +10,7 @@ import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
+import { createInsertTaskCronExpression } from "./sql/cronSchedulerSQL";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -412,7 +413,27 @@ export class PostgresDispatcher implements HyrexDispatcher {
         return this.queryWithRetry(async (client) => {
             await client.query(sql.UPSERT_TASK, [taskName, taskConfig?.cron, sourceCode])
             if (taskConfig?.cron) {
-                await client.query(cronSQL.CREATE_CRON_JOB_FOR_TASK)
+                const currentId = uuidv7()
+                const taskRequest: SerializedTaskRequest = {
+                    id: currentId,
+                    durable_id: currentId,
+                    root_id: currentId,
+                    parent_id:  null,
+                    queue: typeof taskConfig.queue === 'string' ? taskConfig.queue : taskConfig.queue.name,
+                    task_name: taskName,
+                    args: {},
+                    max_retries: taskConfig.maxRetries,
+                    priority: taskConfig.priority,
+                    timeout_seconds: taskConfig.timeoutSeconds || null,
+                    idempotency_key: taskConfig.idempotencyKey || null
+                }
+
+                const insertTaskCommand = createInsertTaskCronExpression(taskRequest)
+                const jobName = `scheduled-task-${taskName}`
+
+                await client.query(cronSQL.CREATE_CRON_JOB_FOR_TASK, [
+                    taskConfig.cron, insertTaskCommand, jobName
+                ])
             }
 
         })
@@ -423,7 +444,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         workerId: string,
         workerName: string
     }): Promise<number | null> {
-        const lockDuration = "2 minutes"
+        const lockDuration = "1 minute"
         return this.queryWithRetry(async (client) => {
             const { rows } = await client.query<{
                 lockid: string
@@ -466,8 +487,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
 
         const result = await this.queryWithRetry(async (client) => {
-            const sql = cronSQL.cronJobRunsToSQL(cronJobRuns)
-            await client.query(sql)
+
+            const { sql, values } = cronSQL.cronJobRunsToSQL(cronJobRuns)
+            hyrexLogger.info("cron-scheduling", `<====== Running SQL =======>:\n\n${sql}\n\n${values}\n\n<==== DONE =====>\n\n`, 'yellow')
+            await client.query(sql, values)
         })
 
         await this.queryWithRetry(async (client) => {

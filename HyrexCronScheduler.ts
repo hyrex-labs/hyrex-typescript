@@ -115,8 +115,9 @@ export class HyrexCronScheduler {
                     }
 
                 } catch (error) {
-                    hyrexLogger.error('cron-scheduling', `Error in scheduler loop`, 'red')
+                    hyrexLogger.error('cron-scheduling', `Error in scheduler loop: '${error}'`, 'red')
                     // Maybe add some error backoff/handling here
+                    throw error
                     break // Or handle differently depending on error type
                 }
 

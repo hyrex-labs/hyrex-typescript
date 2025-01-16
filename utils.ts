@@ -127,9 +127,6 @@ export const timeoutWrapper = <T>(
         fn(),
         new Promise<T>((_, reject) =>
             setTimeout(async () => {
-                console.log(errorMsg);
-                hyrexLogger.error('timeout', errorMsg, 'red')
-                await sleep(1000)
                 return reject(new Error(errorMsg))
             }, timeLimit)
         )

@@ -7,75 +7,95 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { getHyrexContext } from "../index";
 
-const initPersonaConnection = async ({}) => {
-    console.log(`INIT PERSONA CONNECTION`)
-}
-
 
 export const hy = new HyrexRegistry()
-
-const userQueuePattern: HyrexQueuePatternArgsType = {
-    pattern: "userId/*",
-    concurrencyLimit: 8,
-    // for: (email: string) => {
-    //     return `userId/${email}`
-    // }
-}
-
-const submitOrderQueuePattern = new HyrexQueuePattern({
-    pattern: "*submitOrder/*",
-    concurrencyLimit: 2,
-})
-
-// submitOrder/userId/0000-0000-0000
-
-//
-// hy.addQueuePattern(queuePattern)
-
 
 
 const restartDatabase = async () => {
     const ctx = getHyrexContext()
     console.log(`Restart Database with context ${JSON.stringify(ctx)}`)
-    await sleep(3000)
-    return { "status": "ok" }
+    await sleep(1000)
 }
 
-const taskConfig: HyrexTaskConfigInput = {
+const restartDatabaseTask = hy.task(restartDatabase, {
     queue: new HyrexQueue({
         name: "serial-queue",
-        concurrencyLimit: 2
     }),
-    cron: "* * * * *",
-    // timeoutSeconds: 1
-}
+    timeoutSeconds: 10
+})
 
-const restartDatabaseTask = hy.task(restartDatabase, taskConfig)
-
-const submitFraudToPersona = async ({ email }: { email: string }) => {
-    const ctx = getHyrexContext()
-    console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
-    await sleep(3000)
-    // Note it could take 48 hours for persona to get back
-    // restartDatabaseTask.send()
-    return { "result": true }
-}
-
-const sayHello = async () => {
-    console.log(`Hello!`)
-}
-
-
-// const submitFraudToPersonaTask = hy.task(submitFraudToPersona)
-// const restartDatabaseTask = hy.task(restartDatabase)
-// const sayHelloTask = hy.task(sayHello)
-
-// submitFraudToPersonaTask.withConfig({
-//         queue: "low-priority",
-//         maxRetries: 3
-//     }).send({ email: "mark" });
+// const submitFraudToPersona = async ({ email }: { email: string }) => {
+//     const ctx = getHyrexContext()
+//     console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
+//     await sleep(3000)
+//     // Note it could take 48 hours for persona to get back
 //
-// sayHello()
+//     // Generate random number between 1 and 20
+//     const numTasks = Math.floor(Math.random() * 20) + 1
+//
+//     for (let i = 0; i < numTasks; i++) {
+//         restartDatabaseTask.send()
+//     }
+//     return { "numTaskQueued": numTasks }
+// }
+
+const levelThreeFunc = async () => {
+    const ctx = getHyrexContext()
+    console.log(`Level Three Task ${JSON.stringify(ctx)}`)
+    // await sleep(3000)
+}
+
+const levelThreeTask = hy.task(levelThreeFunc, {
+        queue: "level-three-queue",
+        timeoutSeconds: 10
+    }
+)
+
+const levelTwoFunc = async () => {
+    const ctx = getHyrexContext()
+    console.log(`Level Two Task... ${JSON.stringify(ctx)}`)
+    const numTasks = Math.floor(Math.random() * 3) + 1
+
+    for (let i = 0; i < numTasks; i++) {
+        levelThreeTask.send()
+    }
+
+    // const randomSleepAmount = (Math.floor(Math.random() * 9) + 1) * 1000
+    // console.log(`randomSleepAmount: ${randomSleepAmount}`)
+    // await sleep(randomSleepAmount)
+
+    return { numTasks }
+}
+
+
+const levelTwoTask = hy.task(levelTwoFunc, {
+        queue: "level-two-queue",
+        timeoutSeconds: 10
+    }
+)
+
+const rootLevelFunc = async () => {
+    const ctx = getHyrexContext()
+    console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
+    // Generate random number between 1 and 20
+    // const numTasks = Math.floor(Math.random() * 3000) + 1
+    const numTasks = 100
+
+    for (let i = 0; i < numTasks; i++) {
+        levelTwoTask.send()
+    }
+
+    // const randomSleepAmount = (Math.floor(Math.random() * 9) + 1) * 1000
+    // console.log(`randomSleepAmount: ${randomSleepAmount}`)
+    // await sleep(randomSleepAmount)
+
+    return { numTasks }
+}
+
+const rootLevelTask = hy.task(rootLevelFunc, {
+        cron: "* * * * *"
+    }
+)
 
 // TODO we should enforce the type on send
 // sendSubmitFraud({name: "mark"}) // this is bad
@@ -90,20 +110,21 @@ const choices: sendTaskArgs[] = [
 ];
 
 (async () => {
-    const submitFraudToPersonaTask = hy.task(submitFraudToPersona, {timeoutSeconds: 1})
+    // const submitFraudToPersonaTask = hy.task(submitFraudToPersona, { cron: "* * * * *" })
 
     if (process.argv.includes('--submit')) {
         for (const i of range(5)) {
             console.log("Submitting tasks...");
             console.time("Submission time");
 
-            for (const i of range(20)) {
+            for (const i of range(1)) {
                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
 
                 const userId = uuidv4();
-                submitFraudToPersonaTask.withConfig({
-                    // {idempotencyKey: "apple" }
-                }).send(args)
+                rootLevelTask.send()
+                // submitFraudToPersonaTask.withConfig({
+                //     // {idempotencyKey: "apple" }
+                // }).send(args)
                 // await restartDatabaseTask.send()
             }
             console.timeEnd("Submission time");

@@ -2,7 +2,7 @@ import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../Hyrex
 import { HyrexTaskConfig, JsonType, UUID, uuidSchema } from "../../utils";
 import { Notification, Pool, PoolClient } from 'pg';
 import * as sql from "./sql/sql"
-import * as cronSQL from "./sql/cronSchedulerSQL"
+import * as cronSQL from "./sql/cronSql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
@@ -10,7 +10,7 @@ import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
-import { createInsertTaskCronExpression } from "./sql/cronSchedulerSQL";
+import { createInsertTaskCronExpression } from "./sql/cronSql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string

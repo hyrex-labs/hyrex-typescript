@@ -14,6 +14,7 @@ import { HyrexQueue } from "./HyrexQueue";
 import { isValidCron } from 'cron-validator'
 import { envVariables } from "./EnvironmentVariables";
 import { hyrexLogger } from "./logging/FrameworkLogger";
+import { COMMANDS } from "./commands";
 
 
 export class HyrexRegistry {
@@ -58,6 +59,10 @@ export class HyrexRegistry {
     }
 
     private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+        if (process.env[COMMANDS.INIT_DB]) {
+            return // Skip registration during database initialization
+        }
+
         this.dispatcher.registerTask({
             taskName,
             taskConfig: taskConfig,

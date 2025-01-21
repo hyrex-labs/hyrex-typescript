@@ -266,3 +266,14 @@ export const CREATE_CRON_JOB_FOR_TASK = `
         job_source = 'TASK',
         active = true;
 `
+
+export const CREATE_CRON_JOB_FOR_SQL_QUERY = `
+    INSERT INTO hyrex_cron_job (schedule, command, jobname, job_source)
+    VALUES ($1, $2, $3, 'SYSTEM')
+    ON CONFLICT (jobname) 
+    DO UPDATE SET 
+        schedule = EXCLUDED.schedule,
+        command = EXCLUDED.command,
+        job_source = 'SYSTEM',
+        active = true;
+`

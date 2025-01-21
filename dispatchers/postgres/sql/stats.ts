@@ -176,3 +176,117 @@ END;
 $$ LANGUAGE plpgsql;
 `
 
+export const CREATE_HISTORICAL_TASK_STATUS_COUNTS = `
+    CREATE TABLE IF NOT EXISTS hyrex_stats_task_status_counts
+    (
+        timepoint     TIMESTAMP WITH TIME ZONE PRIMARY KEY,
+        queued        INTEGER,
+        running       INTEGER,
+        waiting       INTEGER,
+        failed        INTEGER,
+        success       INTEGER,
+        total         INTEGER,
+        queued_delta  INTEGER,
+        success_delta INTEGER
+    );
+`
+
+export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE
+ timepoints AS (SELECT COALESCE(
+                               (SELECT MAX(timepoint) FROM hyrex_stats_task_status_counts),
+                               date_bin(
+                                       INTERVAL '15 seconds',
+                                       NOW() -
+                                       INTERVAL '10 minutes',
+                                       TIMESTAMP '2000-01-01 00:00:00+00'
+                               )
+                       ) +
+                       INTERVAL '15 seconds' AS timepoint
+
+                UNION ALL
+
+                SELECT timepoint + INTERVAL '15 seconds'
+                FROM timepoints
+                WHERE timepoint < date_bin(
+                        INTERVAL '15 seconds',
+                        NOW(),
+                        TIMESTAMP '2000-01-01 00:00:00+00'
+                                  )),
+ queue_counts AS (SELECT t.timepoint,
+                         COUNT(CASE
+                                   WHEN he.queued <=
+                                        t.timepoint
+                                       AND
+                                        (he.started IS NULL OR he.started > t.timepoint)
+                                       THEN 1
+                             END) as queued,
+                         COUNT(CASE
+                                   WHEN he.started <=
+                                        t.timepoint
+                                       AND
+                                        (he.finished IS NULL OR he.finished > t.timepoint)
+                                       AND he.status =
+                                           'running'
+                                       THEN 1
+                             END) as running,
+                         COUNT(CASE
+                                   WHEN
+                                       he.status = 'waiting'
+                                           AND he.queued <=
+                                               t.timepoint
+                                           AND
+                                       (he.finished IS NULL OR he.finished > t.timepoint)
+                                       THEN 1
+                             END) as waiting,
+                         COUNT(CASE
+                                   WHEN he.status IN
+                                        ('failed',
+                                         'up_for_retry')
+                                       AND he.finished <=
+                                           t.timepoint
+                                       THEN 1
+                             END) as failed,
+                         COUNT(CASE
+                                   WHEN
+                                       he.status = 'success'
+                                           AND
+                                       he.finished <=
+                                       t.timepoint
+                                       THEN 1
+                             END) as success
+                  FROM timepoints t
+                           LEFT JOIN hyrex_task_execution he
+                                     ON (
+                                         -- Include tasks that existed during this timepoint
+                                         he.queued <=
+                                         t.timepoint AND
+                                         (
+                                             -- Either they're still in the system
+                                             he.finished IS NULL OR
+                                                 -- Or they finished after this timepoint
+                                             he.finished >
+                                             t.timepoint OR
+                                                 -- Or they failed/retry/succeeded at this timepoint
+                                             (he.status IN
+                                              ('failed',
+                                               'up_for_retry',
+                                               'success') AND
+                                              he.finished <=
+                                              t.timepoint)
+                                             )
+                                         )
+                  GROUP BY t.timepoint)
+INSERT
+INTO hyrex_stats_task_status_counts
+SELECT timepoint,
+    queued,
+    running,
+    waiting,
+    failed,
+    success,
+    (queued + running + waiting + failed)                 as total,
+    (queued - LAG(queued, 1) OVER (ORDER BY timepoint))   as queued_delta,
+    (success - LAG(success, 1) OVER (ORDER BY timepoint)) as success_delta
+FROM queue_counts
+ON CONFLICT (timepoint) DO NOTHING;
+`

@@ -3,6 +3,7 @@ import { HyrexTaskConfig, JsonType, UUID, uuidSchema } from "../../utils";
 import { Notification, Pool, PoolClient } from 'pg';
 import * as sql from "./sql/sql"
 import * as cronSQL from "./sql/cronSql"
+import * as statsSQL from "./sql/stats"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
@@ -10,7 +11,7 @@ import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
-import { createInsertTaskCronExpression } from "./sql/cronSql";
+import { CREATE_CRON_JOB_FOR_SQL_QUERY, createInsertTaskCronExpression } from "./sql/cronSql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -130,6 +131,12 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(cronSQL.CreateHyrexCronJobRunDetailsTable);
             await client.query(cronSQL.CreateHyrexSchedulerLockTable);
             await client.query(cronSQL.CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION);
+            await client.query(statsSQL.CREATE_HISTORICAL_TASK_STATUS_COUNTS);
+            await this.registerCronSQLQuery({
+                cronJobName: "FillHistoryTaskCountsTable",
+                cronExpr: "* * * * *",
+                cronSqlQuery: statsSQL.FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE
+            })
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error(error);
@@ -518,6 +525,12 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 throw new Error("Hyrex framework error.")
             }
             return rows[0].execute_queued_command
+        })
+    }
+
+    async registerCronSQLQuery({ cronJobName, cronSqlQuery, cronExpr }: { cronJobName: string; cronSqlQuery: string; cronExpr: string }): Promise<void> {
+        this.queryWithRetry(async (client) => {
+            await client.query(cronSQL.CREATE_CRON_JOB_FOR_SQL_QUERY, [cronExpr, cronSqlQuery, cronJobName])
         })
     }
 

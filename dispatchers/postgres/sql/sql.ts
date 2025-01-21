@@ -92,6 +92,18 @@ export const CreateExecutorTable = `
         last_heartbeat TIMESTAMP WITH TIME ZONE,
         stats          JSON
     );
+
+    DROP VIEW IF EXISTS hyrex_executor_with_status;
+
+    CREATE VIEW hyrex_executor_with_status AS
+    SELECT *,
+           CASE
+               WHEN stopped IS NOT NULL AND started IS NOT NULL THEN 'SHUTDOWN'
+               WHEN last_heartbeat < NOW() - INTERVAL '5 minutes' THEN 'LOST'
+               WHEN started IS NOT NULL THEN 'RUNNING'
+               ELSE 'UNKNOWN'
+               END AS status
+    FROM hyrex_executor;
 `
 
 export const CreateResultsTable = `
@@ -270,6 +282,13 @@ export const DISCONNECT_EXECUTOR = `
     UPDATE hyrex_executor
     SET stopped        = CURRENT_TIMESTAMP,
         last_heartbeat = CURRENT_TIMESTAMP,
+        stats          = $2
+    where id = $1;
+`
+
+export const UPDATE_EXECUTOR_STATS = `
+    UPDATE hyrex_executor
+    SET last_heartbeat = CURRENT_TIMESTAMP,
         stats          = $2
     where id = $1;
 `

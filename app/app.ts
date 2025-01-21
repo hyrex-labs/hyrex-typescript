@@ -79,7 +79,7 @@ const rootLevelFunc = async () => {
     console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
     // Generate random number between 1 and 20
     // const numTasks = Math.floor(Math.random() * 3000) + 1
-    const numTasks = 100
+    const numTasks = 10
 
     for (let i = 0; i < numTasks; i++) {
         levelTwoTask.send()

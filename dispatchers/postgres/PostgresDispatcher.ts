@@ -330,6 +330,15 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
     }
 
+    async emitExecutorStats({ executorId, stats }: { executorId: string, stats: object }): Promise<void> {
+        const client = await this.pool.connect()
+        try {
+            await client.query(sql.UPDATE_EXECUTOR_STATS, [executorId, JSON.stringify(stats)])
+        } finally {
+            client.release();
+        }
+    }
+
     async listen(hyrexListener: DispatcherListenerCallbacks) {
         hyrexLogger.info("postgres", "Starting postgres listener.", "dim")
         const TASK_HEARTBEAT = "TASK_HEARTBEAT"

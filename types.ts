@@ -1,8 +1,13 @@
 export type ListenerMesssageType = "TASK_CANCEL" | "TASK_HEARTBEAT"
 import { UUID } from "./utils"
 
+type ExecutorStats = {
+
+}
+
 type ExecutorUpdateTaskIdMessage = { messageType: "UPDATE_TASK_ID", taskId: string, name: string }
 type ExecutorSetIdMessage = { messageType: "SET_EXECUTOR_ID", executorId: string }
+type ExecutorEmitStatsMessage = { messageType: "EMIT_STATS", executorStats: string }
 export type ExecutorMessage = ExecutorUpdateTaskIdMessage | ExecutorSetIdMessage
 
 export type ListenerMessage = {

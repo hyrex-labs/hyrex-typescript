@@ -10,26 +10,7 @@ import { performance } from "perf_hooks";
 import { S3Logger } from "../S3Logger";
 import { COMMANDS } from "../commands";
 import { hyrexLogger } from "../logging/FrameworkLogger";
-
-class Averager {
-    private count: number
-    private runningSum: number
-
-    constructor() {
-        this.count = 0
-        this.runningSum = 0
-    }
-
-    avg() {
-        return this.runningSum / this.count
-    }
-
-    submit(x: number) {
-        this.count++
-        this.runningSum += x
-    }
-
-}
+import { TimeSeriesAverager } from "./TimeSeriesAverager";
 
 type HyrexExecutorConfig = {
     workerName: string
@@ -56,8 +37,8 @@ export class HyrexExecutor {
     private executorId: UUID
 
     // Perf metrics
-    private refreshQueueDurationAvgr: Averager
-    private numDistinctQueuesAvgr: Averager
+    private refreshQueueDurationAvgr: TimeSeriesAverager
+    private numDistinctQueuesAvgr: TimeSeriesAverager
 
     constructor(config: HyrexExecutorConfig) {
         const defaultConfig = {}
@@ -81,8 +62,8 @@ export class HyrexExecutor {
         this.setExecutorId(this.executorId)
 
         // Perf metrics
-        this.refreshQueueDurationAvgr = new Averager()
-        this.numDistinctQueuesAvgr = new Averager()
+        this.refreshQueueDurationAvgr = new TimeSeriesAverager()
+        this.numDistinctQueuesAvgr = new TimeSeriesAverager()
     }
 
     private async processTask(task: SerializedTask): Promise<JsonType | undefined> {
@@ -242,7 +223,7 @@ export class HyrexExecutor {
 
         await this.refreshConcreteQueues()
 
-        const dequeueDurationAvgr = new Averager()
+        const dequeueDurationAvgr = new TimeSeriesAverager()
 
         while (!shouldStop) {
             //
@@ -303,12 +284,21 @@ export class HyrexExecutor {
                 await this.dispatcher.attemptRetry(task.id)
             }
 
+            const stats = {
+                "dequeueLatencyMs": dequeueDurationAvgr.getTimeSeries(),
+                "refreshQueueLatencyMs": this.refreshQueueDurationAvgr.getTimeSeries(),
+                "numDistinctQueues": this.numDistinctQueuesAvgr.getTimeSeries()
+            }
+
+            if (Math.random() < 0.04) { // 1/25 chance
+                this.dispatcher.emitExecutorStats({ executorId: this.executorId, stats })
+            }
         }
 
         const stats = {
-            "avgDequeueDurationMS": dequeueDurationAvgr.avg(),
-            "avgRefreshQueueDurationMS": this.refreshQueueDurationAvgr.avg(),
-            "numDistinctQueues": this.numDistinctQueuesAvgr.avg()
+            "dequeueLatencyMs": dequeueDurationAvgr.getTimeSeries(),
+            "refreshQueueLatencyMs": this.refreshQueueDurationAvgr.getTimeSeries(),
+            "numDistinctQueues": this.numDistinctQueuesAvgr.getTimeSeries()
         }
 
         await this.dispatcher.disconnectExecutor({ executorId: this.executorId, stats })

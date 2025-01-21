@@ -74,6 +74,8 @@ export interface HyrexDispatcher {
 
     disconnectExecutor({ executorId, stats }: { executorId: string, stats: object }): Promise<void>
 
+    emitExecutorStats({ executorId, stats }: { executorId: string, stats: object }): Promise<void>
+
     updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }): Promise<void>
 
     updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
@@ -90,10 +92,15 @@ export interface HyrexDispatcher {
 
     // Cron scheduling
     acquireSchedulerLock({ workerId, workerName }: { workerId: string, workerName: string }): Promise<number | null>
+
     updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void>
+
     releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void>
+
     pullCronJobExpressions(): Promise<CronJob[]>
+
     scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void>
+
     executeQueuedCronJobRun(): Promise<string>
 
     // Remote Logs

@@ -1,5 +1,6 @@
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import { ListenerMessage, ListenerResultMessage } from "./types";
+import { hyrexLogger } from "./logging/FrameworkLogger";
 
 export type hyrexWorkerListenerConfig = {
     dispatcher: HyrexDispatcher,
@@ -20,6 +21,7 @@ export class HyrexAdmin {
     }
 
     private async handleMessage(message: ListenerResultMessage) {
+        hyrexLogger.info("process-management", `Admin Received Message: ${message}`, 'cyan')
         if (message.messageType === "TASK_HEARTBEAT") {
             this.dispatcher.updateTaskHeartbeat(message)
         } else if (message.messageType === "TASK_CANCEL") {

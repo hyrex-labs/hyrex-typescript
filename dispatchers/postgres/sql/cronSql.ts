@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS hyrex_cron_job
     job_source                     job_source_type NOT NULL,
     activated_at                   timestamptz      default now(),
     scheduled_jobs_confirmed_until timestamptz      default now(),
+    should_backfill                boolean default true,
     UNIQUE (jobname)
 );
 `
@@ -106,7 +107,8 @@ export const PULL_ACTIVE_CRON_EXPRESSIONS = `
            active,
            jobname,
            activated_at,
-           scheduled_jobs_confirmed_until
+           scheduled_jobs_confirmed_until,
+           should_backfill
     FROM hyrex_cron_job
     WHERE active = true
 --       AND activated_at > NOW();
@@ -147,48 +149,56 @@ export function cronJobRunsToSQL(runs: CronJobRun[]): { sql: string, values: any
 
 export const CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION = `
 CREATE OR REPLACE FUNCTION execute_queued_command()
-RETURNS text AS $$
+RETURNS text AS
+$$
 DECLARE
     cmd text;
     selected_runid bigint;
+    start_ts timestamp;
 BEGIN
-    -- Select and lock the first queued command
-    SELECT command, runid INTO cmd, selected_runid
-    FROM hyrex_cron_job_run_details
-    WHERE status = 'queued'
-    AND schedule_time <= NOW()
-    ORDER BY schedule_time
-    LIMIT 1
-    FOR UPDATE SKIP LOCKED;
+    -- 1) Grab the first queued command (row) and lock it
+    SELECT command, runid 
+      INTO cmd, selected_runid
+      FROM hyrex_cron_job_run_details
+     WHERE status = 'queued'
+       AND schedule_time <= now()
+     ORDER BY schedule_time
+     LIMIT 1
+     FOR UPDATE SKIP LOCKED;
 
     IF FOUND THEN
-        -- Execute the command
+        -- 2) Mark start_time right before execution
+        start_ts := clock_timestamp();
+
+        -- 3) Execute the command text
         EXECUTE cmd;
 
-        -- Update status to success using runid
+        -- 4) Mark the end_time and set status
         UPDATE hyrex_cron_job_run_details
-        SET status = 'success',
-            start_time = NOW(),
-            end_time = NOW()
-        WHERE runid = selected_runid
-        AND status = 'queued';
+           SET status      = 'success',
+               start_time  = start_ts,
+               end_time    = clock_timestamp()
+         WHERE runid = selected_runid
+           AND status = 'queued';
         
         RETURN 'executed';
     END IF;
 
     RETURN 'not_found';
+
 EXCEPTION
     WHEN OTHERS THEN
-        -- Update status to failed if there's an error using runid
+        -- In the event of an error, mark job as failed and record times
         UPDATE hyrex_cron_job_run_details
-        SET status = 'failed',
-            start_time = NOW(),
-            end_time = NOW()
-        WHERE runid = selected_runid
-        AND status = 'queued';
+           SET status      = 'failed',
+               start_time  = COALESCE(start_ts, clock_timestamp()),
+               end_time    = clock_timestamp()
+         WHERE runid = selected_runid
+           AND status = 'queued';
         RAISE;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 `
 
 export function createInsertTaskCronExpression(serializedTaskRequest: SerializedTaskRequest) {
@@ -268,12 +278,13 @@ export const CREATE_CRON_JOB_FOR_TASK = `
 `
 
 export const CREATE_CRON_JOB_FOR_SQL_QUERY = `
-    INSERT INTO hyrex_cron_job (schedule, command, jobname, job_source)
-    VALUES ($1, $2, $3, 'SYSTEM')
+    INSERT INTO hyrex_cron_job (schedule, command, jobname, should_backfill, job_source)
+    VALUES ($1, $2, $3, $4, 'SYSTEM')
     ON CONFLICT (jobname) 
     DO UPDATE SET 
         schedule = EXCLUDED.schedule,
         command = EXCLUDED.command,
+        should_backfill = EXCLUDED.should_backfill,
         job_source = 'SYSTEM',
         active = true;
 `

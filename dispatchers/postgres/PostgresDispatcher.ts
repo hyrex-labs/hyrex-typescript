@@ -135,7 +135,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await this.registerCronSQLQuery({
                 cronJobName: "FillHistoryTaskCountsTable",
                 cronExpr: "* * * * *",
-                cronSqlQuery: statsSQL.FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE
+                cronSqlQuery: statsSQL.FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE,
+                shouldBackfill: false
             })
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
@@ -509,11 +510,16 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(sql, values)
         })
 
-        await this.queryWithRetry(async (client) => {
-            await client.query(cronSQL.UPDATE_CRON_JOB_CONFIRMATION_TS, [cronJobRuns[0].jobid])
-        })
+
+        await this.updateCronJobConfirmationTimestamp(cronJobRuns[0].jobid)
 
         return result
+    }
+
+    async updateCronJobConfirmationTimestamp(jobId: number): Promise<void> {
+        await this.queryWithRetry(async (client) => {
+            await client.query(cronSQL.UPDATE_CRON_JOB_CONFIRMATION_TS, [jobId])
+        })
     }
 
     async executeQueuedCronJobRun(): Promise<string> {
@@ -528,9 +534,9 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
     }
 
-    async registerCronSQLQuery({ cronJobName, cronSqlQuery, cronExpr }: { cronJobName: string; cronSqlQuery: string; cronExpr: string }): Promise<void> {
+    async registerCronSQLQuery({ cronJobName, cronSqlQuery, cronExpr, shouldBackfill }: { cronJobName: string; cronSqlQuery: string; cronExpr: string, shouldBackfill: boolean }): Promise<void> {
         this.queryWithRetry(async (client) => {
-            await client.query(cronSQL.CREATE_CRON_JOB_FOR_SQL_QUERY, [cronExpr, cronSqlQuery, cronJobName])
+            await client.query(cronSQL.CREATE_CRON_JOB_FOR_SQL_QUERY, [cronExpr, cronSqlQuery, cronJobName, shouldBackfill])
         })
     }
 

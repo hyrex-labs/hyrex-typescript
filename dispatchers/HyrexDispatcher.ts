@@ -99,6 +99,8 @@ export interface HyrexDispatcher {
 
     pullCronJobExpressions(): Promise<CronJob[]>
 
+    updateCronJobConfirmationTimestamp(jobId: number): Promise<void>
+
     scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void>
 
     executeQueuedCronJobRun(): Promise<string>

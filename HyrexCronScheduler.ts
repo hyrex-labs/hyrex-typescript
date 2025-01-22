@@ -11,6 +11,7 @@ export type CronJob = {
     jobname: string;
     activated_at: Date;
     scheduled_jobs_confirmed_until: Date;
+    should_backfill: boolean
 }
 
 export type CronJobRun = {
@@ -72,6 +73,10 @@ export class HyrexCronScheduler {
         return cronJobRuns
     }
 
+    private async updateCronConfirmationTimestampToNow(cronJob: CronJob): Promise<void> {
+        return this.dispatcher.updateCronJobConfirmationTimestamp(cronJob.jobid)
+    }
+
 
 
     // TODO: Require LockId when scheduling jobs and have the database determine that the lockid is still valid
@@ -93,6 +98,19 @@ export class HyrexCronScheduler {
             hyrexLogger.info('cron-scheduling', "Acquired Lock.", 'dim')
 
             const LOOP_RATE_SEC = 30
+
+            // Decide whether to backfill cron jobs
+            const cronExpressions = await this.dispatcher.pullCronJobExpressions()
+
+
+            // Queue cron job runs
+            for (const cronJob of cronExpressions) {
+                hyrexLogger.info('cron-scheduling', `Should Backfill? jobname=${cronJob.jobname}, should_backfill=${cronJob.should_backfill}`, 'dim')
+                if (!cronJob.should_backfill) {
+                    this.updateCronConfirmationTimestampToNow(cronJob)
+                }
+            }
+
 
             // Main scheduler loop - now with the lock held
             while (true) {

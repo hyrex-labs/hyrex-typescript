@@ -191,28 +191,37 @@ export const CREATE_HISTORICAL_TASK_STATUS_COUNTS = `
     );
 `
 
-export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE
- -- 1) Build the time series of 15-second intervals
- timepoints AS (
-     SELECT COALESCE(
-                    (SELECT MAX(timepoint) FROM hyrex_stats_task_status_counts),
-                    date_bin(
-                            INTERVAL '15 seconds',
-                            NOW() - INTERVAL '10 minutes',
-                            TIMESTAMP '2000-01-01 00:00:00+00'
-                    )
-            ) + INTERVAL '15 seconds' AS timepoint
+export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE timepoints AS (
+    -- 1) Start from the larger of:
+    --    - The last known timepoint from the stats table (if any)
+    --    - 10 minutes ago (rounded to a 15s boundary)
+    SELECT GREATEST(
+               COALESCE(
+                   (SELECT MAX(timepoint) FROM hyrex_stats_task_status_counts),
+                   date_bin(
+                       INTERVAL '15 seconds',
+                       now() - INTERVAL '10 minutes',
+                       TIMESTAMP '2000-01-01 00:00:00+00'
+                   )
+               ),
+               date_bin(
+                   INTERVAL '15 seconds',
+                   now() - INTERVAL '10 minutes',
+                   TIMESTAMP '2000-01-01 00:00:00+00'
+               )
+           ) + INTERVAL '15 seconds' AS timepoint
 
-     UNION ALL
+    UNION ALL
 
-     SELECT timepoint + INTERVAL '15 seconds'
-     FROM timepoints
-     WHERE timepoint < date_bin(
-             INTERVAL '15 seconds',
-             NOW(),
-             TIMESTAMP '2000-01-01 00:00:00+00'
-                       )
- ),
+    -- 2) Keep adding 15 seconds, up to 'now' (also rounded to a 15s boundary)
+    SELECT timepoint + INTERVAL '15 seconds'
+    FROM timepoints
+    WHERE timepoint < date_bin(
+        INTERVAL '15 seconds',
+        now(),
+        TIMESTAMP '2000-01-01 00:00:00+00'
+    )
+),
 
  -- 2) For each timepoint, count the tasks in each status
  queue_counts AS (

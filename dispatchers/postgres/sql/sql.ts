@@ -59,6 +59,9 @@ CREATE INDEX IF NOT EXISTS index_queue_status
 CREATE UNIQUE INDEX IF NOT EXISTS ix_hyrex_task_execution_idempotency_key 
     ON public.hyrex_task_execution (task_name, idempotency_key)
     WHERE idempotency_key IS NOT NULL;
+    
+CREATE INDEX IF NOT EXISTS idx_hyrex_task_execution_queue_status_priority_queued
+    ON hyrex_task_execution (queue, status, priority DESC, queued);
 `
 
 export const CreateHyrexTaskTable = `

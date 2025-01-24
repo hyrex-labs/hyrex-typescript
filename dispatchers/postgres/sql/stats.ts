@@ -189,6 +189,9 @@ export const CREATE_HISTORICAL_TASK_STATUS_COUNTS = `
         queued_delta  INTEGER,
         success_delta INTEGER
     );
+
+    CREATE INDEX IF NOT EXISTS idx_hstsc_timepoint
+        ON hyrex_stats_task_status_counts(timepoint);
 `
 
 export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE timepoints AS (

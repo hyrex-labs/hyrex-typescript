@@ -11,7 +11,8 @@ BEGIN
             'queued',
             'up_for_cancel',
             'canceled',
-            'waiting'
+            'waiting',
+            'lost'
         );
     END IF;
 END $$;
@@ -89,30 +90,28 @@ CREATE TABLE IF NOT EXISTS hyrex_system_logs (
 `
 
 export const CreateExecutorTable = `
-    CREATE TABLE IF NOT EXISTS hyrex_executor
-    (
-        id             UUID    NOT NULL PRIMARY KEY,
-        name           VARCHAR NOT NULL,
-        worker_name    VARCHAR NOT NULL,
-        queue_pattern  JSON    NOT NULL,
-        queues         JSON    NOT NULL,
-        started        TIMESTAMP WITH TIME ZONE,
-        stopped        TIMESTAMP WITH TIME ZONE,
-        last_heartbeat TIMESTAMP WITH TIME ZONE,
-        stats          JSON
-    );
+    DO $$
+BEGIN
+    -- Create enum if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'executor_status') THEN
+        CREATE TYPE executor_status AS ENUM ('SHUTDOWN', 'LOST', 'RUNNING', 'UNKNOWN');
+    END IF;
+END$$;
 
-    DROP VIEW IF EXISTS hyrex_executor_with_status;
-
-    CREATE VIEW hyrex_executor_with_status AS
-    SELECT *,
-           CASE
-               WHEN stopped IS NOT NULL AND started IS NOT NULL THEN 'SHUTDOWN'
-               WHEN last_heartbeat < NOW() - INTERVAL '5 minutes' THEN 'LOST'
-               WHEN started IS NOT NULL THEN 'RUNNING'
-               ELSE 'UNKNOWN'
-               END AS status
-    FROM hyrex_executor;
+-- Create or replace the table with the status column
+CREATE TABLE IF NOT EXISTS hyrex_executor
+(
+    id             UUID    NOT NULL PRIMARY KEY,
+    name           VARCHAR NOT NULL,
+    worker_name    VARCHAR NOT NULL,
+    queue_pattern  JSON    NOT NULL,
+    queues         JSON    NOT NULL,
+    started        TIMESTAMP WITH TIME ZONE,
+    stopped        TIMESTAMP WITH TIME ZONE,
+    last_heartbeat TIMESTAMP WITH TIME ZONE,
+    stats          JSON,
+    status         executor_status NOT NULL DEFAULT 'UNKNOWN'
+);
 `
 
 export const CreateResultsTable = `
@@ -277,8 +276,9 @@ export const REGISTER_EXECUTOR = `
                                 worker_name,
                                 started,
                                 stopped,
-                                last_heartbeat)
-    VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP);
+                                last_heartbeat,
+                                status)
+    VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP, 'RUNNING'::executor_status);
 `
 
 export const UPDATE_QUEUES_ON_EXECUTOR = `
@@ -291,7 +291,8 @@ export const DISCONNECT_EXECUTOR = `
     UPDATE hyrex_executor
     SET stopped        = CURRENT_TIMESTAMP,
         last_heartbeat = CURRENT_TIMESTAMP,
-        stats          = $2
+        stats          = $2,
+        status = 'SHUTDOWN'::executor_status
     where id = $1;
 `
 

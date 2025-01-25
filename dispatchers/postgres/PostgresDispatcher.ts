@@ -4,6 +4,7 @@ import { Notification, Pool, PoolClient } from 'pg';
 import * as sql from "./sql/sql"
 import * as cronSQL from "./sql/cronSql"
 import * as statsSQL from "./sql/stats"
+import * as durabilitySQL from "./sql/durability/durabilitySQL"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
@@ -12,6 +13,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
 import { CREATE_CRON_JOB_FOR_SQL_QUERY, createInsertTaskCronExpression } from "./sql/cronSql";
+import { SET_EXECUTOR_TO_LOST_IF_NO_HEARTBEAT } from "./sql/durability/durabilitySQL";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -132,12 +134,30 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(cronSQL.CreateHyrexSchedulerLockTable);
             await client.query(cronSQL.CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION);
             await client.query(statsSQL.CREATE_HISTORICAL_TASK_STATUS_COUNTS);
+
+            // Cron Queries
             await this.registerCronSQLQuery({
                 cronJobName: "FillHistoryTaskCountsTable",
                 cronExpr: "* * * * *",
                 cronSqlQuery: statsSQL.FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE,
                 shouldBackfill: false
             })
+
+            await this.registerCronSQLQuery({
+                cronJobName: "SetOrphanedRunningTaskToLost",
+                cronExpr: "* * * * *",
+                cronSqlQuery: durabilitySQL.SET_ORPHANED_TASK_EXECUTION_TO_LOST,
+                shouldBackfill: false
+            })
+
+            await this.registerCronSQLQuery({
+                cronJobName: "SetExecutorToLostIfNoHeartbeat",
+                cronExpr: "* * * * *",
+                cronSqlQuery: durabilitySQL.SET_EXECUTOR_TO_LOST_IF_NO_HEARTBEAT,
+                shouldBackfill: false
+            })
+
+
             console.log("initPostgresDB finished successfully.");
         } catch (error) {
             console.error(error);
@@ -446,7 +466,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 }
 
                 const insertTaskCommand = createInsertTaskCronExpression(taskRequest)
-                const jobName = `scheduled-task-${taskName}`
+                const jobName = `ScheduledTask-${taskName}`
 
                 await client.query(cronSQL.CREATE_CRON_JOB_FOR_TASK, [
                     taskConfig.cron, insertTaskCommand, jobName

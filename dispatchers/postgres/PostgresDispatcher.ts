@@ -146,7 +146,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await this.registerCronSQLQuery({
                 cronJobName: "SetOrphanedRunningTaskToLost",
                 cronExpr: "* * * * *",
-                cronSqlQuery: durabilitySQL.SET_ORPHANED_TASK_EXECUTION_TO_LOST,
+                cronSqlQuery: durabilitySQL.SET_ORPHANED_TASK_EXECUTION_TO_LOST_AND_RETRY,
                 shouldBackfill: false
             })
 

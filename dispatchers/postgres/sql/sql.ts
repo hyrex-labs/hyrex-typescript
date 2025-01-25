@@ -6,7 +6,6 @@ BEGIN
         CREATE TYPE public.status_enum AS ENUM (
             'success',
             'failed',
-            'up_for_retry',
             'running',
             'queued',
             'up_for_cancel',

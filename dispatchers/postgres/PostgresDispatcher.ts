@@ -334,7 +334,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }): Promise<void> {
         const client = await this.pool.connect()
         try {
-            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, JSON.stringify(queuePattern), JSON.stringify(queues), workerName])
+            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, queuePattern.pattern, JSON.stringify(queues), workerName])
         } finally {
             client.release();
         }

@@ -16,8 +16,7 @@ export const CREATE_HISTORICAL_TASK_STATUS_COUNTS = `
         ON hyrex_stats_task_status_counts(timepoint);
 `
 
-export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `
-    WITH RECURSIVE timepoints AS (
+export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE timepoints AS (
         -- 1) Start from the larger of:
         --    - The last known timepoint from the stats table (if any)
         --    - 10 minutes ago (rounded to a 15s boundary)
@@ -100,7 +99,7 @@ export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `
                                                       -- Or they finished after this timepoint
                                                   htr.finished > t.timepoint
                                                       OR
-                                                      -- Or they failed/retry/succeeded/lost at this exact timepoint
+                                                      -- Or they failed/succeeded/lost at this exact timepoint
                                                   (
                                                       htr.status IN ('failed','success','lost')
                                                           AND htr.finished <= t.timepoint

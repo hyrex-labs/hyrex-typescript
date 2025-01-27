@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS hyrex_executor
     id             UUID    NOT NULL PRIMARY KEY,
     name           VARCHAR NOT NULL,
     worker_name    VARCHAR NOT NULL,
-    queue_pattern  JSON    NOT NULL,
+    queue_pattern  VARCHAR NOT NULL,
     queues         JSON    NOT NULL,
     started        TIMESTAMP WITH TIME ZONE,
     stopped        TIMESTAMP WITH TIME ZONE,

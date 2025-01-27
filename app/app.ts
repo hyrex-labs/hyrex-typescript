@@ -54,7 +54,7 @@ const levelThreeTask = hy.task(levelThreeFunc, {
 const levelTwoFunc = async () => {
     const ctx = getHyrexContext()
     console.log(`Level Two Task... ${JSON.stringify(ctx)}`)
-    const numTasks = 1 // Math.floor(Math.random() * 3) + 1
+    const numTasks = 2 // Math.floor(Math.random() * 3) + 1
     await sleep(100)
     for (let i = 0; i < numTasks; i++) {
         levelThreeTask.send()
@@ -79,7 +79,7 @@ const rootLevelFunc = async () => {
     console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
     // Generate random number between 1 and 20
     // const numTasks = Math.floor(Math.random() * 3000) + 1
-    const numTasks = 1
+    const numTasks = 10
     await sleep(100)
 
     for (let i = 0; i < numTasks; i++) {

@@ -84,12 +84,29 @@ export const CreateHyrexTaskTable = `
 
 export const CreateSystemLogTable = `
     CREATE TABLE IF NOT EXISTS hyrex_system_logs (
-                                                     id UUID NOT NULL PRIMARY KEY,
-                                                     timestamp TIMESTAMP WITH TIME ZONE,
-                                                     event_name VARCHAR NOT NULL,
-                                                     event_body JSON NOT NULL
+         id UUID NOT NULL PRIMARY KEY,
+         timestamp TIMESTAMP WITH TIME ZONE,
+         event_name VARCHAR NOT NULL,
+         event_body JSON NOT NULL
     );
 `
+
+export const CreateHyrexAppTable = `
+    CREATE TABLE IF NOT EXISTS hyrex_app (
+          id    BIGSERIAL NOT NULL PRIMARY KEY,
+          app_info JSON
+    );
+`
+
+export const REGISTER_APP_INFO_SQL = `
+    INSERT INTO hyrex_app (
+        id,
+        app_info
+    ) VALUES (
+        $1,
+        $2
+    );
+`;
 
 export const CreateExecutorTable = `
     DO $$

@@ -1,7 +1,7 @@
 import { UUID, JsonType, HyrexTaskConfig } from "../utils";
 
 import { string, z } from "zod";
-import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../types";
+import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { CronJob, CronJobRun } from "../HyrexCronScheduler";
 
@@ -107,4 +107,6 @@ export interface HyrexDispatcher {
 
     // Remote Logs
     setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void>
+
+    registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void>
 }

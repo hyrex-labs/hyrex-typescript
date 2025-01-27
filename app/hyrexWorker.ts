@@ -1,7 +1,7 @@
-import { HyrexWorker } from "../HyrexWorker";
+import { HyrexApp } from "../HyrexApp";
 import { HyrexQueue } from "../HyrexQueue";
 import { hy as appRegistry } from "./app";
 
-const hyrexWorker = new HyrexWorker({ appId: "My first app" })
-hyrexWorker.addRegistry(appRegistry);
-hyrexWorker.init()
+const hyrexApp = new HyrexApp({ name: "My Cool App" })
+hyrexApp.addRegistry(appRegistry);
+hyrexApp.init()

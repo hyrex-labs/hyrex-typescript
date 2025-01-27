@@ -7,7 +7,7 @@ import * as statsSQL from "./sql/stats"
 import * as durabilitySQL from "./sql/durability/durabilitySQL"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
-import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage } from "../../types";
+import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../HyrexCronScheduler";
@@ -121,9 +121,16 @@ export class PostgresDispatcher implements HyrexDispatcher {
         hyrexLogger.info('postgres', `Created Postgres Pool. pid=${process.pid}`, 'magenta')
     }
 
+    async registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void> {
+        this.queryWithRetry(async (client) => {
+            await client.query(sql.REGISTER_APP_INFO_SQL, [1, hyrexAppInfo])
+        })
+    }
+
     async initPostgresDB() {
         const client = await this.pool.connect()
         try {
+            await client.query(sql.CreateHyrexAppTable);
             await client.query(sql.CreateHyrexTaskExecutionTable);
             await client.query(sql.CreateExecutorTable);
             await client.query(sql.CreateResultsTable);

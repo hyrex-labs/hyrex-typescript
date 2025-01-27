@@ -1,8 +1,8 @@
 export type ListenerMesssageType = "TASK_CANCEL" | "TASK_HEARTBEAT"
 import { UUID } from "./utils"
 
-type ExecutorStats = {
-
+export type HyrexAppInfo = {
+    name: string;
 }
 
 type ExecutorUpdateTaskIdMessage = { messageType: "UPDATE_TASK_ID", taskId: string, name: string }

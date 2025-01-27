@@ -12,9 +12,10 @@ import { HyrexAdmin } from "./HyrexAdmin";
 import { HyrexQueue, HyrexQueuePattern } from "./HyrexQueue";
 import { HyrexCronScheduler } from "./HyrexCronScheduler";
 import { hyrexLogger } from "./logging/FrameworkLogger";
+import { HyrexAppInfo } from "./types";
 
 const AppConfigSchema = z.object({
-    appId: z.string(),
+    name: z.string(),
     conn: z.string().optional(),
     apiKey: z.string().optional(),
     errorCallback: z.function().optional(),
@@ -30,23 +31,23 @@ type WorkerConfig = {
     logLevel?: string
 }
 
-export class HyrexWorker {
+export class HyrexApp {
     private dispatcher: HyrexDispatcher
     private appRegistry: HyrexRegistry
-    private appId: string
+    private hyrexAppInfo: HyrexAppInfo
     private conn?: string
     private apiKey?: string
     private errorCallback?: ErrorCallback
 
     constructor({
-                    appId,
+                    name,
                     conn,
                     apiKey,
                     errorCallback,
                 }: AppConfig) {
 
         const appConfig = {
-            appId,
+            name,
             conn,
             apiKey,
             errorCallback
@@ -54,7 +55,7 @@ export class HyrexWorker {
 
         AppConfigSchema.parse(appConfig)
 
-        this.appId = appId
+        this.hyrexAppInfo = { name }
         this.conn = conn || process.env.HYREX_DATABASE_URL
         this.apiKey = apiKey
         this.errorCallback = errorCallback
@@ -120,6 +121,8 @@ export class HyrexWorker {
         if (!workerName) {
             throw new Error("No HYREX_WORKER_NAME Found. Ensure this command is being executed via the CLI.")
         }
+
+        await this.dispatcher.registerHyrexApp(this.hyrexAppInfo)
 
         hyrexLogger.info("flow-control", `Received queue pattern: ${queuePattern}`, 'blue')
 

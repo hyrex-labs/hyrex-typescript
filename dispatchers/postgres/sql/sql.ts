@@ -1,9 +1,12 @@
 export const CreateHyrexTaskExecutionTable = `
--- Create status enum type if it doesn't exist
+-- Create task_run_status enum type if it doesn't exist
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_enum' AND typnamespace = 'public'::regnamespace) THEN
-        CREATE TYPE public.status_enum AS ENUM (
+    IF NOT EXISTS (SELECT 1 
+                   FROM pg_type 
+                   WHERE typname = 'task_run_status' 
+                     AND typnamespace = 'public'::regnamespace) THEN
+        CREATE TYPE public.task_run_status AS ENUM (
             'success',
             'failed',
             'running',
@@ -28,7 +31,7 @@ CREATE TABLE IF NOT EXISTS hyrex_task_run (
     max_retries     SMALLINT                    NOT NULL,
     priority        SMALLINT                    NOT NULL,
     timeout_seconds INT                         DEFAULT NULL CHECK (timeout_seconds IS NULL OR timeout_seconds > 0),
-    status          STATUS_ENUM                 NOT NULL,
+    status          task_run_status             NOT NULL,
     attempt_number  SMALLINT                    NOT NULL,
     scheduled_start TIMESTAMP WITH TIME ZONE,
     executor_id     UUID,
@@ -56,17 +59,17 @@ CREATE INDEX IF NOT EXISTS ix_hyrex_task_run_scheduled_start
 CREATE INDEX IF NOT EXISTS index_queue_status
     ON public.hyrex_task_run (status, queue, scheduled_start, task_name);
 
-CREATE UNIQUE INDEX IF NOT EXISTS ix_hyrex_task_run_idempotency_key 
+CREATE UNIQUE INDEX IF NOT EXISTS ix_hyrex_task_run_idempotency_key
     ON public.hyrex_task_run (task_name, idempotency_key)
     WHERE idempotency_key IS NOT NULL;
-    
+
 CREATE INDEX IF NOT EXISTS idx_hyrex_task_run_queue_status_priority_queued
     ON hyrex_task_run (queue, status, priority DESC, queued);
-    
-CREATE INDEX IF NOT EXISTS idx_htr_queued_started_finished 
+
+CREATE INDEX IF NOT EXISTS idx_htr_queued_started_finished
     ON hyrex_task_run(queued, started, finished);
-    
-CREATE INDEX IF NOT EXISTS idx_hyrex_task_run_root_id 
+
+CREATE INDEX IF NOT EXISTS idx_hyrex_task_run_root_id
     ON hyrex_task_run(root_id);
 `
 
@@ -142,7 +145,7 @@ export const ENQUEUE_TASKS = `
             )
             VALUES (
                        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                       'queued'::STATUS_ENUM,
+                       'queued'::task_run_status,
                        0,
                        CURRENT_TIMESTAMP,
                        $11
@@ -250,8 +253,8 @@ export const MARK_TASK_FAILED = `
 export const MARK_TASK_SUCCESS = `
     UPDATE hyrex_task_run
     SET status   = CASE
-                       WHEN status = 'running' THEN 'success'::status_enum
-                       WHEN status = 'up_for_cancel' THEN 'canceled'::status_enum
+                       WHEN status = 'running' THEN 'success'::task_run_status
+                       WHEN status = 'up_for_cancel' THEN 'canceled'::task_run_status
         END,
         finished = CURRENT_TIMESTAMP
     WHERE id = $1
@@ -260,7 +263,7 @@ export const MARK_TASK_SUCCESS = `
 
 export const MARK_TASK_CANCELED = `
     UPDATE hyrex_task_run
-    SET status   = 'canceled'::status_enum,
+    SET status   = 'canceled'::task_run_status,
         finished = CURRENT_TIMESTAMP
     WHERE id = $1
       AND status = 'up_for_cancel'
@@ -268,7 +271,7 @@ export const MARK_TASK_CANCELED = `
 
 export const MARK_TASK_LOST = `
     UPDATE hyrex_task_run
-    SET status   = 'lost'::status_enum,
+    SET status   = 'lost'::task_run_status,
         finished = CURRENT_TIMESTAMP
     WHERE id = $1
 `
@@ -318,9 +321,11 @@ export const SAVE_RESULT = `
     VALUES ($1, $2)
 `
 
-export const FETCH_RESULT = `SELECT result
-                             FROM hyrex_task_result
-                             WHERE task_id = $1;`
+export const FETCH_RESULT = `
+    SELECT result
+    FROM hyrex_task_result
+    WHERE task_id = $1;
+`
 
 export const FETCH_ACTIVE_QUEUE_NAMES = `
     WITH distinct_queues AS (
@@ -468,7 +473,7 @@ CREATE OR REPLACE FUNCTION get_fresh_queued_stats()
 RETURNS TABLE (
     time_bucket timestamp,
     task_name varchar,
-    status STATUS_ENUM,
+    status task_run_status,
     task_count bigint,
     percentage_by_task numeric,
     percentage_overall numeric
@@ -479,7 +484,7 @@ BEGIN
         SELECT 1
         FROM hyrex_system_logs
         WHERE event_name = 'hystats_queued_by_time_refresh'
-        AND timestamp > NOW() - INTERVAL '5 seconds'
+          AND timestamp > NOW() - INTERVAL '5 seconds'
     ) THEN
         -- Refresh the view
         REFRESH MATERIALIZED VIEW CONCURRENTLY hystats_queued_by_time;

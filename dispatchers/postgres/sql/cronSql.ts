@@ -120,7 +120,7 @@ export const UPDATE_CRON_JOB_CONFIRMATION_TS = `
     WHERE jobid = $1;
 `
 
-export function cronJobRunsToSQL(runs: CronJobRun[]): { sql: string, values: any[] } {
+export function cronJobRunsToSQL(runs: CronJobRun[]): { sql: string; values: any[] } {
     // Calculate the placeholder indices for each run
     let placeholderIndex = 1;
     const valueStrings = runs.map(() =>
@@ -205,65 +205,66 @@ export function createInsertTaskCronExpression(serializedTaskRequest: Serialized
     const tr = serializedTaskRequest;
 
     const sql = `WITH vars AS (
-       SELECT gen_random_uuid() as shared_uuid
-   ),
-   task_insertion AS (
-   INSERT INTO hyrex_task_run (
-                                     id,
-                                     durable_id,
-                                     root_id,
-                                     task_name,
-                                     args,
-                                     queue,
-                                     max_retries,
-                                     priority,
-                                     timeout_seconds,
-                                     status,
-                                     attempt_number,
-                                     queued,
-                                     idempotency_key
-       )
-       SELECT 
-               v.shared_uuid,
-               v.shared_uuid,
-               v.shared_uuid,
-               '${tr.task_name}',
-               '${JSON.stringify(tr.args)}'::json, 
-               '${tr.queue}',
-               ${tr.max_retries}, 
-               ${tr.priority},
-               ${tr.timeout_seconds},
-               'queued'::STATUS_ENUM,
-               0,
-               CURRENT_TIMESTAMP,
-               ${tr.idempotency_key === null ? 'NULL' : `'${tr.idempotency_key}'`}
-       FROM vars v
-       ON CONFLICT (task_name, idempotency_key)
-           WHERE idempotency_key IS NOT NULL
-           DO NOTHING
-       RETURNING id),
-    log_entry AS (
-        INSERT INTO hyrex_system_logs (
-                                       id,
-                                       timestamp,
-                                       event_name,
-                                       event_body
-            )
-            SELECT gen_random_uuid(),
-                   CURRENT_TIMESTAMP,
-                   'IDEMPOTENCY_COLLISION',
-                   json_build_object(
-                           'attempted_task_id', v.shared_uuid,
-                           'idempotency_key', ${tr.idempotency_key === null ? 'NULL' : `'${tr.idempotency_key}'`},
-                           'task_name', '${tr.task_name}',
-                           'queue', '${tr.queue}'
-                   )
-            FROM vars v
-            WHERE NOT EXISTS (SELECT 1 FROM task_insertion)
-              AND ${tr.idempotency_key === null ? 'NULL' : `'${tr.idempotency_key}'`} IS NOT NULL)
-SELECT (SELECT id FROM task_insertion) as task_created;`
+        SELECT gen_random_uuid() as shared_uuid
+    ),
+                      task_insertion AS (
+                          INSERT INTO hyrex_task_run (
+                                                      id,
+                                                      durable_id,
+                                                      root_id,
+                                                      task_name,
+                                                      args,
+                                                      queue,
+                                                      max_retries,
+                                                      priority,
+                                                      timeout_seconds,
+                                                      status,
+                                                      attempt_number,
+                                                      queued,
+                                                      idempotency_key
+                              )
+                              SELECT
+                                  v.shared_uuid,
+                                  v.shared_uuid,
+                                  v.shared_uuid,
+                                  '${tr.task_name}',
+                                  '${JSON.stringify(tr.args)}'::json,
+                                  '${tr.queue}',
+                                  ${tr.max_retries},
+                                  ${tr.priority},
+                                  ${tr.timeout_seconds},
+                                  'queued'::task_run_status,
+                                  0,
+                                  CURRENT_TIMESTAMP,
+                                  ${tr.idempotency_key === null ? 'NULL' : `'${tr.idempotency_key}'`}
+                              FROM vars v
+                              ON CONFLICT (task_name, idempotency_key)
+                                  WHERE idempotency_key IS NOT NULL
+                                  DO NOTHING
+                              RETURNING id),
+                      log_entry AS (
+                          INSERT INTO hyrex_system_logs (
+                                                         id,
+                                                         timestamp,
+                                                         event_name,
+                                                         event_body
+                              )
+                              SELECT gen_random_uuid(),
+                                     CURRENT_TIMESTAMP,
+                                     'IDEMPOTENCY_COLLISION',
+                                     json_build_object(
+                                             'attempted_task_id', v.shared_uuid,
+                                             'idempotency_key', ${tr.idempotency_key === null ? 'NULL' : `'${tr.idempotency_key}'`},
+                                             'task_name', '${tr.task_name}',
+                                             'queue', '${tr.queue}'
+                                     )
+                              FROM vars v
+                              WHERE NOT EXISTS (SELECT 1 FROM task_insertion)
+                                AND ${tr.idempotency_key === null ? 'NULL' : `'${tr.idempotency_key}'`} IS NOT NULL
+                      )
+                 SELECT (SELECT id FROM task_insertion) as task_created;`
 
-    return sql
+    return sql;
 }
 
 export const CREATE_CRON_JOB_FOR_TASK = `

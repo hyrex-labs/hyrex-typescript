@@ -208,7 +208,7 @@ export function createInsertTaskCronExpression(serializedTaskRequest: Serialized
        SELECT gen_random_uuid() as shared_uuid
    ),
    task_insertion AS (
-   INSERT INTO hyrex_task_execution (
+   INSERT INTO hyrex_task_run (
                                      id,
                                      durable_id,
                                      root_id,

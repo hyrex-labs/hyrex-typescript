@@ -1,7 +1,7 @@
 {
-  "name": "hyrex",
-  "version": "0.1.3",
-  "description": "The modern, open-source task orchestration framework.",
+  "name": "@hyrex/hyrex",
+  "version": "0.1.4",
+  "description": "The COLD Task Framework.",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "release": "npm run build && npm publish",
+    "release": "npm run build && npm publish --access private",
     "worker": "ts-node cli.ts run-worker",
     "workerjs": "node dist/cli.js run-worker",
     "init-db": "node dist/cli.js init-db"

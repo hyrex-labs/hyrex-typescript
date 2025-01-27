@@ -1,6 +1,6 @@
 export const SET_ORPHANED_TASK_EXECUTION_TO_LOST_AND_RETRY = `
     WITH lost_tasks AS (
-        UPDATE hyrex_task_execution
+        UPDATE hyrex_task_run
             SET status = 'lost'
             WHERE status = 'running'
                 AND (
@@ -8,13 +8,13 @@ export const SET_ORPHANED_TASK_EXECUTION_TO_LOST_AND_RETRY = `
                           OR NOT EXISTS (
                           SELECT 1
                           FROM hyrex_executor
-                          WHERE hyrex_executor.id = hyrex_task_execution.executor_id
+                          WHERE hyrex_executor.id = hyrex_task_run.executor_id
                             AND hyrex_executor.status = 'RUNNING'
                       )
                       )
             RETURNING *
     )
-    INSERT INTO hyrex_task_execution (
+    INSERT INTO hyrex_task_run (
         id,
         durable_id,
         root_id,

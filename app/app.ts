@@ -11,90 +11,68 @@ import { getHyrexContext } from "../index";
 export const hy = new HyrexRegistry()
 
 
-// const restartDatabase = async () => {
-//     const ctx = getHyrexContext()
-//     console.log(`Restart Database with context ${JSON.stringify(ctx)}`)
-//     await sleep(1000)
-// }
-
-// const restartDatabaseTask = hy.task(restartDatabase, {
-//     queue: new HyrexQueue({
-//         name: "serial-queue",
-//     }),
-//     timeoutSeconds: 10
-// })
-
-// const submitFraudToPersona = async ({ email }: { email: string }) => {
-//     const ctx = getHyrexContext()
-//     console.log(`Submitted fraud info to persona for ${email} with ctx: ${JSON.stringify(ctx)}`)
-//     await sleep(3000)
-//     // Note it could take 48 hours for persona to get back
-//
-//     // Generate random number between 1 and 20
-//     const numTasks = Math.floor(Math.random() * 20) + 1
-//
-//     for (let i = 0; i < numTasks; i++) {
-//         restartDatabaseTask.send()
-//     }
-//     return { "numTaskQueued": numTasks }
-// }
-
-const levelThreeFunc = async () => {
-    const ctx = getHyrexContext()
-    console.log(`Level Three Task ${JSON.stringify(ctx)}`)
-    await sleep(100)
-}
-
-const levelThreeTask = hy.task(levelThreeFunc, {
-        queue: "level-three-queue",
-        timeoutSeconds: 10
+const levelThreeTask = hy.task({
+        name: "levelThreeFunc",
+        config: {
+            queue: "level-three-queue",
+            timeoutSeconds: 10,
+        },
+        func: async () => {
+            const ctx = getHyrexContext()
+            console.log(`Level Three Task ${JSON.stringify(ctx)}`)
+            await sleep(100)
+        },
     }
 )
 
-const levelTwoFunc = async () => {
-    const ctx = getHyrexContext()
-    console.log(`Level Two Task... ${JSON.stringify(ctx)}`)
-    const numTasks = 2 // Math.floor(Math.random() * 3) + 1
-    await sleep(100)
-    for (let i = 0; i < numTasks; i++) {
-        levelThreeTask.send()
-    }
 
-    // const randomSleepAmount = (Math.floor(Math.random() * 9) + 1) * 1000
-    // console.log(`randomSleepAmount: ${randomSleepAmount}`)
-    // await sleep(randomSleepAmount)
+const levelTwoTask = hy.task({
+        name: "levelTwoFunc",
+        config: {
+            queue: "level-two-queue",
+            timeoutSeconds: 10
+        },
+        func: async () => {
+            const ctx = getHyrexContext()
+            console.log(`Level Two Task... ${JSON.stringify(ctx)}`)
+            const numTasks = 1 // Math.floor(Math.random() * 3) + 1
+            await sleep(100)
+            for (let i = 0; i < numTasks; i++) {
+                levelThreeTask.send()
+            }
 
-    return { numTasks }
-}
+            // const randomSleepAmount = (Math.floor(Math.random() * 9) + 1) * 1000
+            // console.log(`randomSleepAmount: ${randomSleepAmount}`)
+            // await sleep(randomSleepAmount)
 
-
-const levelTwoTask = hy.task(levelTwoFunc, {
-        queue: "level-two-queue",
-        timeoutSeconds: 10
+            return { numTasks }
+        }
     }
 )
 
-const rootLevelFunc = async () => {
-    const ctx = getHyrexContext()
-    console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
-    // Generate random number between 1 and 20
-    // const numTasks = Math.floor(Math.random() * 3000) + 1
-    const numTasks = 10
-    await sleep(100)
+const rootLevelTask = hy.task({
+        name: "rootLevelFunc",
+        config: {
+            cron: "* * * * *"
+        },
+        func: async () => {
+            const ctx = getHyrexContext()
+            console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
+            // Generate random number between 1 and 20
+            // const numTasks = Math.floor(Math.random() * 3000) + 1
+            const numTasks = 5
+            await sleep(100)
 
-    for (let i = 0; i < numTasks; i++) {
-        levelTwoTask.send()
-    }
+            for (let i = 0; i < numTasks; i++) {
+                levelTwoTask.send()
+            }
 
-    // const randomSleepAmount = (Math.floor(Math.random() * 9) + 1) * 1000
-    // console.log(`randomSleepAmount: ${randomSleepAmount}`)
-    // await sleep(randomSleepAmount)
+            // const randomSleepAmount = (Math.floor(Math.random() * 9) + 1) * 1000
+            // console.log(`randomSleepAmount: ${randomSleepAmount}`)
+            // await sleep(randomSleepAmount)
 
-    return { numTasks }
-}
-
-const rootLevelTask = hy.task(rootLevelFunc, {
-        cron: "* * * * *"
+            return { numTasks }
+        }
     }
 )
 

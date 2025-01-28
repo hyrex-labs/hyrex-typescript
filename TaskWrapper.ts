@@ -22,16 +22,18 @@ export class TaskWrapper<U extends JsonType> {
     private taskFunction: HyrexTaskFunction
     private dispatcher: HyrexDispatcher
     private taskConfig: HyrexTaskConfig
+    private taskName: string;
 
-    constructor(dispatcher: HyrexDispatcher, taskFunction: HyrexTaskFunction, defaultTaskConfig: HyrexTaskConfig) {
+    constructor(dispatcher: HyrexDispatcher, taskName: string, taskFunction: HyrexTaskFunction, defaultTaskConfig: HyrexTaskConfig) {
         this.dispatcher = dispatcher
         this.taskFunction = taskFunction as HyrexTaskFunction
         this.taskConfig =  HyrexTaskConfigSchema.parse(defaultTaskConfig)
+        this.taskName = taskName
     }
 
     withConfig(taskConfig: SendableHyrexTaskConfig) : TaskWrapper<U> {
         const newTaskConfig = {...this.taskConfig, ...taskConfig}
-        return new TaskWrapper(this.dispatcher, this.taskFunction, newTaskConfig)
+        return new TaskWrapper(this.dispatcher, this.taskName, this.taskFunction, newTaskConfig)
     }
 
     async send(context?: U | {}): Promise<UUID> {
@@ -50,7 +52,7 @@ export class TaskWrapper<U extends JsonType> {
             root_id: hyrexContext ? hyrexContext.rootId : currentId,
             parent_id: hyrexContext ? hyrexContext.taskId : null,
             queue: typeof this.taskConfig.queue === 'string' ? this.taskConfig.queue : this.taskConfig.queue.name,
-            task_name: this.taskFunction.name,
+            task_name: this.taskName,
             args: context,
             max_retries: this.taskConfig.maxRetries,
             priority: this.taskConfig.priority,

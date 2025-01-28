@@ -16,6 +16,12 @@ import { envVariables } from "./EnvironmentVariables";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 import { COMMANDS } from "./commands";
 
+type HyrexTaskProps = {
+    name: string;
+    config?: HyrexTaskConfigInput
+    func: HyrexTaskFunction;
+}
+
 
 export class HyrexRegistry {
     private dispatcher: HyrexDispatcher
@@ -43,19 +49,22 @@ export class HyrexRegistry {
     }
 
 
-    task<U extends JsonType>(taskFunction: HyrexTaskFunction<U>, taskConfig: HyrexTaskConfigInput = {}): TaskWrapper<U> {
-        const validatedTaskConfig = HyrexTaskConfigSchema.parse(taskConfig)
-        this.addFunctionToRegistry(taskFunction as HyrexTaskFunction, validatedTaskConfig);
-        return new TaskWrapper<U>(this.dispatcher, taskFunction, validatedTaskConfig);
+    task<U extends JsonType>({ name, config, func }: HyrexTaskProps): TaskWrapper<U> {
+        if (!config) {
+            config = {}
+        }
+        const validatedTaskConfig = HyrexTaskConfigSchema.parse(config)
+        this.addFunctionToRegistry(name, func as HyrexTaskFunction, validatedTaskConfig);
+        return new TaskWrapper<U>(this.dispatcher, name, func, validatedTaskConfig);
     }
 
-    private addFunctionToRegistry(taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
-        const stringValidation = z.string().safeParse(taskFunction.name)
+    private addFunctionToRegistry(name: string, taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+        const stringValidation = z.string().safeParse(name)
         if (!stringValidation) {
             throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
         }
 
-        this.addFunction(taskFunction.name, taskFunction, taskConfig)
+        this.addFunction(name, taskFunction, taskConfig)
     }
 
     private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {

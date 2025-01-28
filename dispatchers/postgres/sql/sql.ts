@@ -105,7 +105,9 @@ export const REGISTER_APP_INFO_SQL = `
     ) VALUES (
         $1,
         $2
-    );
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        app_info = $2;
 `;
 
 export const CreateExecutorTable = `

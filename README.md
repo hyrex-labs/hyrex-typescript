@@ -8,11 +8,11 @@
 ## Commands
 
 ```typescript
-npm run worker app/hyrexWorker.ts 2
+npm run worker app/hyrex-app.ts 2
 ```
 
 ```typescript
-npm run init-db app/hyrexWorker.ts
+npm run init-db app/hyrex-app.ts
 ```
 
 ## Notes on Signals

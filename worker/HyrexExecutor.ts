@@ -291,7 +291,12 @@ export class HyrexExecutor {
             }
 
             if (Math.random() < 0.04) { // 1/25 chance
-                this.dispatcher.emitExecutorStats({ executorId: this.executorId, stats })
+                this.dispatcher.emitExecutorStats({ executorId: this.executorId, stats }).then(result => {
+                    if (result === 'REJECTED') {
+                        console.error('Failed while emitting stats. Executor status is REJECTED. Shutting down the process.');
+                        process.exit(1);
+                    }
+                })
             }
         }
 

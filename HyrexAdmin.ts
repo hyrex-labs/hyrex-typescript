@@ -1,5 +1,5 @@
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
-import { AdminMessage, AdminResultMessage } from "./types";
+import { AdminMessage, RootMessage } from "./types";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 
 export type hyrexWorkerListenerConfig = {
@@ -20,7 +20,7 @@ export class HyrexAdmin {
         process.on('message', this.handleMessage.bind(this));
     }
 
-    private async handleMessage(message: AdminResultMessage) {
+    private async handleMessage(message: RootMessage) {
         hyrexLogger.info("process-management", `Admin Received Message: ${message}`, 'cyan')
         if (message.messageType === "TASK_HEARTBEAT") {
             this.dispatcher.updateTaskHeartbeat(message)
@@ -29,9 +29,7 @@ export class HyrexAdmin {
         } else if (message.messageType === "EXECUTOR_HEARTBEAT") {
             this.dispatcher.updateExecutorHeartbeat(message)
         } else if (message.messageType === "BATCH_HEARTBEAT") {
-            // for (const taskId in message.body.taskIds) {
-            //     this.dispatcher.updateExecutorHeartbeat()
-            // }
+            await this.dispatcher.updateExecutorHeartbeats({executorIds: message.body.executorIds})
         }
 
     }

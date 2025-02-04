@@ -74,11 +74,13 @@ export interface HyrexDispatcher {
 
     disconnectExecutor({ executorId, stats }: { executorId: string, stats: object }): Promise<void>
 
-    emitExecutorStats({ executorId, stats }: { executorId: string, stats: object }): Promise<void>
+    emitExecutorStats({ executorId, stats }: { executorId: string, stats: object }): Promise<'ACCEPTED' | 'REJECTED'>
 
     updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }): Promise<void>
 
     updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void>
+
+    updateExecutorHeartbeats({ executorIds }: { executorIds: string[] }): Promise<void>
 
     // Tasks
     registerTask({ taskName, taskConfig, sourceCode }: {

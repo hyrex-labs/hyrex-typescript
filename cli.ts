@@ -12,7 +12,7 @@ import {
     ExecutorHeartbeatResultMessage,
     ExecutorMessage,
     AdminMessage,
-    AdminResultMessage,
+    RootMessage,
     TaskHeartbeatResultMessage
 } from "./types";
 import { generateWorkerName } from "./WorkerContext";
@@ -81,6 +81,43 @@ const argv = yargs(hideBin(process.argv))
 
             spawnAdmin(scriptPath)
             spawnCronScheduler(workerName, scriptPath)
+
+            // Set up a heartbeat interval to run every 30 seconds
+            const heartbeatInterval = setInterval(() => {
+                // Filter for alive admin processes
+                const aliveAdminProcesses = adminProcesses.filter(p => !p.killed);
+                if (aliveAdminProcesses.length === 0) {
+                    return;
+                } else if (aliveAdminProcesses.length > 1) {
+                    // If there isn't exactly one alive admin process, log and skip this interval
+                    hyrexLogger.info("durability", `Found ${aliveAdminProcesses.length} alive admin processes. Is everything okay?`, 'brightRed')
+                    return;
+                }
+
+                const adminProcess = aliveAdminProcesses[0];
+                const timestamp = new Date().toUTCString();
+
+
+                // Build executors id message for executors by filtering out dead processes
+                const executorIds: string[] = Array.from(executorIdToProcess.entries())
+                    .filter(([, executorProc]) => !executorProc.killed)
+                    .map(([executorId]) => (executorId))
+
+                if (executorIds.length === 0) {
+                    return
+                }
+
+                // Send the heartbeat message to the admin process
+                adminProcess.send({
+                    messageType: "BATCH_HEARTBEAT",
+                    body: {
+                        // taskHeartbeatMessages,
+                        executorIds: executorIds,
+                    }
+                } as RootMessage);
+            }, 30_000);
+
+            hyrexLogger.info('durability', `Created heartbeat interval: ${heartbeatInterval}`, 'brightRed')
 
             if (lifespan) {
                 console.log(`Process will shutdown after ${lifespan} seconds`);
@@ -276,6 +313,10 @@ function spawnCronScheduler(workerName: string, scriptPath: string) {
 }
 
 function spawnAdmin(scriptPath: string) {
+    // if (adminProcesses.filter(p => !p.killed)) {
+    //     throw new Error("Spawning a new admin process")
+    // }
+
     const adminProcess: ChildProcess = spawn('ts-node', [scriptPath], {
         env: {
             ...process.env,
@@ -289,8 +330,8 @@ function spawnAdmin(scriptPath: string) {
     childProcesses.push(adminProcess);
     adminProcesses.push(adminProcess);
 
-    adminProcess.on('message', (message) => {
-        handleAdminMessage(adminProcess, message as AdminMessage);
+    adminProcess.on('message', (message: AdminMessage) => {
+        handleAdminMessage(adminProcess, message);
     });
 
     adminProcess.on('exit', (code, signal) => {
@@ -302,7 +343,7 @@ function spawnAdmin(scriptPath: string) {
             hyrexLogger.info("process-management", `Admin exited.`, 'magenta')
         }
 
-        // Optionally, respawn the worker if it exited unexpectedly
+        // Optionally, respawn the admin if it exited unexpectedly
         if (!isShuttingDown) {
             hyrexLogger.info("process-management", "Respawning Admin...", "magenta")
             spawnAdmin(scriptPath);
@@ -359,11 +400,11 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage,
     }
 }
 
-function handleAdminMessage(listener: ChildProcess, message: AdminMessage) {
+function handleAdminMessage(adminProcess: ChildProcess, message: AdminMessage) {
     if (message && message.messageType === "TASK_CANCEL") {
         console.log("Killing task...", message.taskId)
         killTask(message.taskId)
-        listener.send({
+        adminProcess.send({
             messageType: "TASK_CANCEL",
             body: {
                 taskId: message.taskId,
@@ -381,7 +422,7 @@ function handleAdminMessage(listener: ChildProcess, message: AdminMessage) {
 
         const status = workerForTask ? "RUNNING" : "LOST"
         const timestamp = (new Date()).toUTCString()
-        const heartbeatMsg: AdminResultMessage = {
+        const heartbeatMsg: RootMessage = {
             messageType: "TASK_HEARTBEAT",
             body: {
                 taskId: message.taskId,
@@ -389,7 +430,7 @@ function handleAdminMessage(listener: ChildProcess, message: AdminMessage) {
                 timestamp,
             }
         }
-        listener.send(heartbeatMsg)
+        adminProcess.send(heartbeatMsg)
     } else {
         console.error("Received unrecognized message...", message);
     }

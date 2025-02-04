@@ -15,7 +15,6 @@ export type AdminMessage = {
     taskId: UUID
 }
 
-
 export type TaskHeartbeatResultMessage = {
     messageType: "TASK_HEARTBEAT",
     body: {
@@ -43,9 +42,9 @@ export type CancelResultMessage = {
 export type BatchHeartbeatMessage = {
     messageType: "BATCH_HEARTBEAT",
     body: {
-        taskHeartbeatMessages: TaskHeartbeatResultMessage[]
-        executorHeartbeatMessages: ExecutorHeartbeatResultMessage[]
+        // taskHeartbeatMessages: TaskHeartbeatResultMessage[]
+        executorIds: string[]
     }
 }
 
-export type AdminResultMessage = TaskHeartbeatResultMessage | CancelResultMessage | ExecutorHeartbeatResultMessage | BatchHeartbeatMessage
+export type RootMessage = TaskHeartbeatResultMessage | CancelResultMessage | ExecutorHeartbeatResultMessage | BatchHeartbeatMessage

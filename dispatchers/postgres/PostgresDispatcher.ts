@@ -14,6 +14,7 @@ import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
 import { CREATE_CRON_JOB_FOR_SQL_QUERY, createInsertTaskCronExpression } from "./sql/cronSql";
 import { SET_EXECUTOR_TO_LOST_IF_NO_HEARTBEAT } from "./sql/durability/durabilitySQL";
+import { BATCH_UPDATE_HEARTBEAT_LOG, BATCH_UPDATE_HEARTBEAT_ON_EXECUTORS } from "./sql/sql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -332,6 +333,15 @@ export class PostgresDispatcher implements HyrexDispatcher {
         console.log("It would update the heartbeat here...", heartbeatMsg)
     }
 
+    async updateExecutorHeartbeats({ executorIds }: { executorIds: string[] }): Promise<void> {
+        hyrexLogger.info('durability', `BATCH_UPDATE_HEARTBEAT: ${executorIds}`, 'brightRed')
+        return this.queryWithRetry(async (client) => {
+            await client.query(sql.BATCH_UPDATE_HEARTBEAT_ON_EXECUTORS, [executorIds])
+            const logId = uuidv7()
+            await client.query(sql.BATCH_UPDATE_HEARTBEAT_LOG, [logId, executorIds])
+        })
+    }
+
     async registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
         queues: HyrexQueue[],
         queuePattern: HyrexQueuePattern,
@@ -365,10 +375,24 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
     }
 
-    async emitExecutorStats({ executorId, stats }: { executorId: string, stats: object }): Promise<void> {
+    async emitExecutorStats({ executorId, stats }: {
+        executorId: string,
+        stats: object
+    }): Promise<'ACCEPTED' | 'REJECTED'> {
         const client = await this.pool.connect()
         try {
-            await client.query(sql.UPDATE_EXECUTOR_STATS, [executorId, JSON.stringify(stats)])
+            const result = await client.query<{
+                result: 'ACCEPTED' | 'REJECTED',
+                status: string,
+                last_heartbeat: Date,
+                stats: any;
+            }>(sql.UPDATE_EXECUTOR_STATS, [executorId, JSON.stringify(stats)])
+
+            if (result.rows.length === 0) {
+                throw new Error(`No executor found with id ${executorId}`);
+            }
+
+            return result.rows[0].result
         } finally {
             client.release();
         }
@@ -462,7 +486,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                     id: currentId,
                     durable_id: currentId,
                     root_id: currentId,
-                    parent_id:  null,
+                    parent_id: null,
                     queue: typeof taskConfig.queue === 'string' ? taskConfig.queue : taskConfig.queue.name,
                     task_name: taskName,
                     args: {},
@@ -561,7 +585,12 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
     }
 
-    async registerCronSQLQuery({ cronJobName, cronSqlQuery, cronExpr, shouldBackfill }: { cronJobName: string; cronSqlQuery: string; cronExpr: string, shouldBackfill: boolean }): Promise<void> {
+    async registerCronSQLQuery({ cronJobName, cronSqlQuery, cronExpr, shouldBackfill }: {
+        cronJobName: string;
+        cronSqlQuery: string;
+        cronExpr: string,
+        shouldBackfill: boolean
+    }): Promise<void> {
         this.queryWithRetry(async (client) => {
             await client.query(cronSQL.CREATE_CRON_JOB_FOR_SQL_QUERY, [cronExpr, cronSqlQuery, cronJobName, shouldBackfill])
         })
@@ -573,7 +602,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
     }
 
-    async acquireListenerLock({ workerName }: { workerName: string}): Promise<string | null> {
+    async acquireListenerLock({ workerName }: { workerName: string }): Promise<string | null> {
         return "lock"
     }
 }

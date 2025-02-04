@@ -1,7 +1,7 @@
-import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
+import { HyrexDispatcher } from "../dispatchers/HyrexDispatcher";
 import parser from 'cron-parser';
-import { sleep } from "./utils";
-import { hyrexLogger, kvFormatForLogging } from "./logging/FrameworkLogger";
+import { sleep } from "../utils";
+import { hyrexLogger, kvFormatForLogging } from "../logging/FrameworkLogger";
 
 export type CronJob = {
     jobid: number;
@@ -107,7 +107,7 @@ export class HyrexCronScheduler {
             for (const cronJob of cronExpressions) {
                 hyrexLogger.info('cron-scheduling', `Should Backfill? jobname=${cronJob.jobname}, should_backfill=${cronJob.should_backfill}`, 'dim')
                 if (!cronJob.should_backfill) {
-                    this.updateCronConfirmationTimestampToNow(cronJob)
+                    await this.updateCronConfirmationTimestampToNow(cronJob)
                 }
             }
 
@@ -121,14 +121,14 @@ export class HyrexCronScheduler {
 
                     // Queue cron job runs
                     for (const cronJob of cronExpressions) {
-                        hyrexLogger.info('cron-scheduling', `Got Cron Job. ${kvFormatForLogging(cronJob)}`, 'dim')
+                        hyrexLogger.info('cron-scheduling', `Got Cron Job. ${cronJob.jobname}, confirmed_until=${cronJob.scheduled_jobs_confirmed_until}`, 'dim')
                         const scheduledJobs = await this.imputeScheduledCronJobRunsList(cronJob)
                         await this.dispatcher.scheduleCronJobRuns(scheduledJobs)
                     }
 
                     // Execute cron job runs
                     let result = await this.dispatcher.executeQueuedCronJobRun()
-                    while (result === 'executed') {
+                    while (result.startsWith('executed')) {
                         hyrexLogger.info('cron-scheduling', `Executed Cron Job Run: ${result}`, 'dim')
                         result = await this.dispatcher.executeQueuedCronJobRun()
                     }

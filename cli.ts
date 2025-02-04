@@ -11,8 +11,8 @@ import {
     BatchHeartbeatMessage,
     ExecutorHeartbeatResultMessage,
     ExecutorMessage,
-    ListenerMessage,
-    ListenerResultMessage,
+    AdminMessage,
+    AdminResultMessage,
     TaskHeartbeatResultMessage
 } from "./types";
 import { generateWorkerName } from "./WorkerContext";
@@ -290,7 +290,7 @@ function spawnAdmin(scriptPath: string) {
     adminProcesses.push(adminProcess);
 
     adminProcess.on('message', (message) => {
-        handleAdminMessage(adminProcess, message as ListenerMessage);
+        handleAdminMessage(adminProcess, message as AdminMessage);
     });
 
     adminProcess.on('exit', (code, signal) => {
@@ -359,7 +359,7 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage,
     }
 }
 
-function handleAdminMessage(listener: ChildProcess, message: ListenerMessage) {
+function handleAdminMessage(listener: ChildProcess, message: AdminMessage) {
     if (message && message.messageType === "TASK_CANCEL") {
         console.log("Killing task...", message.taskId)
         killTask(message.taskId)
@@ -381,7 +381,7 @@ function handleAdminMessage(listener: ChildProcess, message: ListenerMessage) {
 
         const status = workerForTask ? "RUNNING" : "LOST"
         const timestamp = (new Date()).toUTCString()
-        const heartbeatMsg: ListenerResultMessage = {
+        const heartbeatMsg: AdminResultMessage = {
             messageType: "TASK_HEARTBEAT",
             body: {
                 taskId: message.taskId,

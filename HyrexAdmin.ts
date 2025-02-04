@@ -1,5 +1,5 @@
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
-import { ListenerMessage, ListenerResultMessage } from "./types";
+import { AdminMessage, AdminResultMessage } from "./types";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 
 export type hyrexWorkerListenerConfig = {
@@ -20,7 +20,7 @@ export class HyrexAdmin {
         process.on('message', this.handleMessage.bind(this));
     }
 
-    private async handleMessage(message: ListenerResultMessage) {
+    private async handleMessage(message: AdminResultMessage) {
         hyrexLogger.info("process-management", `Admin Received Message: ${message}`, 'cyan')
         if (message.messageType === "TASK_HEARTBEAT") {
             this.dispatcher.updateTaskHeartbeat(message)
@@ -37,7 +37,7 @@ export class HyrexAdmin {
     }
 
     async runAdmin() {
-        const emitIPCMessage = async (msg: ListenerMessage) => {
+        const emitIPCMessage = async (msg: AdminMessage) => {
             console.log("Emitting ipc message from worker listener...", msg)
             if (process.send) {
                 process.send(msg);

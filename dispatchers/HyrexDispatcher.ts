@@ -1,9 +1,9 @@
 import { UUID, JsonType, HyrexTaskConfig } from "../utils";
 
 import { string, z } from "zod";
-import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../types";
+import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
-import { CronJob, CronJobRun } from "../HyrexCronScheduler";
+import { CronJob, CronJobRun } from "../cron/HyrexCronScheduler";
 
 export type SerializedTaskRequest = {
     id: UUID,
@@ -35,8 +35,8 @@ export type SerializedTask = {
 }
 
 export type DispatcherListenerCallbacks = {
-    taskHeartbeatCallback: (msg: ListenerMessage) => Promise<void>,
-    taskCancelCallback: (msg: ListenerMessage) => Promise<void>
+    taskHeartbeatCallback: (msg: AdminMessage) => Promise<void>,
+    taskCancelCallback: (msg: AdminMessage) => Promise<void>
 }
 
 export interface HyrexDispatcher {
@@ -109,4 +109,7 @@ export interface HyrexDispatcher {
     setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void>
 
     registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void>
+
+    // Listener
+    acquireListenerLock({ workerName }: { workerName: string}): Promise<string | null>
 }

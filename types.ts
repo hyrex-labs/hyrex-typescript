@@ -1,4 +1,4 @@
-export type ListenerMesssageType = "TASK_CANCEL" | "TASK_HEARTBEAT"
+export type AdminMessageType = "TASK_CANCEL" | "TASK_HEARTBEAT"
 import { UUID } from "./utils"
 
 export type HyrexAppInfo = {
@@ -10,8 +10,8 @@ type ExecutorSetIdMessage = { messageType: "SET_EXECUTOR_ID", executorId: string
 type ExecutorEmitStatsMessage = { messageType: "EMIT_STATS", executorStats: string }
 export type ExecutorMessage = ExecutorUpdateTaskIdMessage | ExecutorSetIdMessage
 
-export type ListenerMessage = {
-    messageType: ListenerMesssageType
+export type AdminMessage = {
+    messageType: AdminMessageType
     taskId: UUID
 }
 
@@ -48,4 +48,4 @@ export type BatchHeartbeatMessage = {
     }
 }
 
-export type ListenerResultMessage = TaskHeartbeatResultMessage | CancelResultMessage | ExecutorHeartbeatResultMessage | BatchHeartbeatMessage
+export type AdminResultMessage = TaskHeartbeatResultMessage | CancelResultMessage | ExecutorHeartbeatResultMessage | BatchHeartbeatMessage

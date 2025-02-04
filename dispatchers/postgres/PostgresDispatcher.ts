@@ -7,10 +7,10 @@ import * as statsSQL from "./sql/stats"
 import * as durabilitySQL from "./sql/durability/durabilitySQL"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
-import { TaskHeartbeatResultMessage, ListenerMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
+import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
-import { CronJob, CronJobRun } from "../../HyrexCronScheduler";
+import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
 import { CREATE_CRON_JOB_FOR_SQL_QUERY, createInsertTaskCronExpression } from "./sql/cronSql";
 import { SET_EXECUTOR_TO_LOST_IF_NO_HEARTBEAT } from "./sql/durability/durabilitySQL";
@@ -387,14 +387,14 @@ export class PostgresDispatcher implements HyrexDispatcher {
             client.on("notification", async (pg_msg: Notification) => {
                 if (pg_msg.channel === TASK_HEARTBEAT) {
                     const taskId = uuidSchema.parse(pg_msg.payload)
-                    const message: ListenerMessage = {
+                    const message: AdminMessage = {
                         messageType: "TASK_HEARTBEAT",
                         taskId
                     }
                     await hyrexListener.taskHeartbeatCallback(message)
                 } else if (pg_msg.channel === TASK_CANCEL) {
                     const taskId = uuidSchema.parse(pg_msg.payload)
-                    const message: ListenerMessage = {
+                    const message: AdminMessage = {
                         messageType: "TASK_CANCEL",
                         taskId
                     }
@@ -533,7 +533,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         const result = await this.queryWithRetry(async (client) => {
 
             const { sql, values } = cronSQL.cronJobRunsToSQL(cronJobRuns)
-            hyrexLogger.info("cron-scheduling", `<====== Running SQL =======>:\n\n${sql}\n\n${values}\n\n<==== DONE =====>\n\n`, 'dim')
+            // hyrexLogger.info("cron-scheduling", `<====== Running SQL =======>:\n\n${sql}\n\n${values}\n\n<==== DONE =====>\n\n`, 'dim')
             await client.query(sql, values)
         })
 
@@ -571,5 +571,9 @@ export class PostgresDispatcher implements HyrexDispatcher {
         return this.queryWithRetry(async (client) => {
             await client.query(sql.SET_LOG_LINK, [taskId, logLink])
         })
+    }
+
+    async acquireListenerLock({ workerName }: { workerName: string}): Promise<string | null> {
+        return "lock"
     }
 }

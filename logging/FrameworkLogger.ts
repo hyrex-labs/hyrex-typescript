@@ -12,6 +12,7 @@ export type LogFeature =
     | 'all'
     | 'timeout'
     | 'system'
+    | 'listener'
 
 
 type LoggerConfig = {

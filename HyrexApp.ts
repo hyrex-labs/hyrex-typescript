@@ -10,7 +10,7 @@ import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { COMMANDS } from "./commands";
 import { HyrexAdmin } from "./HyrexAdmin";
 import { HyrexQueue, HyrexQueuePattern } from "./HyrexQueue";
-import { HyrexCronScheduler } from "./HyrexCronScheduler";
+import { HyrexCronScheduler } from "./cron/HyrexCronScheduler";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 import { HyrexAppInfo } from "./types";
 

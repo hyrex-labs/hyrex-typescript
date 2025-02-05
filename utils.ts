@@ -81,6 +81,11 @@ export const HyrexTaskConfigSchema = z.object({
 export type HyrexTaskConfigInput = z.input<typeof HyrexTaskConfigSchema>
 export type HyrexTaskConfig = z.infer<typeof HyrexTaskConfigSchema>;
 
+export const HyrexListenerRegistrationSchema = z.object({
+    name: z.string(),
+    func: z.function().returns(z.void())
+});
+
 export const TaskRegistrationSchema = z.object({ taskFunc: HyrexTaskFunctionSchema, taskConfig: HyrexTaskConfigSchema })
 
 export type TaskRegistration = {

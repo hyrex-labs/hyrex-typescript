@@ -4,7 +4,7 @@ import {
     HyrexTaskConfig,
     HyrexTaskConfigSchema,
     HyrexTaskFunction,
-    HyrexTaskConfigInput, InternalQueueRegistry
+    HyrexTaskConfigInput, InternalQueueRegistry, HyrexListenerRegistrationSchema
 } from "./utils"
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
@@ -48,6 +48,11 @@ export class HyrexRegistry {
         console.log("Task Registry:", Object.entries(this.internalTaskRegistry));
     }
 
+    listener<U extends JsonType>({ name, func }: { name: string; func: () => void }): void {
+        HyrexListenerRegistrationSchema.parse({ name, func })
+        this.registerListenerWithServer({ name, func })
+    }
+
 
     task<U extends JsonType>({ name, config, func }: HyrexTaskProps): TaskWrapper<U> {
         if (!config) {
@@ -76,6 +81,17 @@ export class HyrexRegistry {
             taskName,
             taskConfig: taskConfig,
             sourceCode: taskFunc.toString()
+        })
+    }
+
+    private registerListenerWithServer({ name, func }: { name: string, func: () => void }) {
+        if (process.env[COMMANDS.INIT_DB]) {
+            return // Skip registration during database initialization
+        }
+
+        this.dispatcher.registerHyrexListener({
+            listenerName: name,
+            sourceCode: func.toString()
         })
     }
 

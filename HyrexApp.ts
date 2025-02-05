@@ -138,11 +138,11 @@ export class HyrexApp {
     }
 
     async runWorkerAdmin() {
-        const listener = new HyrexAdmin({
+        const admin = new HyrexAdmin({
             dispatcher: this.dispatcher
         })
 
-        listener.runAdmin()
+        admin.runAdmin()
     }
 
     async runCronScheduler() {

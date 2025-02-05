@@ -4,7 +4,8 @@ import { Notification, Pool, PoolClient } from 'pg';
 import * as sql from "./sql/sql"
 import * as cronSQL from "./sql/cronSql"
 import * as statsSQL from "./sql/stats"
-import * as durabilitySQL from "./sql/durability/durabilitySQL"
+import * as durabilitySQL from './sql/durability/durabilitySql'
+import * as listenerSQL from "./sql/listenerSql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
@@ -12,9 +13,7 @@ import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
-import { CREATE_CRON_JOB_FOR_SQL_QUERY, createInsertTaskCronExpression } from "./sql/cronSql";
-import { SET_EXECUTOR_TO_LOST_IF_NO_HEARTBEAT } from "./sql/durability/durabilitySQL";
-import { BATCH_UPDATE_HEARTBEAT_LOG, BATCH_UPDATE_HEARTBEAT_ON_EXECUTORS } from "./sql/sql";
+import { createInsertTaskCronExpression } from "./sql/cronSql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -142,6 +141,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(cronSQL.CreateHyrexSchedulerLockTable);
             await client.query(cronSQL.CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION);
             await client.query(statsSQL.CREATE_HISTORICAL_TASK_STATUS_COUNTS);
+            await client.query(listenerSQL.CreateHyrexListenerTable);
 
             // Cron Queries
             await this.registerCronSQLQuery({
@@ -398,7 +398,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
     }
 
-    async listen(hyrexListener: DispatcherListenerCallbacks) {
+    async listen(hyrexPgListener: DispatcherListenerCallbacks) {
         hyrexLogger.info("postgres", "Starting postgres listener.", "dim")
         const TASK_HEARTBEAT = "TASK_HEARTBEAT"
         const TASK_CANCEL = "TASK_CANCEL"
@@ -415,14 +415,14 @@ export class PostgresDispatcher implements HyrexDispatcher {
                         messageType: "TASK_HEARTBEAT",
                         taskId
                     }
-                    await hyrexListener.taskHeartbeatCallback(message)
+                    await hyrexPgListener.taskHeartbeatCallback(message)
                 } else if (pg_msg.channel === TASK_CANCEL) {
                     const taskId = uuidSchema.parse(pg_msg.payload)
                     const message: AdminMessage = {
                         messageType: "TASK_CANCEL",
                         taskId
                     }
-                    await hyrexListener.taskCancelCallback(message)
+                    await hyrexPgListener.taskCancelCallback(message)
                 } else {
                     console.error(`Notification channel not recognized: ${pg_msg.channel}`);
                 }
@@ -605,4 +605,11 @@ export class PostgresDispatcher implements HyrexDispatcher {
     async acquireListenerLock({ workerName }: { workerName: string }): Promise<string | null> {
         return "lock"
     }
+
+    async registerHyrexListener({ listenerName, sourceCode }: { listenerName: string, sourceCode: string }): Promise<void> {
+        await this.queryWithRetry(async (client) => {
+            await client.query(listenerSQL.REGISTER_HYREX_LISTENER, [listenerName, sourceCode])
+        })
+    }
+
 }

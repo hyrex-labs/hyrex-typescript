@@ -2,7 +2,7 @@ import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import { AdminMessage, RootMessage } from "./types";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 
-export type hyrexWorkerListenerConfig = {
+export type hyrexWorkerAdminConfig = {
     dispatcher: HyrexDispatcher,
 }
 
@@ -11,7 +11,7 @@ export class HyrexAdmin {
     private heartbeatInterval: NodeJS.Timeout | null = null
     private readonly DEFAULT_HEARTBEAT_INTERVAL = 10000 // 10 seconds in milliseconds
 
-    constructor({ dispatcher }: hyrexWorkerListenerConfig) {
+    constructor({ dispatcher }: hyrexWorkerAdminConfig) {
         this.dispatcher = dispatcher
         this.setupIPCListener()
     }

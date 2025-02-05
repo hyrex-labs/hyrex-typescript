@@ -114,4 +114,6 @@ export interface HyrexDispatcher {
 
     // Listener
     acquireListenerLock({ workerName }: { workerName: string}): Promise<string | null>
+
+    registerHyrexListener({ listenerName, sourceCode }: { listenerName: string, sourceCode: string }): Promise<void>
 }

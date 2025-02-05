@@ -10,6 +10,15 @@ import { getHyrexContext } from "../index";
 
 export const hy = new HyrexRegistry()
 
+hy.listener({
+    name: "BlockchainListener",
+    func: async () => {
+        while (true) {
+            console.log("Listening to stuff")
+            await sleep(10_000)
+        }
+    }
+})
 
 const levelThreeTask = hy.task({
         name: "levelThreeFunc",
@@ -35,7 +44,7 @@ const levelTwoTask = hy.task({
         func: async () => {
             const ctx = getHyrexContext()
             console.log(`Level Two Task... ${JSON.stringify(ctx)}`)
-            const numTasks = 4 // Math.floor(Math.random() * 3) + 1
+            const numTasks = 2  // Math.floor(Math.random() * 3) + 1
             await sleep(100)
             for (let i = 0; i < numTasks; i++) {
                 levelThreeTask.send()
@@ -60,7 +69,7 @@ const rootLevelTask = hy.task({
             console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
             // Generate random number between 1 and 20
             // const numTasks = Math.floor(Math.random() * 3000) + 1
-            const numTasks = 50
+            const numTasks = 10
             await sleep(100)
 
             for (let i = 0; i < numTasks; i++) {

@@ -115,7 +115,7 @@ const argv = yargs(hideBin(process.argv))
                         executorIds: executorIds,
                     }
                 } as RootMessage);
-            }, 30_000);
+            }, 3_000);
 
             hyrexLogger.info('durability', `Created heartbeat interval: ${heartbeatInterval}`, 'brightRed')
 

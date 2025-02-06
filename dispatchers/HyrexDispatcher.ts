@@ -5,11 +5,14 @@ import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessag
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { CronJob, CronJobRun } from "../cron/HyrexCronScheduler";
 import { HyrexWorkflowBuilder } from "../workflow/HyrexWorkflowBuilder";
+import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../workflow/HyrexWorkflow";
 
 export type SerializedTaskRequest = {
     id: UUID,
     durable_id: string,
     root_id: string,
+    workflow_run_id: string | null,
+    workflow_dependencies: string[] | null,
     parent_id: string | null,
     task_name: string,
     args: JsonType,
@@ -106,7 +109,7 @@ export interface HyrexDispatcher {
 
     scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void>
 
-    executeQueuedCronJobRun(): Promise<string>
+    executeQueuedCronJobRun(): Promise<string | null>
 
     // Remote Logs
     setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void>
@@ -124,6 +127,8 @@ export interface HyrexDispatcher {
         sourceCode: string,
         workflowBuilder: HyrexWorkflowBuilder
     }): Promise<void>
+
+    sendWorkflowRun({ serializedWorkflowRunRequest }: { serializedWorkflowRunRequest: SerializedWorkflowRunRequest }): Promise<string>
 
     advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void>
 }

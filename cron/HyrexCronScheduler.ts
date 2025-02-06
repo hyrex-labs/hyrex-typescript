@@ -128,7 +128,7 @@ export class HyrexCronScheduler {
 
                     // Execute cron job runs
                     let result = await this.dispatcher.executeQueuedCronJobRun()
-                    while (result.startsWith('executed')) {
+                    while (result && result.startsWith('executed')) {
                         hyrexLogger.info('cron-scheduling', `Executed Cron Job Run: ${result}`, 'dim')
                         result = await this.dispatcher.executeQueuedCronJobRun()
                     }

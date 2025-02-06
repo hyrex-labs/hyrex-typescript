@@ -55,6 +55,8 @@ export class TaskWrapper<U extends JsonType> extends WorkflowTask {
             durable_id: currentId,
             root_id: hyrexContext ? hyrexContext.rootId : currentId,
             parent_id: hyrexContext ? hyrexContext.taskId : null,
+            workflow_run_id: null,
+            workflow_dependencies: null,
             queue: typeof this.taskConfig.queue === 'string' ? this.taskConfig.queue : this.taskConfig.queue.name,
             task_name: this.taskName,
             args: context,

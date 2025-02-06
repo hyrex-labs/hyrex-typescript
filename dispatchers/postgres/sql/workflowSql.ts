@@ -31,10 +31,9 @@ BEGIN
             'success',
             'failed',
             'running',
-            'queued',
             'up_for_cancel',
             'canceled',
-            'waiting'
+            'asleep'
         );
     END IF;
 END $$;
@@ -46,7 +45,6 @@ CREATE TABLE IF NOT EXISTS hyrex_workflow_run (
     workflow_name   VARCHAR                     NOT NULL,
     args            JSON                        NOT NULL,
     queue           VARCHAR                     NOT NULL,
-    priority        SMALLINT                    NOT NULL,
     timeout_seconds INT                         DEFAULT NULL CHECK (timeout_seconds IS NULL OR timeout_seconds > 0),
     status          workflow_run_status             NOT NULL,
     scheduled_start TIMESTAMP WITH TIME ZONE,
@@ -56,6 +54,23 @@ CREATE TABLE IF NOT EXISTS hyrex_workflow_run (
     last_heartbeat  TIMESTAMP WITH TIME ZONE,
     idempotency_key VARCHAR
 );
+`
+
+export const INSERT_WORKFLOW_RUN = `
+INSERT INTO hyrex_workflow_run (
+  id,
+  parent_id,
+  workflow_name,
+  args,
+  queue,
+  timeout_seconds,
+  status,
+  queued,
+  last_heartbeat,
+  idempotency_key
+)
+VALUES ($1, NULL, $2, $3, $4, $5, 'running'::workflow_run_status, now(), now(), $6)
+RETURNING id;
 `
 
 // Returns (workflow_id, workflow_run_status)

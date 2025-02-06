@@ -104,7 +104,10 @@ const onboardUser = hy.workflow({
     }
 })
 
-// onboardUser.send({"userEmail": "mark@hyrex.io", "signUpTier": "PRO"})
+if (process.argv.includes('--submit')) {
+    onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
+    console.log("submitted onboard user!")
+}
 
 ////////////////////////
 // END BUILD WORKFLOW //
@@ -162,7 +165,7 @@ const levelTwoTask = hy.task({
 const rootLevelTask = hy.task({
         name: "rootLevelFunc",
         config: {
-            cron: "* * * * *"
+            // cron: "* * * * *"
         },
         func: async () => {
             const ctx = getHyrexContext()
@@ -197,34 +200,34 @@ const choices: sendTaskArgs[] = [
     [{ email: "trevor@usekura.com" }, { queue: "trevor-queue" }],
 ];
 
-(async () => {
-    // const submitFraudToPersonaTask = hy.task(submitFraudToPersona, { cron: "* * * * *" })
-
-    if (process.argv.includes('--submit')) {
-        for (const i of range(5)) {
-            console.log("Submitting tasks...");
-            console.time("Submission time");
-
-            for (const i of range(1)) {
-                const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
-
-                const userId = uuidv4();
-                rootLevelTask.send()
-                // submitFraudToPersonaTask.withConfig({
-                //     // {idempotencyKey: "apple" }
-                // }).send(args)
-                // await restartDatabaseTask.send()
-            }
-            console.timeEnd("Submission time");
-            await sleep(2_000)
-
-            // // Options bag
-            // submitFraudToPersonaTask.withConfig({
-            //     scheduledStart: new Date("2025-01-01")
-            // }).send(args)
-            //
-            // // Builder pattern
-            // submitFraudToPersonaTask.scheduledStart(new Date("2025-01-01")).send(args)
-        }
-    }
-})()
+// (async () => {
+//     // const submitFraudToPersonaTask = hy.task(submitFraudToPersona, { cron: "* * * * *" })
+//
+//     if (process.argv.includes('--submit')) {
+//         for (const i of range(5)) {
+//             console.log("Submitting tasks...");
+//             console.time("Submission time");
+//
+//             for (const i of range(1)) {
+//                 const [args, _]: sendTaskArgs = choices[Math.floor(Math.random() * choices.length)];
+//
+//                 const userId = uuidv4();
+//                 rootLevelTask.send()
+//                 // submitFraudToPersonaTask.withConfig({
+//                 //     // {idempotencyKey: "apple" }
+//                 // }).send(args)
+//                 // await restartDatabaseTask.send()
+//             }
+//             console.timeEnd("Submission time");
+//             await sleep(2_000)
+//
+//             // // Options bag
+//             // submitFraudToPersonaTask.withConfig({
+//             //     scheduledStart: new Date("2025-01-01")
+//             // }).send(args)
+//             //
+//             // // Builder pattern
+//             // submitFraudToPersonaTask.scheduledStart(new Date("2025-01-01")).send(args)
+//         }
+//     }
+// })()

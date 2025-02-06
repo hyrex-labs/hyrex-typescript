@@ -13,7 +13,7 @@ $$;
 CREATE TABLE IF NOT EXISTS hyrex_cron_job
 (
     jobid                          bigserial PRIMARY KEY,
-    schedule                       text    NOT NULL,
+    schedule                       text,
     command                        text    NOT NULL,
     active                         boolean NOT NULL DEFAULT true,
     jobname                        text    NOT NULL,
@@ -284,6 +284,14 @@ export const CREATE_CRON_JOB_FOR_TASK = `
         command = EXCLUDED.command,
         job_source = 'TASK',
         active = true;
+`
+
+export const TURN_OFF_CRON_FOR_TASK = `
+    UPDATE hyrex_cron_job
+    SET active   = false,
+        schedule = NULL
+    WHERE jobname = $1
+      AND job_source = 'TASK';
 `
 
 export const CREATE_CRON_JOB_FOR_SQL_QUERY = `

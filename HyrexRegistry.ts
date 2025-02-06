@@ -76,7 +76,8 @@ export class HyrexRegistry {
             name,
             config: validatedTaskConfig,
             workflowArgSchema,
-            workflowBuilder: completedWorkflowBuilder
+            workflowBuilder: completedWorkflowBuilder,
+            dispatcher: this.dispatcher
         })
     }
 

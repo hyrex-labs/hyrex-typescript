@@ -155,6 +155,8 @@ export const ENQUEUE_TASKS = `
                                     id,
                                     durable_id,
                                     root_id,
+                                    workflow_run_id,
+                                    workflow_dependencies,
                                     parent_id,
                                     task_name,
                                     args,
@@ -167,15 +169,18 @@ export const ENQUEUE_TASKS = `
                                     queued,
                                     idempotency_key
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                    'queued'::task_run_status,
-                    0,
-                    CURRENT_TIMESTAMP,
-                    $11)
+            VALUES (
+                       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+                       'queued'::task_run_status,
+                       0,
+                       CURRENT_TIMESTAMP,
+                       $13
+                   )
             ON CONFLICT (task_name, idempotency_key)
                 WHERE idempotency_key IS NOT NULL
                 DO NOTHING
-            RETURNING id),
+            RETURNING id
+    ),
          log_entry AS (
              INSERT INTO hyrex_system_logs (
                                             id,
@@ -183,19 +188,21 @@ export const ENQUEUE_TASKS = `
                                             event_name,
                                             event_body
                  )
-                 SELECT gen_random_uuid(),
-                        CURRENT_TIMESTAMP,
-                        'IDEMPOTENCY_COLLISION',
-                        json_build_object(
-                                'attempted_task_id', $1,
-                                'idempotency_key', $11,
-                                'task_name', $5,
-                                'queue', $7
-                        )
+                 SELECT
+                     gen_random_uuid(),
+                     CURRENT_TIMESTAMP,
+                     'IDEMPOTENCY_COLLISION',
+                     json_build_object(
+                             'attempted_task_id', $1,
+                             'idempotency_key', $13,
+                             'task_name', $7,
+                             'queue', $9
+                     )
                  WHERE NOT EXISTS (SELECT 1 FROM task_insertion)
-                   AND $11 IS NOT NULL)
+                   AND $13 IS NOT NULL
+         )
     SELECT EXISTS (SELECT 1 FROM task_insertion) as task_created;
-`
+`;
 
 export const FETCH_TASK = `
     WITH next_task AS (SELECT id

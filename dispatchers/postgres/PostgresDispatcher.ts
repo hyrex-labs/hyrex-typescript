@@ -14,9 +14,11 @@ import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
-import { createInsertTaskCronExpression } from "./sql/cronSql";
+import { createInsertTaskCronExpression, TURN_OFF_CRON_FOR_TASK } from "./sql/cronSql";
 import { HyrexWorkflowBuilder } from "../../workflow/HyrexWorkflowBuilder";
 import { UPSERT_WORKFLOW } from "./sql/workflowSql";
+import { z } from "zod";
+import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -238,6 +240,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
                     const {
                         id,
                         root_id,
+                        workflow_run_id,
+                        workflow_dependencies,
                         parent_id,
                         task_name,
                         args,
@@ -251,6 +255,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
                         id,
                         id,
                         root_id,
+                        workflow_run_id,
+                        workflow_dependencies,
                         parent_id,
                         task_name,
                         args,
@@ -485,11 +491,14 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }) {
         return this.queryWithRetry(async (client) => {
             await client.query(sql.UPSERT_TASK, [taskName, taskConfig?.cron, sourceCode])
+            const cronJobName = `ScheduledTask-${taskName}`
             if (taskConfig?.cron) {
                 const currentId = uuidv7()
                 const taskRequest: SerializedTaskRequest = {
                     id: currentId,
                     durable_id: currentId,
+                    workflow_run_id: null,
+                    workflow_dependencies: null,
                     root_id: currentId,
                     parent_id: null,
                     queue: typeof taskConfig.queue === 'string' ? taskConfig.queue : taskConfig.queue.name,
@@ -502,11 +511,11 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 }
 
                 const insertTaskCommand = createInsertTaskCronExpression(taskRequest)
-                const jobName = `ScheduledTask-${taskName}`
-
                 await client.query(cronSQL.CREATE_CRON_JOB_FOR_TASK, [
-                    taskConfig.cron, insertTaskCommand, jobName
+                    taskConfig.cron, insertTaskCommand, cronJobName
                 ])
+            } else {
+                await client.query(cronSQL.TURN_OFF_CRON_FOR_TASK, [cronJobName])
             }
 
         })
@@ -578,10 +587,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
     }
 
-    async executeQueuedCronJobRun(): Promise<string> {
+    async executeQueuedCronJobRun(): Promise<string | null> {
         return this.queryWithRetry(async (client) => {
             const { rows } = await client.query<{
-                execute_queued_command: "executed" | "not_found"
+                execute_queued_command: string | null
             }>("SELECT execute_queued_command();")
             if (rows.length === 0) {
                 throw new Error("Hyrex framework error.")
@@ -596,7 +605,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         cronExpr: string,
         shouldBackfill: boolean
     }): Promise<void> {
-        this.queryWithRetry(async (client) => {
+        return this.queryWithRetry(async (client) => {
             await client.query(cronSQL.CREATE_CRON_JOB_FOR_SQL_QUERY, [cronExpr, cronSqlQuery, cronJobName, shouldBackfill])
         })
     }
@@ -615,7 +624,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         listenerName: string,
         sourceCode: string
     }): Promise<void> {
-        await this.queryWithRetry(async (client) => {
+        return this.queryWithRetry(async (client) => {
             await client.query(listenerSQL.REGISTER_HYREX_LISTENER, [listenerName, sourceCode])
         })
     }
@@ -627,13 +636,47 @@ export class PostgresDispatcher implements HyrexDispatcher {
         workflowBuilder: HyrexWorkflowBuilder
     }): Promise<void> {
         hyrexLogger.info('workflow', workflowBuilder.toJson(), 'brightBlue')
-        await this.queryWithRetry(async (client) => {
+        return this.queryWithRetry(async (client) => {
             const cronExpr = null
             await client.query(workflowSQL.UPSERT_WORKFLOW, [workflowName, cronExpr, sourceCode, workflowBuilder.toJson()])
         })
     }
 
-    async advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void> {
+    async sendWorkflowRun({ serializedWorkflowRunRequest }: {
+        serializedWorkflowRunRequest: SerializedWorkflowRunRequest
+    }): Promise<string> {
+        return this.queryWithRetry(async (client) => {
+            const { id, workflow_name, args, queue, timeout_seconds, idempotency_key } = serializedWorkflowRunRequest
+            const { rows } = await client.query<{
+                id: string
+            }>(workflowSQL.INSERT_WORKFLOW_RUN, [id, workflow_name, args, queue, timeout_seconds, idempotency_key])
+            if (rows.length !== 1) {
+                throw new Error("Insert workflow run failed.")
+            }
 
+            return rows[0].id
+        })
+    }
+
+    async advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void> {
+        return this.queryWithRetry(async (client) => {
+            const { rows } = await client.query<{
+                id: UUID,
+                status: WorkflowRunStatus
+            }>(workflowSQL.SET_WORKFLOW_RUN_STATUS_BASED_ON_TASK_RUNS, [workflowRunId])
+
+            if (rows.length !== 1) {
+                hyrexLogger.warn('workflow', 'Result of SET_WORKFLOW_RUN_STATUS_BASED_ON_TASK_RUNS is not one row.', 'red')
+                return
+            }
+
+            const workflowStatus = rows[0].status
+            if (workflowStatus === 'failed' || workflowStatus === 'success') {
+                return // workflowStatus
+            }
+
+            await client.query(workflowSQL.ADVANCE_WORKFLOW_RUN, [workflowRunId])
+            return
+        })
     }
 }

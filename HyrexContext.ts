@@ -50,9 +50,9 @@ let currentContext: HyrexContext | null = null;
  *   console.log(`Currently executing task: ${context.taskName}`);
  * }
  */
-export const getHyrexContext = (): HyrexContext | null => {
+export const getHyrexContext = (): HyrexContext => {
     if (currentContext === null) {
-        return null;
+        throw new Error("Hyrex context is not available.");
     }
     return { ...currentContext }; // Return copy to prevent mutation
 };

@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS hyrex_task_run (
     durable_id      UUID                        NOT NULL,
     root_id         UUID                        NOT NULL,
     parent_id       UUID,
+    workflow_run_id UUID DEFAULT NULL,
+    workflow_dependencies UUID[] DEFAULT NULL,
     task_name       VARCHAR                     NOT NULL,
     args            JSON                        NOT NULL,
     queue           VARCHAR                     NOT NULL,
@@ -74,27 +76,30 @@ CREATE INDEX IF NOT EXISTS idx_hyrex_task_run_root_id
 `
 
 export const CreateHyrexTaskTable = `
-    CREATE TABLE IF NOT EXISTS hyrex_task (
-                                              task_name    TEXT NOT NULL PRIMARY KEY,
-                                              cron_expr    TEXT,
-                                              source_code  TEXT,
-                                              last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    CREATE TABLE IF NOT EXISTS hyrex_task
+    (
+        task_name    TEXT NOT NULL PRIMARY KEY,
+        cron_expr    TEXT,
+        source_code  TEXT,
+        last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 `
 
 export const CreateSystemLogTable = `
-    CREATE TABLE IF NOT EXISTS hyrex_system_logs (
-         id UUID NOT NULL PRIMARY KEY,
-         timestamp TIMESTAMP WITH TIME ZONE,
-         event_name VARCHAR NOT NULL,
-         event_body JSON NOT NULL
+    CREATE TABLE IF NOT EXISTS hyrex_system_logs
+    (
+        id         UUID    NOT NULL PRIMARY KEY,
+        timestamp  TIMESTAMP WITH TIME ZONE,
+        event_name VARCHAR NOT NULL,
+        event_body JSON    NOT NULL
     );
 `
 
 export const CreateHyrexAppTable = `
-    CREATE TABLE IF NOT EXISTS hyrex_app (
-          id    BIGSERIAL NOT NULL PRIMARY KEY,
-          app_info JSON
+    CREATE TABLE IF NOT EXISTS hyrex_app
+    (
+        id       BIGSERIAL NOT NULL PRIMARY KEY,
+        app_info JSON
     );
 `
 
@@ -162,18 +167,15 @@ export const ENQUEUE_TASKS = `
                                     queued,
                                     idempotency_key
             )
-            VALUES (
-                       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                       'queued'::task_run_status,
-                       0,
-                       CURRENT_TIMESTAMP,
-                       $11
-                   )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                    'queued'::task_run_status,
+                    0,
+                    CURRENT_TIMESTAMP,
+                    $11)
             ON CONFLICT (task_name, idempotency_key)
                 WHERE idempotency_key IS NOT NULL
                 DO NOTHING
-            RETURNING id
-    ),
+            RETURNING id),
          log_entry AS (
              INSERT INTO hyrex_system_logs (
                                             id,
@@ -181,32 +183,28 @@ export const ENQUEUE_TASKS = `
                                             event_name,
                                             event_body
                  )
-                 SELECT
-                     gen_random_uuid(),
-                     CURRENT_TIMESTAMP,
-                     'IDEMPOTENCY_COLLISION',
-                     json_build_object(
-                             'attempted_task_id', $1,
-                             'idempotency_key', $11,
-                             'task_name', $5,
-                             'queue', $7
-                     )
+                 SELECT gen_random_uuid(),
+                        CURRENT_TIMESTAMP,
+                        'IDEMPOTENCY_COLLISION',
+                        json_build_object(
+                                'attempted_task_id', $1,
+                                'idempotency_key', $11,
+                                'task_name', $5,
+                                'queue', $7
+                        )
                  WHERE NOT EXISTS (SELECT 1 FROM task_insertion)
-                   AND $11 IS NOT NULL
-         )
+                   AND $11 IS NOT NULL)
     SELECT EXISTS (SELECT 1 FROM task_insertion) as task_created;
 `
 
 export const FETCH_TASK = `
-    WITH next_task AS (
-        SELECT id
-        FROM hyrex_task_run
-        WHERE queue = $1
-          AND status = 'queued'
-        ORDER BY priority DESC, queued
-            FOR UPDATE SKIP LOCKED
-        LIMIT 1
-    )
+    WITH next_task AS (SELECT id
+                       FROM hyrex_task_run
+                       WHERE queue = $1
+                         AND status = 'queued'
+                       ORDER BY priority DESC, queued
+                           FOR UPDATE SKIP LOCKED
+                       LIMIT 1)
     UPDATE hyrex_task_run AS ht
     SET status      = 'running',
         started     = CURRENT_TIMESTAMP,
@@ -227,21 +225,17 @@ export const FETCH_TASK = `
 `
 
 export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
-    WITH lock_result AS (
-        SELECT pg_try_advisory_xact_lock(hashtext($1)) AS lock_acquired
-    ),
-         next_task AS (
-             SELECT id
-             FROM hyrex_task_run,
-                  lock_result
-             WHERE lock_acquired = TRUE
-               AND queue = $1
-               AND status = 'queued'
-               AND (SELECT COUNT(*) FROM hyrex_task_run WHERE queue = $1 AND status = 'running') < $2
-             ORDER BY priority DESC, queued
-                 FOR UPDATE SKIP LOCKED
-             LIMIT 1
-         )
+    WITH lock_result AS (SELECT pg_try_advisory_xact_lock(hashtext($1)) AS lock_acquired),
+         next_task AS (SELECT id
+                       FROM hyrex_task_run,
+                            lock_result
+                       WHERE lock_acquired = TRUE
+                         AND queue = $1
+                         AND status = 'queued'
+                         AND (SELECT COUNT(*) FROM hyrex_task_run WHERE queue = $1 AND status = 'running') < $2
+                       ORDER BY priority DESC, queued
+                           FOR UPDATE SKIP LOCKED
+                       LIMIT 1)
     UPDATE hyrex_task_run AS ht
     SET status         = 'running',
         started        = CURRENT_TIMESTAMP,
@@ -330,34 +324,31 @@ export const UPDATE_EXECUTOR_STATS = `
                 stats = $2
             WHERE id = $1
                 AND status = 'RUNNING'::executor_status
-            RETURNING id, status, last_heartbeat, stats
-    ),
-         executor_state AS (
-             SELECT
-                 CASE WHEN u.id IS NOT NULL THEN 'ACCEPTED' ELSE 'REJECTED' END AS result,
-                 COALESCE(u.status, e.status) AS status,
-                 COALESCE(u.last_heartbeat, e.last_heartbeat) AS last_heartbeat,
-                 COALESCE(u.stats, e.stats) AS stats
-             FROM hyrex_executor e
-                      LEFT JOIN updated u ON e.id = u.id
-             WHERE e.id = $1
-         ),
+            RETURNING id, status, last_heartbeat, stats),
+         executor_state AS (SELECT CASE WHEN u.id IS NOT NULL THEN 'ACCEPTED' ELSE 'REJECTED' END AS result,
+                                   COALESCE(u.status, e.status)                                   AS status,
+                                   COALESCE(u.last_heartbeat, e.last_heartbeat)                   AS last_heartbeat,
+                                   COALESCE(u.stats, e.stats)                                     AS stats
+                            FROM hyrex_executor e
+                                     LEFT JOIN updated u ON e.id = u.id
+                            WHERE e.id = $1),
          insert_log AS (
              INSERT INTO hyrex_system_logs (id, timestamp, event_name, event_body)
-                 SELECT gen_random_uuid(), CURRENT_TIMESTAMP, 'HEARTBEAT_REJECTED',
+                 SELECT gen_random_uuid(),
+                        CURRENT_TIMESTAMP,
+                        'HEARTBEAT_REJECTED',
                         json_build_object('executor_id', $1, 'current_status', es.status, 'stats', $2)
                  FROM executor_state es
                  WHERE es.result = 'REJECTED'
-                 RETURNING NULL
-         )
+                 RETURNING NULL)
     SELECT es.*
     FROM executor_state es;
 `
 
 export const BATCH_UPDATE_HEARTBEAT_ON_EXECUTORS = `
-UPDATE hyrex_executor
-   SET last_heartbeat = NOW()
-   WHERE id = ANY ($1::uuid[]);
+    UPDATE hyrex_executor
+    SET last_heartbeat = NOW()
+    WHERE id = ANY ($1::uuid[]);
 `
 
 export const BATCH_UPDATE_HEARTBEAT_LOG = `
@@ -383,16 +374,12 @@ export const FETCH_RESULT = `
 `
 
 export const FETCH_ACTIVE_QUEUE_NAMES = `
-    WITH distinct_queues AS (
-        SELECT DISTINCT queue
-        FROM hyrex_task_run
-        WHERE status = 'queued'
-          AND queue LIKE $1
-    ),
-         queue_count AS (
-             SELECT COUNT(*) AS cnt
-             FROM distinct_queues
-         )
+    WITH distinct_queues AS (SELECT DISTINCT queue
+                             FROM hyrex_task_run
+                             WHERE status = 'queued'
+                               AND queue LIKE $1),
+         queue_count AS (SELECT COUNT(*) AS cnt
+                         FROM distinct_queues)
     SELECT queue
     FROM (
              -- If count <= 100000, just select all queues
@@ -405,60 +392,52 @@ export const FETCH_ACTIVE_QUEUE_NAMES = `
 
              -- If count > 100000, select a random subset
              SELECT queue
-             FROM (
-                      SELECT dq.queue,
-                             row_number() OVER (ORDER BY random()) AS rn
-                      FROM distinct_queues dq,
-                           queue_count qc
-                      WHERE qc.cnt > 100000
-                  ) sub
-             WHERE rn <= 100000
-         ) final_result;
+             FROM (SELECT dq.queue,
+                          row_number() OVER (ORDER BY random()) AS rn
+                   FROM distinct_queues dq,
+                        queue_count qc
+                   WHERE qc.cnt > 100000) sub
+             WHERE rn <= 100000) final_result;
 `
 
 export const CONDITIONALLY_RETRY_TASK = `
-    WITH existing_task AS (
-        SELECT
-            durable_id,
-            root_id,
-            parent_id,
-            task_name,
-            args,
-            queue,
-            attempt_number,
-            max_retries,
-            priority
-        FROM hyrex_task_run
-        WHERE id = $1
-          AND attempt_number < max_retries
-    )
-    INSERT INTO hyrex_task_run (
-        id,
-        durable_id,
-        root_id,
-        parent_id,
-        queued,
-        status,
-        task_name,
-        args,
-        queue,
-        attempt_number,
-        max_retries,
-        priority
-    )
-    SELECT
-        $2 AS id,
-        durable_id,
-        root_id,
-        parent_id,
-        CURRENT_TIMESTAMP as queued,
-        'queued' AS status,
-        task_name,
-        args,
-        queue,
-        attempt_number + 1 AS attempt_number,
-        max_retries,
-        priority
+    WITH existing_task AS (SELECT durable_id,
+                                  root_id,
+                                  parent_id,
+                                  task_name,
+                                  args,
+                                  queue,
+                                  attempt_number,
+                                  max_retries,
+                                  priority
+                           FROM hyrex_task_run
+                           WHERE id = $1
+                             AND attempt_number < max_retries)
+    INSERT
+    INTO hyrex_task_run (id,
+                         durable_id,
+                         root_id,
+                         parent_id,
+                         queued,
+                         status,
+                         task_name,
+                         args,
+                         queue,
+                         attempt_number,
+                         max_retries,
+                         priority)
+    SELECT $2                 AS id,
+           durable_id,
+           root_id,
+           parent_id,
+           CURRENT_TIMESTAMP  as queued,
+           'queued'           AS status,
+           task_name,
+           args,
+           queue,
+           attempt_number + 1 AS attempt_number,
+           max_retries,
+           priority
     FROM existing_task;
 `
 

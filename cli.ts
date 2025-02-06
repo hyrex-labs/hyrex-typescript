@@ -117,7 +117,7 @@ const argv = yargs(hideBin(process.argv))
                 } as RootMessage);
             }, 3_000);
 
-            hyrexLogger.info('durability', `Created heartbeat interval: ${heartbeatInterval}`, 'brightRed')
+            // hyrexLogger.info('durability', `Created heartbeat interval: ${heartbeatInterval}`, 'brightRed')
 
             if (lifespan) {
                 console.log(`Process will shutdown after ${lifespan} seconds`);

@@ -4,6 +4,7 @@ import { string, z } from "zod";
 import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../types";
 import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { CronJob, CronJobRun } from "../cron/HyrexCronScheduler";
+import { HyrexWorkflowBuilder } from "../workflow/HyrexWorkflowBuilder";
 
 export type SerializedTaskRequest = {
     id: UUID,
@@ -113,7 +114,16 @@ export interface HyrexDispatcher {
     registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void>
 
     // Listener
-    acquireListenerLock({ workerName }: { workerName: string}): Promise<string | null>
+    acquireListenerLock({ workerName }: { workerName: string }): Promise<string | null>
 
     registerHyrexListener({ listenerName, sourceCode }: { listenerName: string, sourceCode: string }): Promise<void>
+
+    // Workflow
+    registerWorkflow({ workflowName, sourceCode, workflowBuilder }: {
+        workflowName: string,
+        sourceCode: string,
+        workflowBuilder: HyrexWorkflowBuilder
+    }): Promise<void>
+
+    advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void>
 }

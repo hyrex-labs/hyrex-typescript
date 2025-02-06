@@ -4,7 +4,7 @@ import {
     HyrexTaskConfig,
     HyrexTaskConfigSchema,
     HyrexTaskFunction,
-    HyrexTaskConfigInput, InternalQueueRegistry, HyrexListenerRegistrationSchema
+    HyrexTaskConfigInput, InternalQueueRegistry, HyrexListenerRegistrationSchema, HyrexQueuePatternArgsSchema
 } from "./utils"
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
@@ -15,6 +15,9 @@ import { isValidCron } from 'cron-validator'
 import { envVariables } from "./EnvironmentVariables";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 import { COMMANDS } from "./commands";
+import { HyrexWorkflowBuilder } from "./workflow/HyrexWorkflowBuilder";
+import { WorkflowTask } from "./workflow/HyrexWorkflowBuilder";
+import { HyrexWorkflow, HyrexWorkflowSchema } from "./workflow/HyrexWorkflow";
 
 type HyrexTaskProps = {
     name: string;
@@ -48,7 +51,37 @@ export class HyrexRegistry {
         console.log("Task Registry:", Object.entries(this.internalTaskRegistry));
     }
 
-    listener<U extends JsonType>({ name, func }: { name: string; func: () => void }): void {
+    workflow({ name, config, workflowArgSchema, body }: {
+        name: string,
+        config: HyrexTaskConfigInput,
+        workflowArgSchema?: z.ZodType,
+        body: (workflowBuilder: HyrexWorkflowBuilder) => HyrexWorkflowBuilder
+    }): HyrexWorkflow {
+        hyrexLogger.info("workflow", `Registering workflow!`, `brightRed`)
+        const validatedTaskConfig = HyrexTaskConfigSchema.parse(config)
+        HyrexWorkflowSchema.parse({ name, config: validatedTaskConfig, workflowArgSchema, body })
+
+        const workflowBuilder = new HyrexWorkflowBuilder()
+        const completedWorkflowBuilder = body(workflowBuilder)
+
+        if (!process.env[COMMANDS.INIT_DB]) {
+            this.dispatcher.registerWorkflow({
+                workflowName: name,
+                sourceCode: body.toString(),
+                workflowBuilder: completedWorkflowBuilder
+            })
+        }
+
+        return new HyrexWorkflow({
+            name,
+            config: validatedTaskConfig,
+            workflowArgSchema,
+            workflowBuilder: completedWorkflowBuilder
+        })
+    }
+
+
+    listener({ name, func }: { name: string; func: () => void }): void {
         HyrexListenerRegistrationSchema.parse({ name, func })
         this.registerListenerWithServer({ name, func })
     }

@@ -12,27 +12,31 @@ import { v7 as uuidv7 } from 'uuid';
 import { string, z } from "zod";
 import { COMMANDS } from "./commands";
 import { getHyrexContext } from "./HyrexContext";
+import { WorkflowTask } from "./workflow/HyrexWorkflowBuilder";
 
 // Concurrency limit cannot be set at send time. This type removes concurrency limit at send time.
 type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
     queue?: string | { name: string };
 };
 
-export class TaskWrapper<U extends JsonType> {
+
+export class TaskWrapper<U extends JsonType> extends WorkflowTask {
     private taskFunction: HyrexTaskFunction
     private dispatcher: HyrexDispatcher
     private taskConfig: HyrexTaskConfig
     private taskName: string;
 
     constructor(dispatcher: HyrexDispatcher, taskName: string, taskFunction: HyrexTaskFunction, defaultTaskConfig: HyrexTaskConfig) {
+        super(taskName);
+
         this.dispatcher = dispatcher
         this.taskFunction = taskFunction as HyrexTaskFunction
-        this.taskConfig =  HyrexTaskConfigSchema.parse(defaultTaskConfig)
+        this.taskConfig = HyrexTaskConfigSchema.parse(defaultTaskConfig)
         this.taskName = taskName
     }
 
-    withConfig(taskConfig: SendableHyrexTaskConfig) : TaskWrapper<U> {
-        const newTaskConfig = {...this.taskConfig, ...taskConfig}
+    withConfig(taskConfig: SendableHyrexTaskConfig): TaskWrapper<U> {
+        const newTaskConfig = { ...this.taskConfig, ...taskConfig }
         return new TaskWrapper(this.dispatcher, this.taskName, this.taskFunction, newTaskConfig)
     }
 
@@ -62,6 +66,7 @@ export class TaskWrapper<U extends JsonType> {
 
         return (await this.dispatcher.enqueue([serializedTaskRequest]))[0]
     }
+
 
     // async call(context: U, config: HyrexTaskConfig): Promise<UUID> {
     //

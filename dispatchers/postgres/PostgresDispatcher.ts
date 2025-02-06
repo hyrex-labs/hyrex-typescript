@@ -6,6 +6,7 @@ import * as cronSQL from "./sql/cronSql"
 import * as statsSQL from "./sql/stats"
 import * as durabilitySQL from './sql/durability/durabilitySql'
 import * as listenerSQL from "./sql/listenerSql"
+import * as workflowSQL from "./sql/workflowSql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
@@ -14,6 +15,8 @@ import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
 import { createInsertTaskCronExpression } from "./sql/cronSql";
+import { HyrexWorkflowBuilder } from "../../workflow/HyrexWorkflowBuilder";
+import { UPSERT_WORKFLOW } from "./sql/workflowSql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -142,6 +145,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(cronSQL.CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION);
             await client.query(statsSQL.CREATE_HISTORICAL_TASK_STATUS_COUNTS);
             await client.query(listenerSQL.CreateHyrexListenerTable);
+            await client.query(workflowSQL.CreateWorkflowTable)
+            await client.query(workflowSQL.CreateWorkflowRunTable)
 
             // Cron Queries
             await this.registerCronSQLQuery({
@@ -606,10 +611,29 @@ export class PostgresDispatcher implements HyrexDispatcher {
         return "lock"
     }
 
-    async registerHyrexListener({ listenerName, sourceCode }: { listenerName: string, sourceCode: string }): Promise<void> {
+    async registerHyrexListener({ listenerName, sourceCode }: {
+        listenerName: string,
+        sourceCode: string
+    }): Promise<void> {
         await this.queryWithRetry(async (client) => {
             await client.query(listenerSQL.REGISTER_HYREX_LISTENER, [listenerName, sourceCode])
         })
     }
 
+    // Workflow
+    async registerWorkflow({ workflowName, sourceCode, workflowBuilder }: {
+        workflowName: string,
+        sourceCode: string,
+        workflowBuilder: HyrexWorkflowBuilder
+    }): Promise<void> {
+        hyrexLogger.info('workflow', workflowBuilder.toJson(), 'brightBlue')
+        await this.queryWithRetry(async (client) => {
+            const cronExpr = null
+            await client.query(workflowSQL.UPSERT_WORKFLOW, [workflowName, cronExpr, sourceCode, workflowBuilder.toJson()])
+        })
+    }
+
+    async advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void> {
+
+    }
 }

@@ -14,6 +14,7 @@ export type LogFeature =
     | 'system'
     | 'listener'
     | 'durability'
+    | 'workflow'
 
 
 type LoggerConfig = {
@@ -60,7 +61,7 @@ class FrameworkLogger {
 
                     if (color) {
                         const colorCode = COLOR_MAP[color as LogColor];
-                        result =`\x1b[${colorCode}m${result}\x1b[0m`;
+                        result = `\x1b[${colorCode}m${result}\x1b[0m`;
                     }
 
                     return result

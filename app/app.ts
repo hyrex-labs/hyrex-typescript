@@ -2,13 +2,113 @@ import { HyrexQueuePatternArgsType, HyrexTaskConfigInput, HyrexTaskFunction, Jso
 import { HyrexRegistry } from "../HyrexRegistry";
 import 'dotenv/config';
 import { HyrexTaskConfig } from "../utils";
-import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { v4 as uuidv4 } from 'uuid';
 
 import { getHyrexContext } from "../index";
+import { HyrexWorkflowBuilder } from "../workflow/HyrexWorkflowBuilder";
+import { z } from "zod";
 
 
 export const hy = new HyrexRegistry()
+
+////////////////////////
+//// BUILD WORKFLOW ////
+////////////////////////
+
+const initiateOnboard = hy.task({
+    name: "initiateOnboard",
+    func: () => {
+    }
+})
+
+const validatePayment = hy.task({
+    name: "validatePayment",
+    func: () => {
+    }
+})
+
+const validateIdentity = hy.task({
+    name: "validateIdentity",
+    func: () => {
+    }
+})
+
+const validateOrg = hy.task({
+    name: "validateOrg",
+    func: () => {
+    }
+})
+
+const approveUser = hy.task({
+    name: "approveUser",
+    func: () => {
+    }
+})
+
+const checkCreditFunc = () => {}
+
+const checkCredit = hy.task({
+    name: "checkCredit",
+    func: checkCreditFunc
+})
+
+const checkCredit2 = hy.task({
+    name: "checkCredit2",
+    func: checkCreditFunc
+})
+
+const trainCreditMachineLearningModel = hy.task({
+    name: "trainCreditMachineLearningModel",
+    func: () => {
+    }
+})
+
+function OnboardUserBody(workflowBuilder: HyrexWorkflowBuilder) {
+    workflowBuilder
+        .start(initiateOnboard)
+        .next([validatePayment, validateIdentity, validateOrg])
+        .next(approveUser)
+
+    validateIdentity.next(checkCredit).next(trainCreditMachineLearningModel)
+
+    // withGroup([validatePayment, validateIdentity, validateOrg]).next(checkCredit)
+
+    // validatePayment.next(checkCredit.createStep("CheckCreditAfterPayment"))
+    // validateIdentity.next(checkCredit.createStep("CheckCreditAfterIdentityValidation"))
+    // validateOrg.next(checkCredit.createStep("CheckCreditAfterOrgValidation"))
+
+
+    return workflowBuilder
+}
+
+
+const onboardUser = hy.workflow({
+    name: "onboardUser",
+    config: { queue: "onboard-user" },
+    workflowArgSchema: z.object({
+        "userEmail": z.string(),
+        "signUpTier": z.enum(["FREE", "PRO", "ENTERPRISE"])
+    }),
+    body: (workflowBuilder: HyrexWorkflowBuilder) => {
+        workflowBuilder
+            .start(initiateOnboard)
+            .next([validatePayment, validateIdentity, validateOrg])
+            .next(approveUser)
+
+        validateIdentity
+            .next(checkCredit)
+            .next(trainCreditMachineLearningModel)
+
+
+        return workflowBuilder
+    }
+})
+
+// onboardUser.send({"userEmail": "mark@hyrex.io", "signUpTier": "PRO"})
+
+////////////////////////
+// END BUILD WORKFLOW //
+////////////////////////
 
 hy.listener({
     name: "BlockchainListener",

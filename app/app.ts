@@ -15,41 +15,40 @@ export const hy = new HyrexRegistry()
 //// BUILD WORKFLOW ////
 ////////////////////////
 
+const sleepTaskFunc = async () => {
+    await sleep(10_000);
+}
+
 const initiateOnboard = hy.task({
     name: "initiateOnboard",
-    func: () => {
-    }
+    func: sleepTaskFunc
 })
 
 const validatePayment = hy.task({
     name: "validatePayment",
-    func: () => {
-    }
+    func: sleepTaskFunc
 })
 
 const validateIdentity = hy.task({
     name: "validateIdentity",
-    func: () => {
-    }
+    func: sleepTaskFunc
 })
 
 const validateOrg = hy.task({
     name: "validateOrg",
-    func: () => {
-    }
+    func: sleepTaskFunc
 })
 
 const approveUser = hy.task({
     name: "approveUser",
-    func: () => {
-    }
+    func: sleepTaskFunc
 })
 
 const checkCreditFunc = () => {}
 
 const checkCredit = hy.task({
     name: "checkCredit",
-    func: checkCreditFunc
+    func: sleepTaskFunc
 })
 
 const checkCredit2 = hy.task({
@@ -59,8 +58,7 @@ const checkCredit2 = hy.task({
 
 const trainCreditMachineLearningModel = hy.task({
     name: "trainCreditMachineLearningModel",
-    func: () => {
-    }
+    func: sleepTaskFunc
 })
 
 function OnboardUserBody(workflowBuilder: HyrexWorkflowBuilder) {

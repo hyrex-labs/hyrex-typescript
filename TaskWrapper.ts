@@ -58,6 +58,7 @@ export class TaskWrapper<U extends JsonType> extends WorkflowTask {
             workflow_run_id: null,
             workflow_dependencies: null,
             queue: typeof this.taskConfig.queue === 'string' ? this.taskConfig.queue : this.taskConfig.queue.name,
+            status: 'queued',
             task_name: this.taskName,
             args: context,
             max_retries: this.taskConfig.maxRetries,

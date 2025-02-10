@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 // Base class providing DAG functionality.
 class DagNode {
     public name: string;
@@ -211,7 +213,7 @@ export class HyrexWorkflowBuilder {
      *   ]
      * }
      */
-    toJson(): string {
+    toJson(): WorkflowDagJson {
         // These will hold our final results.
         const nodes: { id: string; name: string }[] = [];
         const edges: { from: string; to: string }[] = [];
@@ -277,7 +279,102 @@ export class HyrexWorkflowBuilder {
             }
         }
 
-        // Return the final JSON string.
-        return JSON.stringify({ nodes, edges }, null, 2);
+        // Return the final WorkflowJson Obj.
+        return { nodes, edges }
+    }
+
+    /**
+     * Reconstructs a HyrexWorkflowBuilder instance from a JSON string.
+     *
+     * The expected JSON format is:
+     * {
+     *   "nodes": [
+     *     { "id": "A", "name": "TaskName1" },
+     *     { "id": "B", "name": "TaskName2" },
+     *     ...
+     *   ],
+     *   "edges": [
+     *     { "from": "A", "to": "B" },
+     *     { "from": "A", "to": "C" },
+     *     ...
+     *   ]
+     * }
+     *
+     * This method creates WorkflowTask instances for each node,
+     * connects them using the same next() chaining as before, and
+     * identifies root tasks (tasks with no incoming edges) to set as
+     * the builder's starting points.
+     */
+    public static fromJson(json: WorkflowDagJson | string): HyrexWorkflowBuilder {
+        // Parse the JSON string.
+        const data = typeof json === 'string' ? JSON.parse(json) : json;
+
+        if (
+            !data.nodes ||
+            !Array.isArray(data.nodes) ||
+            !data.edges ||
+            !Array.isArray(data.edges)
+        ) {
+            throw new Error("Invalid JSON format for workflow builder.");
+        }
+
+        // Create a mapping from node id to a new WorkflowTask.
+        const nodeMap = new Map<string, WorkflowTask>();
+        // We'll also track the incoming edge count for each node.
+        const incomingCount = new Map<string, number>();
+
+        for (const nodeData of data.nodes) {
+            const { id, name } = nodeData;
+            if (typeof id !== "string" || typeof name !== "string") {
+                throw new Error("Node data is missing a valid id or name.");
+            }
+            nodeMap.set(id, new WorkflowTask(name));
+            incomingCount.set(id, 0);
+        }
+
+        // Connect nodes using the edges data.
+        for (const edgeData of data.edges) {
+            const { from, to } = edgeData;
+            const fromTask = nodeMap.get(from);
+            const toTask = nodeMap.get(to);
+            if (!fromTask || !toTask) {
+                throw new Error(`Invalid edge data: ${from} -> ${to}`);
+            }
+            // Use the public next() method to add the child.
+            fromTask.next(toTask);
+            // Count the incoming edge for the "to" task.
+            incomingCount.set(to, incomingCount.get(to)! + 1);
+        }
+
+        // Identify root tasks: those with no incoming edges.
+        const rootTasks: IWorkflowTask[] = [];
+        for (const [id, count] of incomingCount.entries()) {
+            if (count === 0) {
+                rootTasks.push(nodeMap.get(id)!);
+            }
+        }
+
+        // Create and return the builder.
+        const builder = new HyrexWorkflowBuilder();
+        builder.rootTasks = rootTasks;
+        return builder;
     }
 }
+
+
+const NodeSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+});
+
+const EdgeSchema = z.object({
+    from: z.string(),
+    to: z.string(),
+});
+
+export const WorkflowDagSchema = z.object({
+    nodes: z.array(NodeSchema),
+    edges: z.array(EdgeSchema),
+});
+
+export type WorkflowDagJson = z.infer<typeof WorkflowDagSchema>

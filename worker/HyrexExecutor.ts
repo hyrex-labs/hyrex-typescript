@@ -284,6 +284,10 @@ export class HyrexExecutor {
                 await this.dispatcher.attemptRetry(task.id)
             }
 
+            if (task.workflow_run_id) {
+                await this.dispatcher.advanceWorkflowRun({ workflowRunId: task.workflow_run_id })
+            }
+
             const stats = {
                 "dequeueLatencyMs": dequeueDurationAvgr.getTimeSeries(),
                 "refreshQueueLatencyMs": this.refreshQueueDurationAvgr.getTimeSeries(),

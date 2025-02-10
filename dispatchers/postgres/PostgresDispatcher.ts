@@ -15,7 +15,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
 import { createInsertTaskCronExpression, TURN_OFF_CRON_FOR_TASK } from "./sql/cronSql";
-import { HyrexWorkflowBuilder } from "../../workflow/HyrexWorkflowBuilder";
+import { HyrexWorkflowBuilder, WorkflowDagJson } from "../../workflow/HyrexWorkflowBuilder";
 import { UPSERT_WORKFLOW } from "./sql/workflowSql";
 import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
@@ -243,6 +243,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                         workflow_run_id,
                         workflow_dependencies,
                         parent_id,
+                        status,
                         task_name,
                         args,
                         queue,
@@ -258,6 +259,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                         workflow_run_id,
                         workflow_dependencies,
                         parent_id,
+                        status,
                         task_name,
                         args,
                         queue,
@@ -502,6 +504,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                     root_id: currentId,
                     parent_id: null,
                     queue: typeof taskConfig.queue === 'string' ? taskConfig.queue : taskConfig.queue.name,
+                    status: 'queued',
                     task_name: taskName,
                     args: {},
                     max_retries: taskConfig.maxRetries,
@@ -630,15 +633,15 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     // Workflow
-    async registerWorkflow({ workflowName, sourceCode, workflowBuilder }: {
+    async registerWorkflow({ workflowName, sourceCode, workflowDagJson }: {
         workflowName: string,
         sourceCode: string,
-        workflowBuilder: HyrexWorkflowBuilder
+        workflowDagJson: WorkflowDagJson
     }): Promise<void> {
-        hyrexLogger.info('workflow', workflowBuilder.toJson(), 'brightBlue')
+        hyrexLogger.info('workflow', JSON.stringify(workflowDagJson, null, 2), 'brightBlue')
         return this.queryWithRetry(async (client) => {
             const cronExpr = null
-            await client.query(workflowSQL.UPSERT_WORKFLOW, [workflowName, cronExpr, sourceCode, workflowBuilder.toJson()])
+            await client.query(workflowSQL.UPSERT_WORKFLOW, [workflowName, cronExpr, sourceCode, workflowDagJson])
         })
     }
 
@@ -659,6 +662,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void> {
+        hyrexLogger.info('workflow', `Advancing workflow run ${workflowRunId}`, "brightBlue")
         return this.queryWithRetry(async (client) => {
             const { rows } = await client.query<{
                 id: UUID,

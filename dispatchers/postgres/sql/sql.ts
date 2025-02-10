@@ -14,7 +14,8 @@ BEGIN
             'up_for_cancel',
             'canceled',
             'waiting',
-            'lost'
+            'lost',
+            'skipped'
         );
     END IF;
 END $$;
@@ -158,23 +159,22 @@ export const ENQUEUE_TASKS = `
                                     workflow_run_id,
                                     workflow_dependencies,
                                     parent_id,
+                                    status,
                                     task_name,
                                     args,
                                     queue,
                                     max_retries,
                                     priority,
                                     timeout_seconds,
-                                    status,
                                     attempt_number,
                                     queued,
                                     idempotency_key
             )
             VALUES (
-                       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-                       'queued'::task_run_status,
+                       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
                        0,
                        CURRENT_TIMESTAMP,
-                       $13
+                       $14
                    )
             ON CONFLICT (task_name, idempotency_key)
                 WHERE idempotency_key IS NOT NULL
@@ -194,12 +194,12 @@ export const ENQUEUE_TASKS = `
                      'IDEMPOTENCY_COLLISION',
                      json_build_object(
                              'attempted_task_id', $1,
-                             'idempotency_key', $13,
-                             'task_name', $7,
-                             'queue', $9
+                             'idempotency_key', $14,
+                             'task_name', $8,
+                             'queue', $10
                      )
                  WHERE NOT EXISTS (SELECT 1 FROM task_insertion)
-                   AND $13 IS NOT NULL
+                   AND $14 IS NOT NULL
          )
     SELECT EXISTS (SELECT 1 FROM task_insertion) as task_created;
 `;
@@ -221,6 +221,7 @@ export const FETCH_TASK = `
     RETURNING ht.id
         , ht.root_id
         , ht.parent_id
+        , ht.workflow_run_id
         , ht.task_name
         , ht.args
         , ht.queue
@@ -253,6 +254,7 @@ export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
     RETURNING ht.id
         , ht.root_id
         , ht.parent_id
+        , ht.workflow_run_id
         , ht.task_name
         , ht.args
         , ht.queue
@@ -411,6 +413,8 @@ export const CONDITIONALLY_RETRY_TASK = `
     WITH existing_task AS (SELECT durable_id,
                                   root_id,
                                   parent_id,
+                                  workflow_run_id,
+                                  workflow_dependencies,
                                   task_name,
                                   args,
                                   queue,
@@ -425,6 +429,8 @@ export const CONDITIONALLY_RETRY_TASK = `
                          durable_id,
                          root_id,
                          parent_id,
+                         workflow_run_id,
+                         workflow_dependencies,
                          queued,
                          status,
                          task_name,
@@ -437,8 +443,10 @@ export const CONDITIONALLY_RETRY_TASK = `
            durable_id,
            root_id,
            parent_id,
+           workflow_run_id,
+           workflow_dependencies,
            CURRENT_TIMESTAMP  as queued,
-           'queued'           AS status,
+           'queued'          AS status,
            task_name,
            args,
            queue,

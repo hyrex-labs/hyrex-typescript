@@ -100,9 +100,14 @@ const onboardUser = hy.workflow({
             .next(trainCreditMachineLearningModel)
 
 
+
         return workflowBuilder
     }
 })
+
+// onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
+
+// onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
 
 if (process.argv.includes('--submit')) {
     onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })

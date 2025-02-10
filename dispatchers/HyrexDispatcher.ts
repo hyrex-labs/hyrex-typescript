@@ -6,6 +6,7 @@ import { HyrexQueue, HyrexQueuePattern } from "../HyrexQueue";
 import { CronJob, CronJobRun } from "../cron/HyrexCronScheduler";
 import { HyrexWorkflowBuilder } from "../workflow/HyrexWorkflowBuilder";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../workflow/HyrexWorkflow";
+import { WorkflowDagJson } from "../workflow/HyrexWorkflowBuilder";
 
 export type SerializedTaskRequest = {
     id: UUID,
@@ -14,6 +15,7 @@ export type SerializedTaskRequest = {
     workflow_run_id: string | null,
     workflow_dependencies: string[] | null,
     parent_id: string | null,
+    status: 'queued' | 'waiting',
     task_name: string,
     args: JsonType,
     queue: string,
@@ -27,6 +29,7 @@ export type SerializedTask = {
     id: string,
     durable_id: string,
     root_id: string,
+    workflow_run_id: string | null,
     parent_id: string | null,
     task_name: string,
     args: JsonType,
@@ -122,10 +125,10 @@ export interface HyrexDispatcher {
     registerHyrexListener({ listenerName, sourceCode }: { listenerName: string, sourceCode: string }): Promise<void>
 
     // Workflow
-    registerWorkflow({ workflowName, sourceCode, workflowBuilder }: {
+    registerWorkflow({ workflowName, sourceCode, workflowDagJson }: {
         workflowName: string,
         sourceCode: string,
-        workflowBuilder: HyrexWorkflowBuilder
+        workflowDagJson: WorkflowDagJson
     }): Promise<void>
 
     sendWorkflowRun({ serializedWorkflowRunRequest }: { serializedWorkflowRunRequest: SerializedWorkflowRunRequest }): Promise<string>

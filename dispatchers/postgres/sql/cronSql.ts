@@ -189,7 +189,7 @@ BEGIN
           FROM hyrex_cron_job
          WHERE jobid = selected_jobid;
 
-        RETURN 'executed ' || job_name;
+        RETURN 'executed ' || COALESCE(job_name, 'unknown job');
     END IF;
 
     RETURN 'not_found';

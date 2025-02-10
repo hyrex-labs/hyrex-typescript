@@ -7,7 +7,7 @@ import {
     JsonType,
     UUID
 } from "../utils";
-import { HyrexWorkflowBuilder } from "./HyrexWorkflowBuilder";
+import { HyrexWorkflowBuilder, WorkflowDagJson } from "./HyrexWorkflowBuilder";
 import { getHyrexContext } from "../HyrexContext";
 import { v7 as uuidv7 } from "uuid";
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../dispatchers/HyrexDispatcher";
@@ -43,20 +43,20 @@ export class HyrexWorkflow {
     public name: string;
     public config: HyrexTaskConfig;
     public workflowArgSchema?: z.ZodType;
-    public workflowBuilder: HyrexWorkflowBuilder;
+    public workflowDagJson: WorkflowDagJson;
     private dispatcher: HyrexDispatcher;
 
-    constructor({ name, config, workflowArgSchema, workflowBuilder, dispatcher }: {
+    constructor({ name, config, workflowArgSchema, workflowDagJson, dispatcher }: {
         name: string,
         config: HyrexTaskConfig,
         workflowArgSchema?: z.ZodType,
-        workflowBuilder: HyrexWorkflowBuilder,
+        workflowDagJson: WorkflowDagJson,
         dispatcher: HyrexDispatcher,
     }) {
         this.name = name;
         this.config = config;
         this.workflowArgSchema = workflowArgSchema;
-        this.workflowBuilder = workflowBuilder;
+        this.workflowDagJson = workflowDagJson;
         this.dispatcher = dispatcher;
     }
 
@@ -102,7 +102,7 @@ export class HyrexWorkflow {
         const dependencyMap = new Map<any, Set<string>>();
 
         // Traverse each root task in the workflow builder.
-        for (const task of this.workflowBuilder.rootTasks) {
+        for (const task of HyrexWorkflowBuilder.fromJson(this.workflowDagJson).rootTasks) {
             this.traverse(task, nodeToRequest, dependencyMap, workflowId);
         }
 
@@ -111,6 +111,8 @@ export class HyrexWorkflow {
             const deps = dependencyMap.get(node);
             if (deps && deps.size > 0) {
                 request.workflow_dependencies = Array.from(deps);
+            } else {
+                request.status = 'queued'
             }
         }
 
@@ -148,6 +150,7 @@ export class HyrexWorkflow {
                 workflow_run_id: workflowId,
                 workflow_dependencies: null, // Will be populated after traversal.
                 parent_id: null, // Remains null by default; adjust if a primary parent is needed.
+                status: 'waiting',
                 task_name: node.name,
                 args: {}, // Replace with node-specific arguments if available.
                 queue: typeof this.config.queue === 'string' ? this.config.queue : this.config.queue.name,

@@ -68,7 +68,7 @@ export class HyrexRegistry {
             this.dispatcher.registerWorkflow({
                 workflowName: name,
                 sourceCode: body.toString(),
-                workflowBuilder: completedWorkflowBuilder
+                workflowDagJson: completedWorkflowBuilder.toJson()
             })
         }
 
@@ -76,7 +76,7 @@ export class HyrexRegistry {
             name,
             config: validatedTaskConfig,
             workflowArgSchema,
-            workflowBuilder: completedWorkflowBuilder,
+            workflowDagJson: completedWorkflowBuilder.toJson(),
             dispatcher: this.dispatcher
         })
     }

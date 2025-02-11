@@ -225,6 +225,8 @@ export const FETCH_TASK = `
         , ht.task_name
         , ht.args
         , ht.queue
+        , ht.attempt_number
+        , ht.max_retries
         , ht.priority
         , ht.timeout_seconds
         , ht.scheduled_start
@@ -258,6 +260,8 @@ export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
         , ht.task_name
         , ht.args
         , ht.queue
+        , ht.attempt_number
+        , ht.max_retries
         , ht.priority
         , ht.timeout_seconds
         , ht.scheduled_start

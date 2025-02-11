@@ -29,6 +29,8 @@ export type SerializedTask = {
     id: string,
     durable_id: string,
     root_id: string,
+    attempt_number: number,
+    max_retries: number,
     workflow_run_id: string | null,
     parent_id: string | null,
     task_name: string,

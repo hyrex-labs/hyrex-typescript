@@ -70,7 +70,6 @@ export class HyrexExecutor {
         hyrexLogger.info('task-processing', `▶ Starting task: task_name=${task.task_name}, task_id=${task.id}`, 'green')
         const { task_name, args } = task
         const func: HyrexTaskFunction = this.taskRegistry.getFunction(task_name)
-        const s3Logger = new S3Logger({ dispatcher: this.dispatcher })
         try {
             setHyrexContext({
                 taskId: task.id,
@@ -79,6 +78,8 @@ export class HyrexExecutor {
                 parentId: task.parent_id,
                 taskName: task.task_name,
                 queue: task.queue,
+                attemptNumber: task.attempt_number,
+                maxRetries: task.max_retries,
                 priority: task.priority,
                 timeoutSeconds: task.timeout_seconds,
                 scheduledStart: task.scheduled_start,
@@ -86,10 +87,6 @@ export class HyrexExecutor {
                 started: task.started,
                 executorId: this.executorId,
             });
-
-            s3Logger.startCapture(
-                `${task.id}`  // Creates a hierarchy of logs under id
-            );
 
             let funcToExecute: () => Promise<any>;
 
@@ -112,10 +109,8 @@ export class HyrexExecutor {
 
 
         } finally {
-            hyrexLogger.info('task-processing', `⏹ Ending task: task_name=${task.task_name}, task_id=${task.id}`, 'green')
+            hyrexLogger.info('task-processing', `⏹ Ending task: task_name=${task.task_name}, task_id=${task.id}`, 'dim')
             clearHyrexContext()
-            await s3Logger.endCapture();
-            s3Logger.uploadLogs()
         }
 
     }
@@ -268,20 +263,30 @@ export class HyrexExecutor {
             }
             const task = tasks[0]
 
+            const s3Logger = new S3Logger({ dispatcher: this.dispatcher })
             try {
                 this.updateTaskId(task.id)
+                s3Logger.startCapture(task.id)
                 const result = await this.processTask(task)
                 if (result) {
                     await this.dispatcher.saveResult(task.id, result)
                 }
                 await this.dispatcher.markTaskSuccess(task.id)
                 this.updateTaskId(null)
-            } catch (error) {
-                console.error(error)
-                await this.dispatcher.markTaskFailed(task.id)
-                hyrexLogger.error('task-processing', `Failed processing. taskId=${task.id}`, 'red')
-                this.updateTaskId(null)
-                await this.dispatcher.attemptRetry(task.id)
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    console.error(error)
+                    hyrexLogger.error('task-processing', error.message, 'red')
+                    await this.dispatcher.markTaskFailed(task.id)
+                    hyrexLogger.error('task-processing', `Failed processing. taskId=${task.id}`, 'red')
+                    this.updateTaskId(null)
+                    await this.dispatcher.attemptRetry(task.id)
+                } else {
+                    throw error;
+                }
+            } finally {
+                await s3Logger.endCapture();
+                s3Logger.uploadLogs()
             }
 
             if (task.workflow_run_id) {

@@ -676,11 +676,15 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
             const workflowStatus = rows[0].status
             if (workflowStatus === 'failed' || workflowStatus === 'success') {
+                if (workflowStatus === 'failed') {
+                    hyrexLogger.error('workflow', `Workflow ${workflowRunId} failed. Skipping all tasks.`, 'brightBlue')
+                    await client.query(workflowSQL.SKIP_WAITING_TASK_FOR_WORKFLOW_RUN_ID, [workflowRunId])
+                }
                 return // workflowStatus
             }
 
             await client.query(workflowSQL.ADVANCE_WORKFLOW_RUN, [workflowRunId])
-            return
+
         })
     }
 }

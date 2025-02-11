@@ -167,5 +167,14 @@ export const ADVANCE_WORKFLOW_RUN = `
                  ))
     UPDATE hyrex_task_run
     SET status = 'queued'
-    WHERE id IN (SELECT id FROM tasks_ready_to_queue);
+    WHERE id IN (SELECT id FROM tasks_ready_to_queue)
+    RETURNING status, workflow_run_id;
+`
+
+export const SKIP_WAITING_TASK_FOR_WORKFLOW_RUN_ID = `
+    UPDATE hyrex_task_run
+    SET status   = 'skipped'::task_run_status,
+        finished = CURRENT_TIMESTAMP
+    WHERE status = 'waiting'
+      AND workflow_run_id = $1
 `

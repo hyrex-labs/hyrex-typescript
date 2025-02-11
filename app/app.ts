@@ -19,12 +19,12 @@ const sleepTaskFunc = async () => {
     const ctx = getHyrexContext()
     await sleep(5_000)
     console.log(`My id is ${ctx.taskId}`)
-    if (ctx.attemptNumber === 0) {
+    if (ctx.attemptNumber === 0 || true) {
         throw new Error("We fail on first attempt.")
     }
 
 
-    await sleep(5_000);
+    // await sleep(5_000);
 }
 
 const initiateOnboard = hy.task({

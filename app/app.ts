@@ -19,12 +19,12 @@ const sleepTaskFunc = async () => {
     const ctx = getHyrexContext()
     await sleep(5_000)
     console.log(`My id is ${ctx.taskId}`)
-    if (ctx.attemptNumber === 0 || true) {
+    if (ctx.attemptNumber === 0) {
         throw new Error("We fail on first attempt.")
     }
 
 
-    // await sleep(5_000);
+    await sleep(5_000);
 }
 
 const initiateOnboard = hy.task({
@@ -57,11 +57,6 @@ const checkCreditFunc = () => {}
 const checkCredit = hy.task({
     name: "checkCredit",
     func: sleepTaskFunc
-})
-
-const checkCredit2 = hy.task({
-    name: "checkCredit2",
-    func: checkCreditFunc
 })
 
 const trainCreditMachineLearningModel = hy.task({
@@ -183,7 +178,7 @@ const rootLevelTask = hy.task({
             console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
             // Generate random number between 1 and 20
             // const numTasks = Math.floor(Math.random() * 3000) + 1
-            const numTasks = 10
+            const numTasks = 5
             await sleep(100)
 
             for (let i = 0; i < numTasks; i++) {

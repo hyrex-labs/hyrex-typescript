@@ -12,6 +12,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "release": "npm run build && npm publish --access private",
+    "release-public": "npm run build && npm publish",
     "worker": "ts-node cli.ts run-worker",
     "workerjs": "node dist/cli.js run-worker",
     "init-db": "node dist/cli.js init-db"

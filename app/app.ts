@@ -56,7 +56,9 @@ const checkCreditFunc = () => {}
 
 const checkCredit = hy.task({
     name: "checkCredit",
-    func: sleepTaskFunc
+    func: () => {
+        // const workflowRunContext = getHyrexWorkflowContext()
+    }
 })
 
 const trainCreditMachineLearningModel = hy.task({
@@ -71,12 +73,6 @@ function OnboardUserBody(workflowBuilder: HyrexWorkflowBuilder) {
         .next(approveUser)
 
     validateIdentity.next(checkCredit).next(trainCreditMachineLearningModel)
-
-    // withGroup([validatePayment, validateIdentity, validateOrg]).next(checkCredit)
-
-    // validatePayment.next(checkCredit.createStep("CheckCreditAfterPayment"))
-    // validateIdentity.next(checkCredit.createStep("CheckCreditAfterIdentityValidation"))
-    // validateOrg.next(checkCredit.createStep("CheckCreditAfterOrgValidation"))
 
 
     return workflowBuilder
@@ -138,7 +134,7 @@ const levelThreeTask = hy.task({
         func: async () => {
             const ctx = getHyrexContext()
             console.log(`Level Three Task ${JSON.stringify(ctx)}`)
-            await sleep(100)
+            await sleep(3000)
         },
     }
 )
@@ -154,7 +150,7 @@ const levelTwoTask = hy.task({
             const ctx = getHyrexContext()
             console.log(`Level Two Task... ${JSON.stringify(ctx)}`)
             const numTasks = 2  // Math.floor(Math.random() * 3) + 1
-            await sleep(100)
+            await sleep(3000)
             for (let i = 0; i < numTasks; i++) {
                 levelThreeTask.send()
             }
@@ -179,7 +175,7 @@ const rootLevelTask = hy.task({
             // Generate random number between 1 and 20
             // const numTasks = Math.floor(Math.random() * 3000) + 1
             const numTasks = 5
-            await sleep(100)
+            await sleep(3000)
 
             for (let i = 0; i < numTasks; i++) {
                 levelTwoTask.send()

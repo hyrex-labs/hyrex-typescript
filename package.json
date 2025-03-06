@@ -1,6 +1,6 @@
 {
   "name": "@hyrex/hyrex",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "The COLD Task Framework.",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -12,7 +12,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "release": "npm run build && npm publish --access private",
-    "release-public": "npm run build && npm publish",
+    "release-public": "npm run build && npm publish --access public",
     "worker": "ts-node cli.ts run-worker",
     "workerjs": "node dist/cli.js run-worker",
     "init-db": "node dist/cli.js init-db"

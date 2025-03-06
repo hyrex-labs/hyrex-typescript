@@ -7,9 +7,12 @@ export const CREATE_HISTORICAL_TASK_STATUS_COUNTS = `
         waiting       INTEGER,
         failed        INTEGER,
         success       INTEGER,
+        lost          INTEGER,
         total         INTEGER,
         queued_delta  INTEGER,
-        success_delta INTEGER
+        success_delta INTEGER,
+        failed_delta  INTEGER,
+        lost_delta    INTEGER
     );
 
     CREATE INDEX IF NOT EXISTS idx_hstsc_timepoint
@@ -86,7 +89,14 @@ export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE timepoin
                                            AND htr.finished <= t.timepoint
                                            THEN 1
                                        END
-                           ) AS success
+                           ) AS success,
+                           COUNT(
+                                   CASE
+                                       WHEN htr.status = 'lost'
+                                           AND htr.finished <= t.timepoint
+                                           THEN 1
+                                       END
+                           ) AS lost
                        FROM timepoints t
                                 LEFT JOIN hyrex_task_run htr
                                           ON (
@@ -116,9 +126,12 @@ export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE timepoin
                            waiting,
                            failed,
                            success,
-                           (queued + running + waiting + failed) AS total,
+                           lost,
+                           (queued + running + waiting + failed + lost) AS total,
                            (queued - LAG(queued, 1) OVER (ORDER BY timepoint))   AS queued_delta,
-                           (success - LAG(success, 1) OVER (ORDER BY timepoint)) AS success_delta
+                           (success - LAG(success, 1) OVER (ORDER BY timepoint)) AS success_delta,
+                           (failed - LAG(failed, 1) OVER (ORDER BY timepoint))   AS failed_delta,
+                           (lost - LAG(lost, 1) OVER (ORDER BY timepoint))       AS lost_delta
                        FROM queue_counts
                    )
     INSERT INTO hyrex_stats_task_status_counts
@@ -129,11 +142,16 @@ export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE timepoin
         waiting,
         failed,
         success,
+        lost,
         total,
         queued_delta,
-        success_delta
+        success_delta,
+        failed_delta,
+        lost_delta
     FROM final_counts
     WHERE queued_delta IS NOT NULL
       AND success_delta IS NOT NULL
+      AND failed_delta IS NOT NULL
+      AND lost_delta IS NOT NULL
     ON CONFLICT (timepoint) DO NOTHING;
 `

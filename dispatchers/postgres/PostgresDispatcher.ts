@@ -357,7 +357,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
-        queues: HyrexQueue[],
+        queues: string[],
         queuePattern: HyrexQueuePattern,
         executorId: string,
         executorName: string,
@@ -365,7 +365,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }): Promise<void> {
         const client = await this.pool.connect()
         try {
-            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, queuePattern.pattern, JSON.stringify(queues), workerName])
+            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, queuePattern.pattern, queues, workerName])
         } finally {
             client.release();
         }
@@ -374,7 +374,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     async updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }) {
         const client = await this.pool.connect()
         try {
-            await client.query(sql.UPDATE_QUEUES_ON_EXECUTOR, [executorId, JSON.stringify(queues)])
+            await client.query(sql.UPDATE_QUEUES_ON_EXECUTOR, [executorId, queues])
         } finally {
             client.release();
         }

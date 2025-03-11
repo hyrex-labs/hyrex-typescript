@@ -76,7 +76,7 @@ export interface HyrexDispatcher {
     // Executor settings
     registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
         executorId: string,
-        queues: HyrexQueue[],
+        queues: string[],
         queuePattern: HyrexQueuePattern,
         executorName: string,
         workerName: string

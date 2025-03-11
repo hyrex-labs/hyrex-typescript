@@ -212,7 +212,7 @@ export class HyrexExecutor {
             executorId: this.executorId,
             workerName: this.workerName,
             queuePattern: this.queuePattern,
-            queues: this.queues,
+            queues: this.queues.map(q => q.name),
             executorName: this.name
         });
 

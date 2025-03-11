@@ -279,11 +279,12 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async dequeue(
-        { numTasks, executorId, queueName, concurrencyLimit }: {
+        { numTasks, executorId, queueName, concurrencyLimit, taskNames }: {
             numTasks: number,
             executorId: string,
             queueName: string,
             concurrencyLimit?: number
+            taskNames: string[],
         }
     ): Promise<SerializedTask[]> {
         if (numTasks !== 1) {
@@ -296,12 +297,12 @@ export class PostgresDispatcher implements HyrexDispatcher {
             if (concurrencyLimit) {
                 result = await client.query<SerializedTask>(
                     sql.FETCH_TASK_WITH_CONCURRENCY_LIMIT,
-                    [queueName, concurrencyLimit, executorId]
+                    [queueName, concurrencyLimit, executorId, taskNames]
                 );
             } else {
                 result = await client.query<SerializedTask>(
                     sql.FETCH_TASK,
-                    [queueName, executorId]
+                    [queueName, executorId, taskNames]
                 );
             }
             return result.rows;

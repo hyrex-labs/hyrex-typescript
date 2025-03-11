@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS hyrex_executor
     name           VARCHAR NOT NULL,
     worker_name    VARCHAR NOT NULL,
     queue_pattern  VARCHAR NOT NULL,
-    queues         JSON    NOT NULL,
+    queues         VARCHAR[] NOT NULL,
     started        TIMESTAMP WITH TIME ZONE,
     stopped        TIMESTAMP WITH TIME ZONE,
     last_heartbeat TIMESTAMP WITH TIME ZONE,
@@ -209,7 +209,8 @@ export const FETCH_TASK = `
                        FROM hyrex_task_run
                        WHERE queue = $1
                          AND status = 'queued'
-                       ORDER BY priority DESC, queued
+                         AND task_name = ANY($3)
+                       ORDER BY priority ASC, queued
                            FOR UPDATE SKIP LOCKED
                        LIMIT 1)
     UPDATE hyrex_task_run AS ht
@@ -242,8 +243,9 @@ export const FETCH_TASK_WITH_CONCURRENCY_LIMIT = `
                        WHERE lock_acquired = TRUE
                          AND queue = $1
                          AND status = 'queued'
+                         AND task_name = ANY($3)
                          AND (SELECT COUNT(*) FROM hyrex_task_run WHERE queue = $1 AND status = 'running') < $2
-                       ORDER BY priority DESC, queued
+                       ORDER BY priority ASC, queued
                            FOR UPDATE SKIP LOCKED
                        LIMIT 1)
     UPDATE hyrex_task_run AS ht

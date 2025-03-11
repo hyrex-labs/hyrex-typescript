@@ -240,7 +240,8 @@ export class HyrexExecutor {
                 numTasks: 1,
                 executorId: this.executorId,
                 queueName: nextQueue.name,
-                concurrencyLimit: nextQueue.concurrencyLimit
+                concurrencyLimit: nextQueue.concurrencyLimit,
+                taskNames: Object.keys(this.taskRegistry.internalTaskRegistry)
             })
 
             // Perf monitoring

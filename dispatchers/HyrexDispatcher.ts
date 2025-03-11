@@ -54,7 +54,8 @@ export interface HyrexDispatcher {
         numTasks: number,
         executorId: string,
         queueName: string,
-        concurrencyLimit?: number
+        concurrencyLimit?: number,
+        taskNames: string[]
     }) => Promise<SerializedTask[]>
     fetchActiveQueueNames: ({ queuePattern }: { queuePattern: string }) => Promise<string[]>
 

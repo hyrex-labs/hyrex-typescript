@@ -174,7 +174,7 @@ const rootLevelTask = hy.task({
             console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
             // Generate random number between 1 and 20
             // const numTasks = Math.floor(Math.random() * 3000) + 1
-            const numTasks = 5
+            const numTasks = 500
             await sleep(3000)
 
             for (let i = 0; i < numTasks; i++) {

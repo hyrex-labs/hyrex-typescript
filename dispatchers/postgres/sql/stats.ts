@@ -57,6 +57,7 @@ export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE timepoin
                                    CASE
                                        WHEN htr.queued <= t.timepoint
                                            AND (htr.started IS NULL OR htr.started > t.timepoint)
+                                           AND htr.status = 'queued'
                                            THEN 1
                                        END
                            ) AS queued,
@@ -93,7 +94,7 @@ export const FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE = `WITH RECURSIVE timepoin
                            COUNT(
                                    CASE
                                        WHEN htr.status = 'lost'
-                                           AND htr.finished <= t.timepoint
+                                           AND (htr.finished IS NULL OR htr.finished <= t.timepoint)
                                            THEN 1
                                        END
                            ) AS lost

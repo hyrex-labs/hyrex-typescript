@@ -204,12 +204,53 @@ export const ENQUEUE_TASKS = `
     SELECT EXISTS (SELECT 1 FROM task_insertion) as task_created;
 `;
 
+export const createDequeueQuery = (taskNames: string[]) => {
+    const inPlaceholders = taskNames.map((_, idx) => `$${idx + 3}`).join(', ');
+
+    const sqlQuery = `
+    WITH next_task AS (
+      SELECT id
+      FROM hyrex_task_run
+      WHERE queue = $1
+        AND status = 'queued'
+        AND task_name IN (${inPlaceholders})
+      ORDER BY priority ASC, queued
+      FOR UPDATE SKIP LOCKED
+      LIMIT 1
+    )
+    UPDATE hyrex_task_run AS ht
+    SET status      = 'running',
+        started     = CURRENT_TIMESTAMP,
+        executor_id = $2
+    FROM next_task
+    WHERE ht.id = next_task.id
+    RETURNING ht.id,
+              ht.root_id,
+              ht.parent_id,
+              ht.workflow_run_id,
+              ht.task_name,
+              ht.args,
+              ht.queue,
+              ht.attempt_number,
+              ht.max_retries,
+              ht.priority,
+              ht.timeout_seconds,
+              ht.scheduled_start,
+              ht.queued,
+              ht.started;
+  `;
+
+    console.log('sqlQuery', sqlQuery);
+
+    return sqlQuery;
+}
+
 export const FETCH_TASK = `
     WITH next_task AS (SELECT id
                        FROM hyrex_task_run
                        WHERE queue = $1
                          AND status = 'queued'
-                         AND task_name = ANY($3)
+                         AND task_name IN ($3)
                        ORDER BY priority ASC, queued
                            FOR UPDATE SKIP LOCKED
                        LIMIT 1)

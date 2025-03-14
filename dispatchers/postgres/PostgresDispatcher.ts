@@ -19,6 +19,7 @@ import { HyrexWorkflowBuilder, WorkflowDagJson } from "../../workflow/HyrexWorkf
 import { UPSERT_WORKFLOW } from "./sql/workflowSql";
 import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
+import { createDequeueQuery } from "./sql/sql";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -301,8 +302,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 );
             } else {
                 result = await client.query<SerializedTask>(
-                    sql.FETCH_TASK,
-                    [queueName, executorId, taskNames]
+                    createDequeueQuery(taskNames),
+                    [queueName, executorId, ...taskNames]
                 );
             }
             return result.rows;

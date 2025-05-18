@@ -67,7 +67,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_hyrex_task_run_idempotency_key
     WHERE idempotency_key IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_hyrex_task_run_queue_status_priority_queued
-    ON hyrex_task_run (queue, status, priority DESC, queued);
+    ON hyrex_task_run (queue, status, priority ASC, queued);
 
 CREATE INDEX IF NOT EXISTS idx_htr_queued_started_finished
     ON hyrex_task_run(queued, started, finished);

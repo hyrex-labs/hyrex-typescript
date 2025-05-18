@@ -1,0 +1,13 @@
+{
+  "name": "HyrexSqlRunner",
+  "commands": [
+    {
+      "name": "CreateHyrexTaskExecutionTable",
+      "query": "create_hyrex_task_execution_table.sql"
+    },
+    {
+      "name": "CreateHyrexTaskTable",
+      "query": "create_hyrex_task_table.sql"
+    }
+  ]
+}

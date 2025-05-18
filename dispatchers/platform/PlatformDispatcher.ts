@@ -1,4 +1,9 @@
-import { HyrexDispatcher, SerializedTask, SerializedTaskRequest, DispatcherListenerCallbacks } from "../HyrexDispatcher";
+import {
+    HyrexDispatcher,
+    SerializedTask,
+    SerializedTaskRequest,
+    DispatcherListenerCallbacks
+} from "../HyrexDispatcher";
 import * as grpc from '@grpc/grpc-js';
 import { UUID, JsonType, HyrexTaskConfig } from "../../utils";
 import { AdminMessage, TaskHeartbeatResultMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
@@ -17,12 +22,34 @@ import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/stru
 export class PlatformDispatcher implements HyrexDispatcher {
     private client: grpc.Client;
     private serviceClient: GatewayServiceClient;
+    private metadata: grpc.Metadata;
 
-    constructor(serverAddress: string = 'api.hyrex.io') {
+    constructor({ apiKey }: { apiKey: string }) {
+        if (!apiKey) {
+            throw new Error('API key is required for PlatformDispatcher');
+        }
+
         // Create gRPC client
-        this.serviceClient = new GatewayServiceClient(serverAddress, grpc.credentials.createSsl());
+        this.serviceClient = new GatewayServiceClient('api.hyrex.io', grpc.credentials.createSsl());
         this.client = this.serviceClient as unknown as grpc.Client;
+
+        // Create metadata with API key
+        this.metadata = new grpc.Metadata();
+        this.metadata.set('x-api-key', apiKey);
     }
+
+    // /**
+    //  * Create a PlatformDispatcher instance using environment variables
+    //  * Requires HYREX_API_KEY to be set
+    //  */
+    // static fromEnv(serverAddress?: string): PlatformDispatcher {
+    //     const apiKey = process.env.HYREX_API_KEY;
+    //     if (!apiKey) {
+    //         throw new Error('HYREX_API_KEY environment variable is required');
+    //     }
+    //
+    //     return new PlatformDispatcher({ apiKey });
+    // }
 
     // Convert task status string to proto enum
     private taskStatusToProto(status: string): task_pb.TaskStatusMap[keyof task_pb.TaskStatusMap] {
@@ -86,7 +113,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
             priority: taskRun.getPriority().toString(),
             timeout_seconds: taskRun.hasTimeoutSeconds() ? taskRun.getTimeoutSeconds() : null,
             scheduled_start: scheduled ? scheduled.toDate().toISOString() : null,
-            queued: queued ? queued.toDate().toISOString() :null,
+            queued: queued ? queued.toDate().toISOString() : null,
             started: started ? started.toDate().toISOString() : null
         };
     }
@@ -130,7 +157,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
             try {
                 await new Promise<void>((resolve, reject) => {
-                    this.serviceClient.enqueue(request, (err: Error | null, response?: requests_pb.EnqueueTaskResponse) => {
+                    this.serviceClient.enqueue(request, this.metadata, (err: Error | null, response?: requests_pb.EnqueueTaskResponse) => {
                         if (err) reject(err);
                         else resolve();
                     });
@@ -164,7 +191,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
             try {
                 const response = await new Promise<requests_pb.DequeueTaskResponse | undefined>((resolve, reject) => {
-                    this.serviceClient.dequeue(request, (err: Error | null, response?: requests_pb.DequeueTaskResponse) => {
+                    this.serviceClient.dequeue(request, this.metadata, (err: Error | null, response?: requests_pb.DequeueTaskResponse) => {
                         if (err) reject(err);
                         else resolve(response);
                     });
@@ -191,7 +218,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             const response = await new Promise<requests_pb.GetQueuesResponse | undefined>((resolve, reject) => {
-                this.serviceClient.getQueues(request, (err: Error | null, response?: requests_pb.GetQueuesResponse) => {
+                this.serviceClient.getQueues(request, this.metadata, (err: Error | null, response?: requests_pb.GetQueuesResponse) => {
                     if (err) reject(err);
                     else resolve(response);
                 });
@@ -210,7 +237,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.markSuccess(request, (err: Error | null, response?: requests_pb.MarkSuccessResponse) => {
+                this.serviceClient.markSuccess(request, this.metadata, (err: Error | null, response?: requests_pb.MarkSuccessResponse) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -227,7 +254,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.markFailed(request, (err: Error | null, response?: requests_pb.MarkFailedResponse) => {
+                this.serviceClient.markFailed(request, this.metadata, (err: Error | null, response?: requests_pb.MarkFailedResponse) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -253,7 +280,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.markSuccess(request, (err: Error | null, response?: requests_pb.MarkSuccessResponse) => {
+                this.serviceClient.markSuccess(request, this.metadata, (err: Error | null, response?: requests_pb.MarkSuccessResponse) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -271,7 +298,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             const response = await new Promise<requests_pb.GetTaskRunResponse | undefined>((resolve, reject) => {
-                this.serviceClient.getTaskRun(request, (err: Error | null, response?: requests_pb.GetTaskRunResponse) => {
+                this.serviceClient.getTaskRun(request, this.metadata, (err: Error | null, response?: requests_pb.GetTaskRunResponse) => {
                     if (err) reject(err);
                     else resolve(response);
                 });
@@ -316,7 +343,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.registerExecutor(request, (err: Error | null, response?: requests_pb.RegisterExecutorResponse) => {
+                this.serviceClient.registerExecutor(request, this.metadata, (err: Error | null, response?: requests_pb.RegisterExecutorResponse) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -332,7 +359,10 @@ export class PlatformDispatcher implements HyrexDispatcher {
         throw new Error("Method not implemented.");
     }
 
-    async emitExecutorStats({ executorId, stats }: { executorId: string, stats: object }): Promise<'ACCEPTED' | 'REJECTED'> {
+    async emitExecutorStats({ executorId, stats }: {
+        executorId: string,
+        stats: object
+    }): Promise<'ACCEPTED' | 'REJECTED'> {
         // Not directly implemented in the proto
         return 'ACCEPTED';
     }
@@ -344,7 +374,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.updateExecutorQueues(request, (err: Error | null, response?: requests_pb.UpdateExecutorQueuesResponse) => {
+                this.serviceClient.updateExecutorQueues(request, this.metadata, (err: Error | null, response?: requests_pb.UpdateExecutorQueuesResponse) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -379,14 +409,17 @@ export class PlatformDispatcher implements HyrexDispatcher {
         throw new Error("Method not implemented.");
     }
 
-    async acquireSchedulerLock({ workerId, workerName }: { workerId: string, workerName: string }): Promise<number | null> {
+    async acquireSchedulerLock({ workerId, workerName }: {
+        workerId: string,
+        workerName: string
+    }): Promise<number | null> {
         const request = new requests_pb.AcquireSchedulerLockRequest();
         request.setWorkerName(workerName);
         request.setDuration("5m"); // Assuming a 5-minute lock duration
 
         try {
             const response = await new Promise<requests_pb.AcquireSchedulerLockResponse | undefined>((resolve, reject) => {
-                this.serviceClient.acquireSchedulerLock(request, (err: Error | null, response?: requests_pb.AcquireSchedulerLockResponse) => {
+                this.serviceClient.acquireSchedulerLock(request, this.metadata, (err: Error | null, response?: requests_pb.AcquireSchedulerLockResponse) => {
                     if (err) reject(err);
                     else resolve(response);
                 });
@@ -436,7 +469,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.setLogLink(request, (err: Error | null, response?: requests_pb.SetLogLinkResponse) => {
+                this.serviceClient.setLogLink(request, this.metadata, (err: Error | null, response?: requests_pb.SetLogLinkResponse) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -465,7 +498,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.registerApp(request, (err: Error | null, response?: requests_pb.RegisterAppResponse) => {
+                this.serviceClient.registerApp(request, this.metadata, (err: Error | null, response?: requests_pb.RegisterAppResponse) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -481,7 +514,10 @@ export class PlatformDispatcher implements HyrexDispatcher {
         return null;
     }
 
-    async registerHyrexListener({ listenerName, sourceCode }: { listenerName: string, sourceCode: string }): Promise<void> {
+    async registerHyrexListener({ listenerName, sourceCode }: {
+        listenerName: string,
+        sourceCode: string
+    }): Promise<void> {
         // Not directly implemented in the proto
         throw new Error("Method not implemented.");
     }
@@ -495,7 +531,9 @@ export class PlatformDispatcher implements HyrexDispatcher {
         throw new Error("Method not implemented.");
     }
 
-    async sendWorkflowRun({ serializedWorkflowRunRequest }: { serializedWorkflowRunRequest: SerializedWorkflowRunRequest }): Promise<string> {
+    async sendWorkflowRun({ serializedWorkflowRunRequest }: {
+        serializedWorkflowRunRequest: SerializedWorkflowRunRequest
+    }): Promise<string> {
         // Not directly implemented in the proto
         throw new Error("Method not implemented.");
     }

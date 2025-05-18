@@ -14,6 +14,7 @@ import { HyrexCronScheduler } from "./cron/HyrexCronScheduler";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 import { HyrexAppInfo } from "./types";
 import { PlatformDispatcher } from "./dispatchers/platform/PlatformDispatcher";
+import { envVariables } from "./EnvironmentVariables";
 
 const AppConfigSchema = z.object({
     name: z.string(),
@@ -58,11 +59,11 @@ export class HyrexApp {
 
         this.hyrexAppInfo = { name }
         this.conn = conn || process.env.HYREX_DATABASE_URL
-        this.apiKey = apiKey || process.env.HYREX_API_KEY
+        this.apiKey = apiKey || envVariables.getApiKey()
         this.errorCallback = errorCallback
         if (this.apiKey) {
             hyrexLogger.info("platform", `Created New PlatformDispatcher in worker. pid=${process.pid}`, 'magenta')
-            this.dispatcher = new PlatformDispatcher()
+            this.dispatcher = new PlatformDispatcher({ apiKey: this.apiKey })
         } else if (this.conn) {
             hyrexLogger.info("postgres", `Created New PostgresDispatcher in worker. pid=${process.pid}`, 'magenta')
             this.dispatcher = new PostgresDispatcher({ conn: this.conn })

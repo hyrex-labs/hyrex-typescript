@@ -8,6 +8,8 @@ export const COLOR_MAP = {
     magenta: '35',
     cyan: '36',
     white: '37',
+    orange: '38;5;208',
+    brown: '38;5;130',
 
     // Bright colors
     brightBlack: '90',

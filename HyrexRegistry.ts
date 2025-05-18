@@ -18,6 +18,7 @@ import { COMMANDS } from "./commands";
 import { HyrexWorkflowBuilder } from "./workflow/HyrexWorkflowBuilder";
 import { WorkflowTask } from "./workflow/HyrexWorkflowBuilder";
 import { HyrexWorkflow, HyrexWorkflowSchema } from "./workflow/HyrexWorkflow";
+import { PlatformDispatcher } from "./dispatchers/platform/PlatformDispatcher";
 
 type HyrexTaskProps = {
     name: string;
@@ -36,7 +37,11 @@ export class HyrexRegistry {
         this.internalQueueRegistry = {}
 
         const databaseUrl = envVariables.getDatabaseUrl()
-        if (databaseUrl) {
+        const apiKey = envVariables.getApiKey()
+        if (apiKey) {
+            hyrexLogger.info("platform", `Created New PlatformDispatcher in registry. pid=${process.pid}`, 'brown')
+            this.dispatcher = new PlatformDispatcher({ apiKey })
+        } else if (databaseUrl) {
             hyrexLogger.info("postgres", `Created New PostgresDispatcher in registry. pid=${process.pid}`, 'magenta')
             this.dispatcher = new PostgresDispatcher({ conn: databaseUrl })
         } else if (process.env.HYREX_API_KEY) {

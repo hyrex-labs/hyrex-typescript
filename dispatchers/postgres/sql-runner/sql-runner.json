@@ -3,11 +3,243 @@
   "commands": [
     {
       "name": "CreateHyrexTaskExecutionTable",
-      "query": "create_hyrex_task_execution_table.sql"
+      "query": "schemas/create_hyrex_task_execution_table.sql"
     },
     {
       "name": "CreateHyrexTaskTable",
-      "query": "create_hyrex_task_table.sql"
+      "query": "schemas/create_hyrex_task_table.sql"
+    },
+    {
+      "name": "CreateHyrexCronJobTable",
+      "query": "schemas/create_hyrex_cron_job_table.sql"
+    },
+    {
+      "name": "CreateHyrexCronJobRunDetailsTable",
+      "query": "schemas/create_hyrex_cron_job_run_details_table.sql"
+    },
+    {
+      "name": "CreateHyrexSchedulerLockTable",
+      "query": "schemas/create_hyrex_scheduler_lock_table.sql"
+    },
+    {
+      "name": "CreateExecuteQueuedCommandFunction",
+      "query": "schemas/create_execute_queued_command_function.sql"
+    },
+    {
+      "name": "CreateHyrexListenerTable",
+      "query": "schemas/create_hyrex_listener_table.sql"
+    },
+    {
+      "name": "CreateSystemLogTable",
+      "query": "schemas/create_system_log_table.sql"
+    },
+    {
+      "name": "CreateHyrexAppTable",
+      "query": "schemas/create_hyrex_app_table.sql"
+    },
+    {
+      "name": "CreateExecutorTable",
+      "query": "schemas/create_executor_table.sql"
+    },
+    {
+      "name": "CreateResultsTable",
+      "query": "schemas/create_results_table.sql"
+    },
+    {
+      "name": "CreateHistoricalTaskStatusCounts",
+      "query": "schemas/create_historical_task_status_counts.sql"
+    },
+    {
+      "name": "CreateWorkflowTable",
+      "query": "schemas/create_workflow_table.sql"
+    },
+    {
+      "name": "CreateWorkflowRunTable",
+      "query": "schemas/create_workflow_run_table.sql"
+    },
+    {
+      "name": "CreateMaterializedViewQueuedStats",
+      "query": "schemas/create_materialized_view_queued_stats.sql"
+    },
+    {
+      "name": "CreateGetFreshQueuedStatsFunction",
+      "query": "schemas/create_get_fresh_queued_stats_function.sql"
+    },
+    {
+      "name": "RegisterAppInfo",
+      "query": "app/register_app_info.sql",
+      "params": ["appId", "appInfo"]
+    },
+    {
+      "name": "EnqueueTask",
+      "query": "task_run/enqueue_task.sql",
+      "params": ["taskId", "durableId", "rootId", "workflowRunId", "workflowDependencies", "parentId", "status", "taskName", "taskArgs", "queue", "maxRetries", "priority", "timeoutSeconds", "idempotencyKey"]
+    },
+    {
+      "name": "FetchTask",
+      "query": "task_run/fetch_task.sql",
+      "params": ["taskQueue", "executorId", "taskNames"]
+    },
+    {
+      "name": "FetchTaskWithConcurrencyLimit",
+      "query": "task_run/fetch_task_with_concurrency_limit.sql",
+      "params": ["taskQueue", "concurrencyLimit", "taskNames", "executorId"]
+    },
+    {
+      "name": "MarkTaskFailed",
+      "query": "task_run/mark_task_failed.sql",
+      "params": ["taskId"]
+    },
+    {
+      "name": "MarkTaskSuccess",
+      "query": "task_run/mark_task_success.sql",
+      "params": ["taskId"]
+    },
+    {
+      "name": "MarkTaskCanceled",
+      "query": "task_run/mark_task_canceled.sql",
+      "params": ["taskId"]
+    },
+    {
+      "name": "MarkTaskLost",
+      "query": "task_run/mark_task_lost.sql",
+      "params": ["taskId"]
+    },
+    {
+      "name": "RegisterExecutor",
+      "query": "executor/register_executor.sql",
+      "params": ["executorId", "executorName", "queuePattern", "queues", "workerName"]
+    },
+    {
+      "name": "UpdateQueuesOnExecutor",
+      "query": "executor/update_queues_on_executor.sql",
+      "params": ["executorId", "queues"]
+    },
+    {
+      "name": "DisconnectExecutor",
+      "query": "executor/disconnect_executor.sql",
+      "params": ["executorId", "stats"]
+    },
+    {
+      "name": "UpdateExecutorStats",
+      "query": "executor/update_executor_stats.sql",
+      "params": ["executorId", "stats"]
+    },
+    {
+      "name": "BatchUpdateHeartbeatOnExecutors",
+      "query": "executor/batch_update_heartbeat_on_executors.sql",
+      "params": ["executorIds"]
+    },
+    {
+      "name": "BatchUpdateHeartbeatLog",
+      "query": "executor/batch_update_heartbeat_log.sql",
+      "params": ["logId", "executorIds"]
+    },
+    {
+      "name": "SaveResult",
+      "query": "task_run/save_result.sql",
+      "params": ["taskId", "result"]
+    },
+    {
+      "name": "FetchResult",
+      "query": "task_run/fetch_result.sql",
+      "params": ["taskId"]
+    },
+    {
+      "name": "FetchActiveQueueNames",
+      "query": "task_run/fetch_active_queue_names.sql",
+      "params": ["queuePattern"]
+    },
+    {
+      "name": "ConditionallyRetryTask",
+      "query": "task_run/conditionally_retry_task.sql",
+      "params": ["originalTaskId", "newTaskId"]
+    },
+    {
+      "name": "UpsertTask",
+      "query": "task/upsert_task.sql",
+      "params": ["taskName", "cronExpr", "sourceCode"]
+    },
+    {
+      "name": "SetLogLink",
+      "query": "task_run/set_log_link.sql",
+      "params": ["taskId", "logLink"]
+    },
+    {
+      "name": "AcquireSchedulerLock",
+      "query": "scheduler/acquire_scheduler_lock.sql",
+      "params": ["workerName", "releaseDuration"]
+    },
+    {
+      "name": "ReleaseSchedulerLock",
+      "query": "scheduler/release_scheduler_lock.sql",
+      "params": ["workerName"]
+    },
+    {
+      "name": "PullActiveCronExpressions",
+      "query": "cron_job/pull_active_cron_expressions.sql"
+    },
+    {
+      "name": "UpdateCronJobConfirmationTs",
+      "query": "cron_job/update_cron_job_confirmation_ts.sql",
+      "params": ["jobId"]
+    },
+    {
+      "name": "CreateCronJobForTask",
+      "query": "cron_job/create_cron_job_for_task.sql",
+      "params": ["schedule", "command", "jobName"]
+    },
+    {
+      "name": "TurnOffCronForTask",
+      "query": "cron_job/turn_off_cron_for_task.sql",
+      "params": ["jobName"]
+    },
+    {
+      "name": "CreateCronJobForSqlQuery",
+      "query": "cron_job/create_cron_job_for_sql_query.sql",
+      "params": ["schedule", "command", "jobName", "shouldBackfill"]
+    },
+    {
+      "name": "RegisterHyrexListener",
+      "query": "listener/register_hyrex_listener.sql",
+      "params": ["listenerName", "sourceCode"]
+    },
+    {
+      "name": "UpsertWorkflow",
+      "query": "workflow/upsert_workflow.sql",
+      "params": ["workflowName", "cronExpr", "sourceCode", "dagStructure"]
+    },
+    {
+      "name": "InsertWorkflowRun",
+      "query": "workflow_run/insert_workflow_run.sql",
+      "params": ["workflowRunId", "workflowName", "args", "queue", "timeoutSeconds", "idempotencyKey"]
+    },
+    {
+      "name": "SetWorkflowRunStatusBasedOnTaskRuns",
+      "query": "workflow_run/set_workflow_run_status_based_on_task_runs.sql",
+      "params": ["workflowRunId"]
+    },
+    {
+      "name": "AdvanceWorkflowRun",
+      "query": "workflow_run/advance_workflow_run.sql",
+      "params": ["workflowRunId"]
+    },
+    {
+      "name": "SkipWaitingTaskForWorkflowRunId",
+      "query": "workflow_run/skip_waiting_task_for_workflow_run_id.sql",
+      "params": ["workflowRunId"]
+    },
+    {
+      "name": "SetOrphanedTaskExecutionToLostAndRetry",
+      "query": "durability/set_orphaned_task_execution_to_lost_and_retry.sql"
+    },
+    {
+      "name": "SetExecutorToLostIfNoHeartbeat",
+      "query": "durability/set_executor_to_lost_if_no_heartbeat.sql"
+    },
+    {
+      "name": "FillHistoricalTaskStatusCountsTable",
+      "query": "stats/fill_historical_task_status_counts_table.sql"
     }
   ]
 }

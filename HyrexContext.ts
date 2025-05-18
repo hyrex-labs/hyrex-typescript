@@ -27,9 +27,9 @@ export type HyrexContext = {
     /** ISO timestamp when the task is scheduled to start, null for immediate execution */
     scheduledStart: string | null;
     /** ISO timestamp when the task was queued */
-    queued: string;
+    queued: string | null;
     /** ISO timestamp when the task execution started */
-    started: string;
+    started: string | null;
     /** Unique identifier of the executor processing this task */
     executorId: string;
 };

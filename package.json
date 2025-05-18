@@ -35,6 +35,9 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@grpc/grpc-js": "^1.13.3",
+    "@grpc/proto-loader": "^0.7.15",
+    "@types/google-protobuf": "^3.15.12",
     "@types/node": "^22.8.2",
     "@types/proper-lockfile": "^4.1.4",
     "@types/sqlite3": "^3.1.11",
@@ -42,7 +45,11 @@
     "@types/winston": "^2.4.4",
     "@types/yargs": "^17.0.33",
     "dotenv": "^16.4.5",
+    "google-protobuf": "^3.21.4",
+    "grpc-tools": "^1.13.0",
+    "protobufjs": "^7.5.2",
     "ts-node": "^10.9.2",
+    "ts-protoc-gen": "^0.15.0",
     "typedoc": "^0.27.5"
   }
 }

@@ -39,8 +39,8 @@ export type SerializedTask = {
     priority: string,
     timeout_seconds: number | null,
     scheduled_start: string | null,
-    queued: string,
-    started: string
+    queued: string | null,
+    started: string | null
 }
 
 export type DispatcherListenerCallbacks = {

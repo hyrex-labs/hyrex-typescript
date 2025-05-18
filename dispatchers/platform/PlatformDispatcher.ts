@@ -1,9 +1,512 @@
-import { HyrexDispatcher } from "../HyrexDispatcher";
+import { HyrexDispatcher, SerializedTask, SerializedTaskRequest, DispatcherListenerCallbacks } from "../HyrexDispatcher";
+import * as grpc from '@grpc/grpc-js';
+import { UUID, JsonType, HyrexTaskConfig } from "../../utils";
+import { AdminMessage, TaskHeartbeatResultMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
+import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
+import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
+import { SerializedWorkflowRunRequest } from "../../workflow/HyrexWorkflow";
+import { WorkflowDagJson } from "../../workflow/HyrexWorkflowBuilder";
 
-// export class PlatformDispatcher implements HyrexDispatcher {
-//
-// }
+// Import generated clients
+import { GatewayServiceClient } from './generated/gateway_grpc_pb';
+import * as gateway_pb from './generated/gateway_pb';
+import * as requests_pb from './generated/requests_pb';
+import * as task_pb from './generated/task_pb';
+import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
 
-export class PlatformDispatcher {
+export class PlatformDispatcher implements HyrexDispatcher {
+    private client: grpc.Client;
+    private serviceClient: GatewayServiceClient;
 
+    constructor(serverAddress: string = 'api.hyrex.io') {
+        // Create gRPC client
+        this.serviceClient = new GatewayServiceClient(serverAddress, grpc.credentials.createSsl());
+        this.client = this.serviceClient as unknown as grpc.Client;
+    }
+
+    // Convert task status string to proto enum
+    private taskStatusToProto(status: string): task_pb.TaskStatusMap[keyof task_pb.TaskStatusMap] {
+        switch (status) {
+            case 'queued':
+                return task_pb.TaskStatus.QUEUED;
+            case 'waiting':
+                return task_pb.TaskStatus.WAITING;
+            case 'running':
+                return task_pb.TaskStatus.RUNNING;
+            case 'success':
+                return task_pb.TaskStatus.SUCCESS;
+            case 'failed':
+                return task_pb.TaskStatus.FAILED;
+            default:
+                return task_pb.TaskStatus.UNSPECIFIED;
+        }
+    }
+
+    // Convert proto task status to string
+    private protoToTaskStatus(status: task_pb.TaskStatusMap[keyof task_pb.TaskStatusMap]): string {
+        switch (status) {
+            case task_pb.TaskStatus.QUEUED:
+                return 'queued';
+            case task_pb.TaskStatus.WAITING:
+                return 'waiting';
+            case task_pb.TaskStatus.RUNNING:
+                return 'running';
+            case task_pb.TaskStatus.SUCCESS:
+                return 'success';
+            case task_pb.TaskStatus.FAILED:
+                return 'failed';
+            default:
+                return 'unknown';
+        }
+    }
+
+    // Convert priority number to proto enum
+    private priorityToProto(priority: number): task_pb.PriorityMap[keyof task_pb.PriorityMap] {
+        // Map priority 1-10 to proto enum
+        return priority as unknown as task_pb.PriorityMap[keyof task_pb.PriorityMap];
+    }
+
+    // Convert proto TaskRun to SerializedTask
+    private protoTaskRunToSerializedTask(taskRun: task_pb.TaskRun): SerializedTask {
+        const queued = taskRun.getQueued();
+        const started = taskRun.getStarted();
+        const scheduled = taskRun.getScheduledStart();
+
+        return {
+            id: taskRun.getId(),
+            durable_id: taskRun.getDurableId(),
+            root_id: taskRun.getRootId(),
+            attempt_number: taskRun.getAttemptNumber(),
+            max_retries: taskRun.getMaxRetries(),
+            workflow_run_id: taskRun.hasWorkflowRunId() ? taskRun.getWorkflowRunId() : null,
+            parent_id: taskRun.getParentId() || null,
+            task_name: taskRun.getTaskName(),
+            args: JSON.parse(Buffer.from(taskRun.getArgs_asU8()).toString()),
+            queue: taskRun.getQueue(),
+            priority: taskRun.getPriority().toString(),
+            timeout_seconds: taskRun.hasTimeoutSeconds() ? taskRun.getTimeoutSeconds() : null,
+            scheduled_start: scheduled ? scheduled.toDate().toISOString() : null,
+            queued: queued ? queued.toDate().toISOString() :null,
+            started: started ? started.toDate().toISOString() : null
+        };
+    }
+
+    // Implement HyrexDispatcher interface methods
+    async enqueue(serializedTasks: SerializedTaskRequest[]): Promise<UUID[]> {
+        const taskIds: UUID[] = [];
+
+        for (const task of serializedTasks) {
+            const request = new requests_pb.EnqueueTaskRequest();
+            request.setId(task.id);
+            request.setDurableId(task.durable_id);
+            request.setRootId(task.root_id);
+
+            if (task.workflow_run_id) {
+                request.setWorkflowRunId(task.workflow_run_id);
+            }
+
+            if (task.workflow_dependencies && task.workflow_dependencies.length > 0) {
+                request.setWorkflowDependenciesList(task.workflow_dependencies);
+            }
+
+            if (task.parent_id) {
+                request.setParentId(task.parent_id);
+            }
+
+            request.setStatus(this.taskStatusToProto(task.status));
+            request.setTaskName(task.task_name);
+            request.setArgs(Buffer.from(JSON.stringify(task.args)));
+            request.setQueue(task.queue);
+            request.setMaxRetries(task.max_retries);
+            request.setPriority(this.priorityToProto(task.priority));
+
+            if (task.timeout_seconds !== null) {
+                request.setTimeoutSeconds(task.timeout_seconds);
+            }
+
+            if (task.idempotency_key) {
+                request.setIdempotencyKey(task.idempotency_key);
+            }
+
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    this.serviceClient.enqueue(request, (err: Error | null, response?: requests_pb.EnqueueTaskResponse) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+
+                taskIds.push(task.id);
+            } catch (error) {
+                console.error('Error enqueueing task:', error);
+                throw error;
+            }
+        }
+
+        return taskIds;
+    }
+
+    async dequeue({ numTasks, executorId, queueName, concurrencyLimit, taskNames }: {
+        numTasks: number,
+        executorId: string,
+        queueName: string,
+        concurrencyLimit?: number,
+        taskNames: string[]
+    }): Promise<SerializedTask[]> {
+        const serializedTasks: SerializedTask[] = [];
+
+        // For simplicity, we'll just dequeue one task at a time
+        // In a real implementation, you might want to implement batching
+        for (let i = 0; i < numTasks; i++) {
+            const request = new requests_pb.DequeueTaskRequest();
+            request.setExecutorId(executorId);
+            request.setQueue(queueName);
+
+            try {
+                const response = await new Promise<requests_pb.DequeueTaskResponse | undefined>((resolve, reject) => {
+                    this.serviceClient.dequeue(request, (err: Error | null, response?: requests_pb.DequeueTaskResponse) => {
+                        if (err) reject(err);
+                        else resolve(response);
+                    });
+                });
+
+                if (response && response.getTask()) {
+                    serializedTasks.push(this.protoTaskRunToSerializedTask(response.getTask()!));
+                } else {
+                    // No more tasks to dequeue
+                    break;
+                }
+            } catch (error) {
+                console.error('Error dequeueing task:', error);
+                throw error;
+            }
+        }
+
+        return serializedTasks;
+    }
+
+    async fetchActiveQueueNames({ queuePattern }: { queuePattern: string }): Promise<string[]> {
+        const request = new requests_pb.GetQueuesRequest();
+        request.setPattern(queuePattern);
+
+        try {
+            const response = await new Promise<requests_pb.GetQueuesResponse | undefined>((resolve, reject) => {
+                this.serviceClient.getQueues(request, (err: Error | null, response?: requests_pb.GetQueuesResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            return response ? response.getQueuesList() : [];
+        } catch (error) {
+            console.error('Error fetching active queue names:', error);
+            throw error;
+        }
+    }
+
+    async markTaskSuccess(taskId: UUID): Promise<void> {
+        const request = new requests_pb.MarkSuccessRequest();
+        request.setTaskId(taskId);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.markSuccess(request, (err: Error | null, response?: requests_pb.MarkSuccessResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error marking task as success:', error);
+            throw error;
+        }
+    }
+
+    async markTaskFailed(taskId: UUID): Promise<void> {
+        const request = new requests_pb.MarkFailedRequest();
+        request.setTaskId(taskId);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.markFailed(request, (err: Error | null, response?: requests_pb.MarkFailedResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error marking task as failed:', error);
+            throw error;
+        }
+    }
+
+    // Implement other required methods from HyrexDispatcher interface
+    // These are placeholders that should be implemented properly
+
+    async markTaskCanceled(taskId: UUID): Promise<boolean> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async saveResult(taskId: UUID, result: JsonType): Promise<boolean> {
+        const request = new requests_pb.MarkSuccessRequest();
+        request.setTaskId(taskId);
+        request.setResult(JSON.stringify(result));
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.markSuccess(request, (err: Error | null, response?: requests_pb.MarkSuccessResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            return true;
+        } catch (error) {
+            console.error('Error saving result:', error);
+            return false;
+        }
+    }
+
+    async getResult(taskId: UUID): Promise<JsonType> {
+        const request = new requests_pb.GetTaskRunRequest();
+        request.setTaskId(taskId);
+
+        try {
+            const response = await new Promise<requests_pb.GetTaskRunResponse | undefined>((resolve, reject) => {
+                this.serviceClient.getTaskRun(request, (err: Error | null, response?: requests_pb.GetTaskRunResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            if (response && response.getTask()) {
+                const task = response.getTask()!;
+                const resultStr = task.getResult();
+                return resultStr ? JSON.parse(resultStr) : ({} as JsonType);
+            }
+
+            return {} as JsonType;
+        } catch (error) {
+            console.error('Error getting result:', error);
+            throw error;
+        }
+    }
+
+    async updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async attemptRetry(taskId: UUID): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
+        executorId: string,
+        queues: string[],
+        queuePattern: HyrexQueuePattern,
+        executorName: string,
+        workerName: string
+    }): Promise<void> {
+        const request = new requests_pb.RegisterExecutorRequest();
+        request.setExecutorId(executorId);
+        request.setExecutorName(executorName);
+        request.setQueuePattern(queuePattern.pattern);
+        request.setQueuesList(queues);
+        request.setWorkerName(workerName);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.registerExecutor(request, (err: Error | null, response?: requests_pb.RegisterExecutorResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error registering executor:', error);
+            throw error;
+        }
+    }
+
+    async disconnectExecutor({ executorId, stats }: { executorId: string, stats: object }): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async emitExecutorStats({ executorId, stats }: { executorId: string, stats: object }): Promise<'ACCEPTED' | 'REJECTED'> {
+        // Not directly implemented in the proto
+        return 'ACCEPTED';
+    }
+
+    async updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }): Promise<void> {
+        const request = new requests_pb.UpdateExecutorQueuesRequest();
+        request.setExecutorId(executorId);
+        request.setQueuesList(queues.map(q => q.name));
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.updateExecutorQueues(request, (err: Error | null, response?: requests_pb.UpdateExecutorQueuesResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error updating queues on executor:', error);
+            throw error;
+        }
+    }
+
+    async updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async updateExecutorHeartbeats({ executorIds }: { executorIds: string[] }): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async registerTask({ taskName, taskConfig, sourceCode }: {
+        taskName: string,
+        taskConfig?: HyrexTaskConfig,
+        sourceCode?: string
+    }): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async listen(hyrexListener: DispatcherListenerCallbacks): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async acquireSchedulerLock({ workerId, workerName }: { workerId: string, workerName: string }): Promise<number | null> {
+        const request = new requests_pb.AcquireSchedulerLockRequest();
+        request.setWorkerName(workerName);
+        request.setDuration("5m"); // Assuming a 5-minute lock duration
+
+        try {
+            const response = await new Promise<requests_pb.AcquireSchedulerLockResponse | undefined>((resolve, reject) => {
+                this.serviceClient.acquireSchedulerLock(request, (err: Error | null, response?: requests_pb.AcquireSchedulerLockResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            return response && response.hasLockId() ? response.getLockId() : null;
+        } catch (error) {
+            console.error('Error acquiring scheduler lock:', error);
+            return null;
+        }
+    }
+
+    async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async pullCronJobExpressions(): Promise<CronJob[]> {
+        // Not directly implemented in the proto
+        return [];
+    }
+
+    async updateCronJobConfirmationTimestamp(jobId: number): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async executeQueuedCronJobRun(): Promise<string | null> {
+        // Not directly implemented in the proto
+        return null;
+    }
+
+    async setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void> {
+        const request = new requests_pb.SetLogLinkRequest();
+        request.setTaskId(taskId);
+        request.setLogLink(logLink);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.setLogLink(request, (err: Error | null, response?: requests_pb.SetLogLinkResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error setting log link:', error);
+            throw error;
+        }
+    }
+
+    async registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void> {
+        const request = new requests_pb.RegisterAppRequest();
+        const struct = new google_protobuf_struct_pb.Struct();
+
+        // Convert app info to Struct
+        const fieldsMap = struct.getFieldsMap();
+
+        // Handle only the name field for now, since that's what HyrexAppInfo contains
+        if (hyrexAppInfo && typeof hyrexAppInfo.name === 'string') {
+            const val = new google_protobuf_struct_pb.Value();
+            val.setStringValue(hyrexAppInfo.name);
+            fieldsMap.set('name', val);
+        }
+
+        request.setAppInfo(struct);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.registerApp(request, (err: Error | null, response?: requests_pb.RegisterAppResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error registering Hyrex app:', error);
+            throw error;
+        }
+    }
+
+    async acquireListenerLock({ workerName }: { workerName: string }): Promise<string | null> {
+        // Not directly implemented in the proto
+        return null;
+    }
+
+    async registerHyrexListener({ listenerName, sourceCode }: { listenerName: string, sourceCode: string }): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async registerWorkflow({ workflowName, sourceCode, workflowDagJson }: {
+        workflowName: string,
+        sourceCode: string,
+        workflowDagJson: WorkflowDagJson
+    }): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async sendWorkflowRun({ serializedWorkflowRunRequest }: { serializedWorkflowRunRequest: SerializedWorkflowRunRequest }): Promise<string> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    async advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void> {
+        // Not directly implemented in the proto
+        throw new Error("Method not implemented.");
+    }
+
+    // Close the client connection
+    close() {
+        this.client.close();
+    }
 }

@@ -200,6 +200,10 @@ const argv = yargs(hideBin(process.argv))
             worker.on('exit', (code) => {
                 if (code === 0) {
                     console.log('Database initialized successfully.');
+                    /* TODO:
+                    * Sometimes this says "Database initialized successfully when it hasn't.
+                    * (e.g. when running npm run init-db app/app.ts instead of npm run init-db app/hyrex-app.ts)
+                    */
                     process.exit(code);
                 } else {
                     console.error(`Database initialization failed with exit code ${code}.`);

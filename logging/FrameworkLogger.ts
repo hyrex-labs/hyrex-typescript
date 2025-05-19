@@ -16,6 +16,7 @@ export type LogFeature =
     | 'durability'
     | 'workflow'
     | 'platform'
+    | 'init'
 
 
 type LoggerConfig = {

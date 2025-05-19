@@ -1,0 +1,75 @@
+### Health Check
+GET http://localhost:1337/health
+
+### Execute a SQL Query
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT NOW() as current_time"
+}
+
+### Get all executor entries
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT * FROM hyrex_executor LIMIT 10"
+}
+
+### Get all task entries
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT * FROM hyrex_task LIMIT 10"
+}
+
+### Get all task executions
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT * FROM hyrex_task_execution LIMIT 10"
+}
+
+### Count tasks by status
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT status, COUNT(*) FROM hyrex_task_execution GROUP BY status ORDER BY COUNT(*) DESC"
+}
+
+### Get tasks with a specific status
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT * FROM hyrex_task_execution WHERE status = $1 LIMIT 10",
+  "params": ["queued"]
+}
+
+### Get databases (system query)
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT datname FROM pg_database WHERE datistemplate = false"
+}
+
+### Get tables (system query)
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema') ORDER BY table_schema, table_name"
+}
+
+### Get columns for a specific table
+POST http://localhost:1337/api/query
+Content-Type: application/json
+
+{
+  "query": "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'hyrex_task_execution' ORDER BY ordinal_position"
+}

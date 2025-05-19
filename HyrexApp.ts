@@ -58,11 +58,11 @@ export class HyrexApp {
         AppConfigSchema.parse(appConfig)
 
         this.hyrexAppInfo = { name }
-        this.conn = conn || process.env.HYREX_DATABASE_URL
+        this.conn = conn || envVariables.getDatabaseUrl()
         this.apiKey = apiKey || envVariables.getApiKey()
         this.errorCallback = errorCallback
         if (this.apiKey) {
-            hyrexLogger.info("platform", `Created New PlatformDispatcher in worker. pid=${process.pid}`, 'magenta')
+            hyrexLogger.info("platform", `Created New PlatformDispatcher in worker. pid=${process.pid} apiKey=${this.apiKey}`, 'magenta')
             this.dispatcher = new PlatformDispatcher({ apiKey: this.apiKey })
         } else if (this.conn) {
             hyrexLogger.info("postgres", `Created New PostgresDispatcher in worker. pid=${process.pid}`, 'magenta')

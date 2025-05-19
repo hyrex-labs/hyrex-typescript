@@ -39,15 +39,13 @@ export class HyrexRegistry {
         const databaseUrl = envVariables.getDatabaseUrl()
         const apiKey = envVariables.getApiKey()
         if (apiKey) {
-            hyrexLogger.info("platform", `Created New PlatformDispatcher in registry. pid=${process.pid}`, 'brown')
+            hyrexLogger.info("platform", `Created New PlatformDispatcher in registry. pid=${process.pid} apikey=${apiKey}`, 'brown')
             this.dispatcher = new PlatformDispatcher({ apiKey })
         } else if (databaseUrl) {
             hyrexLogger.info("postgres", `Created New PostgresDispatcher in registry. pid=${process.pid}`, 'magenta')
             this.dispatcher = new PostgresDispatcher({ conn: databaseUrl })
-        } else if (process.env.HYREX_API_KEY) {
-            throw new Error("Registry is not implemented")
         } else {
-            throw new Error("HYREX_DATABASE_URL is missing")
+            throw new Error("Both HYREX_DATABASE_URL and HYREX_API_KEY are missing.")
         }
 
     }

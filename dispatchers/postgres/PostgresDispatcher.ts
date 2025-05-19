@@ -123,8 +123,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
             allowExitOnIdle: true
         })
 
-
-        hyrexLogger.info('postgres', `Created Postgres Pool. pid=${process.pid}`, 'magenta')
+        const dbName = new URL(config.conn).pathname.substring(1)
+        hyrexLogger.info('postgres', `Created Postgres Pool. dbName="${dbName}" pid=${process.pid}`, 'magenta')
     }
 
     async registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void> {
@@ -134,6 +134,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async initPostgresDB() {
+        hyrexLogger.info("postgres", "Creating PostgresDB...", "magenta");
         const client = await this.pool.connect()
         try {
             await client.query(sql.CreateHyrexAppTable);

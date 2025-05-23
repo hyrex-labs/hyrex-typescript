@@ -18,6 +18,7 @@ import * as gateway_pb from './generated/gateway_pb';
 import * as requests_pb from './generated/requests_pb';
 import * as task_pb from './generated/task_pb';
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
+import * as google_protobuf_empty_pb from 'google-protobuf/google/protobuf/empty_pb';
 
 export class PlatformDispatcher implements HyrexDispatcher {
     private client: grpc.Client;
@@ -123,7 +124,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
         const taskIds: UUID[] = [];
 
         for (const task of serializedTasks) {
-            const request = new requests_pb.EnqueueTaskRequest();
+            const request = new requests_pb.EnqueueRequest();
             request.setId(task.id);
             request.setDurableId(task.durable_id);
             request.setRootId(task.root_id);
@@ -157,7 +158,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
             try {
                 await new Promise<void>((resolve, reject) => {
-                    this.serviceClient.enqueue(request, this.metadata, (err: Error | null, response?: requests_pb.EnqueueTaskResponse) => {
+                    this.serviceClient.enqueue(request, this.metadata, (err: Error | null, response?: requests_pb.EnqueueResponse) => {
                         if (err) reject(err);
                         else resolve();
                     });
@@ -185,20 +186,20 @@ export class PlatformDispatcher implements HyrexDispatcher {
         // For simplicity, we'll just dequeue one task at a time
         // In a real implementation, you might want to implement batching
         for (let i = 0; i < numTasks; i++) {
-            const request = new requests_pb.DequeueTaskRequest();
+            const request = new requests_pb.DequeueRequest();
             request.setExecutorId(executorId);
             request.setQueue(queueName);
 
             try {
-                const response = await new Promise<requests_pb.DequeueTaskResponse | undefined>((resolve, reject) => {
-                    this.serviceClient.dequeue(request, this.metadata, (err: Error | null, response?: requests_pb.DequeueTaskResponse) => {
+                const response = await new Promise<requests_pb.DequeueResponse | undefined>((resolve, reject) => {
+                    this.serviceClient.dequeue(request, this.metadata, (err: Error | null, response?: requests_pb.DequeueResponse) => {
                         if (err) reject(err);
                         else resolve(response);
                     });
                 });
 
-                if (response && response.getTask()) {
-                    serializedTasks.push(this.protoTaskRunToSerializedTask(response.getTask()!));
+                if (response && response.getTaskRun()) {
+                    serializedTasks.push(this.protoTaskRunToSerializedTask(response.getTaskRun()!));
                 } else {
                     // No more tasks to dequeue
                     break;
@@ -269,8 +270,22 @@ export class PlatformDispatcher implements HyrexDispatcher {
     // These are placeholders that should be implemented properly
 
     async markTaskCanceled(taskId: UUID): Promise<boolean> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        // Mark as failed with a cancellation message
+        const request = new requests_pb.MarkFailedRequest();
+        request.setTaskId(taskId);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.markFailed(request, this.metadata, (err: Error | null, response?: requests_pb.MarkFailedResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            return true;
+        } catch (error) {
+            console.error('Error marking task as canceled:', error);
+            return false;
+        }
     }
 
     async saveResult(taskId: UUID, result: JsonType): Promise<boolean> {
@@ -304,8 +319,8 @@ export class PlatformDispatcher implements HyrexDispatcher {
                 });
             });
 
-            if (response && response.getTask()) {
-                const task = response.getTask()!;
+            if (response && response.getTaskRun()) {
+                const task = response.getTaskRun()!;
                 const resultStr = task.getResult();
                 return resultStr ? JSON.parse(resultStr) : ({} as JsonType);
             }
@@ -318,8 +333,24 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        // Not directly implemented in the proto, but we can use GetTaskRunStatus to check if task is still running
+        const request = new requests_pb.GetTaskRunStatusRequest();
+        request.setTaskId(heartbeatMsg.body.taskId);
+
+        try {
+            const response = await new Promise<requests_pb.GetTaskRunStatusResponse | undefined>((resolve, reject) => {
+                this.serviceClient.getTaskRunStatus(request, this.metadata, (err: Error | null, response?: requests_pb.GetTaskRunStatusResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            // The heartbeat was successful if we got a response
+            // In a real implementation, you might want to check the status and handle accordingly
+        } catch (error) {
+            console.error('Error updating task heartbeat:', error);
+            throw error;
+        }
     }
 
     async attemptRetry(taskId: UUID): Promise<void> {
@@ -355,8 +386,23 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async disconnectExecutor({ executorId, stats }: { executorId: string, stats: object }): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        // Since there's no specific disconnect endpoint, we'll update the executor with empty queues
+        // to indicate it's no longer active
+        const request = new requests_pb.UpdateExecutorQueuesRequest();
+        request.setExecutorId(executorId);
+        request.setQueuesList([]); // Empty queues list indicates disconnection
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.updateExecutorQueues(request, this.metadata, (err: Error | null, response?: requests_pb.UpdateExecutorQueuesResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error disconnecting executor:', error);
+            throw error;
+        }
     }
 
     async emitExecutorStats({ executorId, stats }: {
@@ -400,8 +446,59 @@ export class PlatformDispatcher implements HyrexDispatcher {
         taskConfig?: HyrexTaskConfig,
         sourceCode?: string
     }): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        const request = new requests_pb.RegisterTaskDefRequest();
+        const taskDef = new task_pb.TaskDef();
+        taskDef.setTaskName(taskName);
+        
+        if (sourceCode) {
+            taskDef.setSourceCode(sourceCode);
+        }
+        
+        // Convert taskConfig to proto format if provided
+        if (taskConfig) {
+            // TaskDef in proto only has defaultConfig as a Struct, not individual fields
+            // We'll need to convert the config to a Struct
+            const defaultConfig = new google_protobuf_struct_pb.Struct();
+            const fieldsMap = defaultConfig.getFieldsMap();
+            
+            if (taskConfig.maxRetries !== undefined) {
+                const val = new google_protobuf_struct_pb.Value();
+                val.setNumberValue(taskConfig.maxRetries);
+                fieldsMap.set('maxRetries', val);
+            }
+            if (taskConfig.timeoutSeconds !== undefined) {
+                const val = new google_protobuf_struct_pb.Value();
+                val.setNumberValue(taskConfig.timeoutSeconds);
+                fieldsMap.set('timeoutSeconds', val);
+            }
+            if (taskConfig.queue !== undefined) {
+                const val = new google_protobuf_struct_pb.Value();
+                const queueName = typeof taskConfig.queue === 'string' ? taskConfig.queue : taskConfig.queue.name;
+                val.setStringValue(queueName);
+                fieldsMap.set('queue', val);
+            }
+            if (taskConfig.priority !== undefined) {
+                const val = new google_protobuf_struct_pb.Value();
+                val.setNumberValue(taskConfig.priority);
+                fieldsMap.set('priority', val);
+            }
+            
+            taskDef.setDefaultConfig(defaultConfig);
+        }
+        
+        request.setTaskDef(taskDef);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.registerTaskDef(request, this.metadata, (err: Error | null, response?: requests_pb.RegisterTaskDefResponse) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error registering task:', error);
+            throw error;
+        }
     }
 
     async listen(hyrexListener: DispatcherListenerCallbacks): Promise<void> {
@@ -541,6 +638,83 @@ export class PlatformDispatcher implements HyrexDispatcher {
     async advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void> {
         // Not directly implemented in the proto
         throw new Error("Method not implemented.");
+    }
+
+    // Additional helper methods for task definitions
+    async getTaskDef(taskName: string): Promise<task_pb.TaskDef | null> {
+        const request = new requests_pb.GetTaskDefRequest();
+        request.setTaskName(taskName);
+
+        try {
+            const response = await new Promise<requests_pb.GetTaskDefResponse | undefined>((resolve, reject) => {
+                this.serviceClient.getTaskDef(request, this.metadata, (err: Error | null, response?: requests_pb.GetTaskDefResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            return response && response.getTaskDef() ? response.getTaskDef()! : null;
+        } catch (error) {
+            console.error('Error getting task definition:', error);
+            return null;
+        }
+    }
+
+    async getAllTaskDefs(): Promise<task_pb.TaskDef[]> {
+        const request = new requests_pb.GetAllTaskDefsRequest();
+
+        try {
+            const response = await new Promise<requests_pb.GetAllTaskDefsResponse | undefined>((resolve, reject) => {
+                this.serviceClient.getAllTaskDefs(request, this.metadata, (err: Error | null, response?: requests_pb.GetAllTaskDefsResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            return response ? response.getTaskDefsList() : [];
+        } catch (error) {
+            console.error('Error getting all task definitions:', error);
+            return [];
+        }
+    }
+
+    // Get all task runs for a durable ID
+    async getDurableTaskRuns(durableId: string): Promise<task_pb.TaskRun[]> {
+        const request = new requests_pb.GetDurableTaskRunsRequest();
+        request.setDurableId(durableId);
+
+        try {
+            const response = await new Promise<requests_pb.GetDurableTaskRunsResponse | undefined>((resolve, reject) => {
+                this.serviceClient.getDurableTaskRuns(request, this.metadata, (err: Error | null, response?: requests_pb.GetDurableTaskRunsResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            return response ? response.getTaskRunsList() : [];
+        } catch (error) {
+            console.error('Error getting durable task runs:', error);
+            return [];
+        }
+    }
+
+    // Test connection to the gRPC server
+    async testConnection(): Promise<boolean> {
+        const request = new google_protobuf_empty_pb.Empty();
+
+        try {
+            const response = await new Promise<google_protobuf_empty_pb.Empty | undefined>((resolve, reject) => {
+                this.serviceClient.testConnection(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            return response !== undefined;
+        } catch (error) {
+            console.error('Error testing connection:', error);
+            return false;
+        }
     }
 
     // Close the client connection

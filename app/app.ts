@@ -79,51 +79,47 @@ function OnboardUserBody(workflowBuilder: HyrexWorkflowBuilder) {
 }
 
 
-const onboardUser = hy.workflow({
-    name: "onboardUser",
-    config: { queue: "onboard-user" },
-    workflowArgSchema: z.object({
-        "userEmail": z.string(),
-        "signUpTier": z.enum(["FREE", "PRO", "ENTERPRISE"])
-    }),
-    body: (workflowBuilder: HyrexWorkflowBuilder) => {
-        workflowBuilder
-            .start(initiateOnboard)
-            .next([validatePayment, validateIdentity, validateOrg])
-            .next(approveUser)
-
-        validateIdentity
-            .next(checkCredit)
-            .next(trainCreditMachineLearningModel)
-
-
-
-        return workflowBuilder
-    }
-})
-
-// onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
+// const onboardUser = hy.workflow({
+//     name: "onboardUser",
+//     config: { queue: "onboard-user" },
+//     workflowArgSchema: z.object({
+//         "userEmail": z.string(),
+//         "signUpTier": z.enum(["FREE", "PRO", "ENTERPRISE"])
+//     }),
+//     body: (workflowBuilder: HyrexWorkflowBuilder) => {
+//         workflowBuilder
+//             .start(initiateOnboard)
+//             .next([validatePayment, validateIdentity, validateOrg])
+//             .next(approveUser)
+//
+//         validateIdentity
+//             .next(checkCredit)
+//             .next(trainCreditMachineLearningModel)
+//
+//
+//
+//         return workflowBuilder
+//     }
+// })
 
 // onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
 
-if (process.argv.includes('--submit')) {
-    onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
-    console.log("submitted onboard user!")
-}
+// onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
+
 
 ////////////////////////
 // END BUILD WORKFLOW //
 ////////////////////////
 
-hy.listener({
-    name: "BlockchainListener",
-    func: async () => {
-        while (true) {
-            console.log("Listening to stuff")
-            await sleep(10_000)
-        }
-    }
-})
+// hy.listener({
+//     name: "BlockchainListener",
+//     func: async () => {
+//         while (true) {
+//             console.log("Listening to stuff")
+//             await sleep(10_000)
+//         }
+//     }
+// })
 
 const levelThreeTask = hy.task({
         name: "levelThreeFunc",
@@ -201,6 +197,13 @@ const choices: sendTaskArgs[] = [
     [{ email: "mark@usekura.com" }, { queue: "low-priority" }],
     [{ email: "trevor@usekura.com" }, { queue: "trevor-queue" }],
 ];
+
+if (process.argv.includes('--submit')) {
+    // onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
+    levelThreeTask.send()
+    console.log("submitted onboard user!")
+}
+
 
 // (async () => {
 //     // const submitFraudToPersonaTask = hy.task(submitFraudToPersona, { cron: "* * * * *" })

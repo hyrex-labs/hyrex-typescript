@@ -45,7 +45,13 @@ export class TaskWrapper<U extends JsonType> extends WorkflowTask {
             context = {}
         }
 
-        const hyrexContext = getHyrexContext()
+        let hyrexContext = null;
+        try {
+            hyrexContext = getHyrexContext();
+        } catch (error) {
+            // Context is not available when submitting tasks from outside a task execution
+            // This is normal and expected behavior
+        }
 
         JsonSerializable.parse(context)
 

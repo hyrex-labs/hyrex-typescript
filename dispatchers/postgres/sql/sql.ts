@@ -79,10 +79,12 @@ CREATE INDEX IF NOT EXISTS idx_hyrex_task_run_root_id
 export const CreateHyrexTaskTable = `
     CREATE TABLE IF NOT EXISTS hyrex_task
     (
-        task_name    TEXT NOT NULL PRIMARY KEY,
-        cron_expr    TEXT,
-        source_code  TEXT,
-        last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        task_name      TEXT NOT NULL PRIMARY KEY,
+        cron_expr      TEXT,
+        source_code    TEXT,
+        default_config JSON,
+        arg_schema     JSON,
+        last_updated   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 `
 

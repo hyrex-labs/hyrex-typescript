@@ -109,7 +109,13 @@ export class PlatformDispatcher implements HyrexDispatcher {
             workflow_run_id: taskRun.hasWorkflowRunId() ? taskRun.getWorkflowRunId() : null,
             parent_id: taskRun.getParentId() || null,
             task_name: taskRun.getTaskName(),
-            args: JSON.parse(Buffer.from(taskRun.getArgs_asU8()).toString()),
+            args: (() => {
+                const argsBuffer = Buffer.from(taskRun.getArgs_asU8());
+                if (argsBuffer.length === 0) {
+                    return null;
+                }
+                return JSON.parse(argsBuffer.toString());
+            })(),
             queue: taskRun.getQueue(),
             priority: taskRun.getPriority().toString(),
             timeout_seconds: taskRun.hasTimeoutSeconds() ? taskRun.getTimeoutSeconds() : null,
@@ -143,7 +149,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
             request.setStatus(this.taskStatusToProto(task.status));
             request.setTaskName(task.task_name);
-            request.setArgs(Buffer.from(JSON.stringify(task.args)));
+            request.setArgs(Buffer.from(JSON.stringify(task.args || null)));
             request.setQueue(task.queue);
             request.setMaxRetries(task.max_retries);
             request.setPriority(this.priorityToProto(task.priority));

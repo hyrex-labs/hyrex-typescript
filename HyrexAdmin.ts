@@ -4,15 +4,18 @@ import { hyrexLogger } from "./logging/FrameworkLogger";
 
 export type hyrexWorkerAdminConfig = {
     dispatcher: HyrexDispatcher,
+    mode: "postgres" | "platform"
 }
 
 export class HyrexAdmin {
     private dispatcher: HyrexDispatcher
     private heartbeatInterval: NodeJS.Timeout | null = null
     private readonly DEFAULT_HEARTBEAT_INTERVAL = 10000 // 10 seconds in milliseconds
+    private mode:  "postgres" | "platform"
 
-    constructor({ dispatcher }: hyrexWorkerAdminConfig) {
+    constructor({ dispatcher, mode }: hyrexWorkerAdminConfig) {
         this.dispatcher = dispatcher
+        this.mode = mode
         this.setupIPCListener()
     }
 
@@ -21,7 +24,7 @@ export class HyrexAdmin {
     }
 
     private async handleMessage(message: RootMessage) {
-        hyrexLogger.info("process-management", `Admin Received Message: ${message}`, 'cyan')
+        hyrexLogger.info("process-management", `Admin Received Message: ${JSON.stringify(message)}`, 'cyan')
         if (message.messageType === "TASK_HEARTBEAT") {
             this.dispatcher.updateTaskHeartbeat(message)
         } else if (message.messageType === "TASK_CANCEL") {
@@ -29,7 +32,12 @@ export class HyrexAdmin {
         } else if (message.messageType === "EXECUTOR_HEARTBEAT") {
             this.dispatcher.updateExecutorHeartbeat(message)
         } else if (message.messageType === "BATCH_HEARTBEAT") {
-            await this.dispatcher.updateExecutorHeartbeats({executorIds: message.body.executorIds})
+            if (this.mode === "postgres") {
+                await this.dispatcher.updateExecutorHeartbeats({executorIds: message.body.executorIds})
+            } else {
+                hyrexLogger.info("misc", "In Platform Mode. Skipping heartbeat", "yellow")
+            }
+
         }
 
     }
@@ -44,9 +52,9 @@ export class HyrexAdmin {
             }
         }
 
-        await this.dispatcher.listen({
-            taskCancelCallback: emitIPCMessage,
-            taskHeartbeatCallback: emitIPCMessage
-        })
+        // await this.dispatcher.listen({
+        //     taskCancelCallback: emitIPCMessage,
+        //     taskHeartbeatCallback: emitIPCMessage
+        // })
     }
 }

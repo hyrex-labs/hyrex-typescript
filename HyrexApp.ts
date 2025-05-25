@@ -142,8 +142,10 @@ export class HyrexApp {
     }
 
     async runWorkerAdmin() {
+        const mode = this.apiKey ? "platform" : "postgres"
         const admin = new HyrexAdmin({
-            dispatcher: this.dispatcher
+            dispatcher: this.dispatcher,
+            mode
         })
 
         admin.runAdmin()

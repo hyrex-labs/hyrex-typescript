@@ -39,7 +39,7 @@ export class HyrexRegistry {
         const databaseUrl = envVariables.getDatabaseUrl()
         const apiKey = envVariables.getApiKey()
         if (apiKey) {
-            hyrexLogger.info("platform", `Created New PlatformDispatcher in registry. pid=${process.pid} apikey=${apiKey}`, 'brown')
+            hyrexLogger.info("platform", `Created New PlatformDispatcher in registry. pid=${process.pid}`, 'brown')
             this.dispatcher = new PlatformDispatcher({ apiKey })
         } else if (databaseUrl) {
             hyrexLogger.info("postgres", `Created New PostgresDispatcher in registry. pid=${process.pid}`, 'magenta')

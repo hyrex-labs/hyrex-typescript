@@ -87,7 +87,7 @@ export class HyrexApp {
             }
         } else if (process.env[COMMANDS.RUN_ADMIN]) {
             await this.runWorkerAdmin()
-        } else if (process.env[COMMANDS.RUN_CRON_SCHEDULER]){
+        } else if (process.env[COMMANDS.RUN_CRON_SCHEDULER]) {
             await this.runCronScheduler()
         }
     }
@@ -166,14 +166,17 @@ export class HyrexApp {
         cronScheduler.runCronScheduler()
     }
 
-    async initDB() {
+    async initDB(): Promise<void> {
+        if (this.apiKey) {
+            hyrexLogger.info('init', "Detected Platform API Key. Skipping DB initialization.", "blue")
+            return
+        }
         if (!this.conn) {
             throw new Error(
                 "To initialize the DB, you must first set the connection string by " +
                 "passing it to Hyrex or setting the env var HYREX_DATABASE_URL"
             )
         }
-
         if (this.dispatcher instanceof PostgresDispatcher) {
             await this.dispatcher.initPostgresDB();
         } else {

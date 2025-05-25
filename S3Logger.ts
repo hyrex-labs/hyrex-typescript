@@ -73,6 +73,20 @@ export class S3Logger {
         }
     }
 
+    public uploadLogsInBackground(): void {
+        // Non-blocking upload with inline error handling
+        this.uploadLogs().catch((error: any) => {
+            // Handle S3 errors gracefully
+            if (error.Code === 'AccessDenied' || error.name === 'AccessDenied') {
+                hyrexLogger.error("remote-logging", `S3 Access Denied: Unable to upload logs for task ${this.taskId}. Please check S3 bucket permissions.`, 'yellow');
+            } else if (error.$metadata?.httpStatusCode === 403) {
+                hyrexLogger.error("remote-logging", `S3 Permission Error (403): Unable to upload logs for task ${this.taskId}. Please verify IAM permissions for bucket: ${this.bucket}`, 'yellow');
+            } else {
+                hyrexLogger.error("remote-logging", `Failed to upload logs to S3 for task ${this.taskId}: ${error.message || error}`, 'yellow');
+            }
+        });
+    }
+
     public async uploadLogs() {
         if (!this.bucket || !this.s3Client) {
             return;

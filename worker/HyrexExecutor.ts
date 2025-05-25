@@ -287,7 +287,7 @@ export class HyrexExecutor {
                 }
             } finally {
                 await s3Logger.endCapture();
-                s3Logger.uploadLogs()
+                s3Logger.uploadLogsInBackground()
             }
 
             if (task.workflow_run_id) {

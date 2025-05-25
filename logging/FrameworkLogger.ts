@@ -43,9 +43,11 @@ function formatValue(value: any): string {
 class FrameworkLogger {
     private logger: winston.Logger;
     private enabledFeatures: Set<LogFeature>
+    private supportsColor: boolean
 
     constructor(config: LoggerConfig) {
         this.enabledFeatures = new Set(config.features);
+        this.supportsColor = this.detectColorSupport();
 
         this.logger = winston.createLogger({
             format: winston.format.combine(
@@ -61,7 +63,7 @@ class FrameworkLogger {
                         result = `${featureTag} ${result}`
                     }
 
-                    if (color) {
+                    if (color && this.supportsColor) {
                         const colorCode = COLOR_MAP[color as LogColor];
                         result = `\x1b[${colorCode}m${result}\x1b[0m`;
                     }
@@ -73,6 +75,42 @@ class FrameworkLogger {
                 new winston.transports.Console()
             ],
         });
+    }
+
+    private detectColorSupport(): boolean {
+        // Check if colors are explicitly disabled
+        if (process.env.NO_COLOR || process.env.NODE_DISABLE_COLORS) {
+            return false;
+        }
+
+        // Check if colors are explicitly enabled
+        if (process.env.FORCE_COLOR || process.env.COLORTERM) {
+            return true;
+        }
+
+        // Check if running in a CI environment (usually no color support)
+        if (process.env.CI) {
+            return false;
+        }
+
+        // Check if stdout is a TTY (terminal)
+        if (process.stdout && process.stdout.isTTY) {
+            // Check TERM environment variable
+            const term = process.env.TERM;
+            if (term && term !== 'dumb') {
+                return true;
+            }
+        }
+
+        // Check platform-specific indicators
+        if (process.platform === 'win32') {
+            // Windows 10 build 14931+ supports ANSI colors
+            return process.env.TERM_PROGRAM === 'vscode' || 
+                   !!process.env.WT_SESSION || // Windows Terminal
+                   process.env.ConEmuANSI === 'ON'; // ConEmu
+        }
+
+        return false;
     }
 
     private isFeatureEnabled(feature: LogFeature): boolean {

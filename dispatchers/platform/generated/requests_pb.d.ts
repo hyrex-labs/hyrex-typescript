@@ -31,9 +31,6 @@ export class EnqueueRequest extends jspb.Message {
   getParentId(): string;
   setParentId(value: string): void;
 
-  getStatus(): task_pb.TaskStatusMap[keyof task_pb.TaskStatusMap];
-  setStatus(value: task_pb.TaskStatusMap[keyof task_pb.TaskStatusMap]): void;
-
   getTaskName(): string;
   setTaskName(value: string): void;
 
@@ -47,6 +44,11 @@ export class EnqueueRequest extends jspb.Message {
 
   getMaxRetries(): number;
   setMaxRetries(value: number): void;
+
+  hasAttemptNumber(): boolean;
+  clearAttemptNumber(): void;
+  getAttemptNumber(): number;
+  setAttemptNumber(value: number): void;
 
   getPriority(): task_pb.PriorityMap[keyof task_pb.PriorityMap];
   setPriority(value: task_pb.PriorityMap[keyof task_pb.PriorityMap]): void;
@@ -84,31 +86,15 @@ export namespace EnqueueRequest {
     workflowRunId: string,
     workflowDependenciesList: Array<string>,
     parentId: string,
-    status: task_pb.TaskStatusMap[keyof task_pb.TaskStatusMap],
     taskName: string,
     args: Uint8Array | string,
     queue: string,
     maxRetries: number,
+    attemptNumber: number,
     priority: task_pb.PriorityMap[keyof task_pb.PriorityMap],
     timeoutSeconds: number,
     idempotencyKey: string,
     scheduledStart?: google_protobuf_timestamp_pb.Timestamp.AsObject,
-  }
-}
-
-export class EnqueueResponse extends jspb.Message {
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): EnqueueResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: EnqueueResponse): EnqueueResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: EnqueueResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): EnqueueResponse;
-  static deserializeBinaryFromReader(message: EnqueueResponse, reader: jspb.BinaryReader): EnqueueResponse;
-}
-
-export namespace EnqueueResponse {
-  export type AsObject = {
   }
 }
 
@@ -208,9 +194,33 @@ export namespace GetQueuesResponse {
   }
 }
 
+export class RetryTaskRunRequest extends jspb.Message {
+  getTaskRunId(): string;
+  setTaskRunId(value: string): void;
+
+  getBackoffSeconds(): number;
+  setBackoffSeconds(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RetryTaskRunRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: RetryTaskRunRequest): RetryTaskRunRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: RetryTaskRunRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RetryTaskRunRequest;
+  static deserializeBinaryFromReader(message: RetryTaskRunRequest, reader: jspb.BinaryReader): RetryTaskRunRequest;
+}
+
+export namespace RetryTaskRunRequest {
+  export type AsObject = {
+    taskRunId: string,
+    backoffSeconds: number,
+  }
+}
+
 export class GetTaskRunRequest extends jspb.Message {
-  getTaskId(): string;
-  setTaskId(value: string): void;
+  getTaskRunId(): string;
+  setTaskRunId(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetTaskRunRequest.AsObject;
@@ -224,7 +234,7 @@ export class GetTaskRunRequest extends jspb.Message {
 
 export namespace GetTaskRunRequest {
   export type AsObject = {
-    taskId: string,
+    taskRunId: string,
   }
 }
 
@@ -251,8 +261,8 @@ export namespace GetTaskRunResponse {
 }
 
 export class GetTaskRunStatusRequest extends jspb.Message {
-  getTaskId(): string;
-  setTaskId(value: string): void;
+  getTaskRunId(): string;
+  setTaskRunId(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetTaskRunStatusRequest.AsObject;
@@ -266,7 +276,7 @@ export class GetTaskRunStatusRequest extends jspb.Message {
 
 export namespace GetTaskRunStatusRequest {
   export type AsObject = {
-    taskId: string,
+    taskRunId: string,
   }
 }
 
@@ -290,9 +300,37 @@ export namespace GetTaskRunStatusResponse {
   }
 }
 
+export class TaskRunHeartbeatRequest extends jspb.Message {
+  clearTaskRunIdsList(): void;
+  getTaskRunIdsList(): Array<string>;
+  setTaskRunIdsList(value: Array<string>): void;
+  addTaskRunIds(value: string, index?: number): string;
+
+  hasTimestamp(): boolean;
+  clearTimestamp(): void;
+  getTimestamp(): google_protobuf_timestamp_pb.Timestamp | undefined;
+  setTimestamp(value?: google_protobuf_timestamp_pb.Timestamp): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): TaskRunHeartbeatRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: TaskRunHeartbeatRequest): TaskRunHeartbeatRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: TaskRunHeartbeatRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): TaskRunHeartbeatRequest;
+  static deserializeBinaryFromReader(message: TaskRunHeartbeatRequest, reader: jspb.BinaryReader): TaskRunHeartbeatRequest;
+}
+
+export namespace TaskRunHeartbeatRequest {
+  export type AsObject = {
+    taskRunIdsList: Array<string>,
+    timestamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
+  }
+}
+
 export class MarkSuccessRequest extends jspb.Message {
-  getTaskId(): string;
-  setTaskId(value: string): void;
+  getTaskRunId(): string;
+  setTaskRunId(value: string): void;
 
   hasResult(): boolean;
   clearResult(): void;
@@ -311,30 +349,14 @@ export class MarkSuccessRequest extends jspb.Message {
 
 export namespace MarkSuccessRequest {
   export type AsObject = {
-    taskId: string,
+    taskRunId: string,
     result: string,
   }
 }
 
-export class MarkSuccessResponse extends jspb.Message {
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): MarkSuccessResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: MarkSuccessResponse): MarkSuccessResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: MarkSuccessResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): MarkSuccessResponse;
-  static deserializeBinaryFromReader(message: MarkSuccessResponse, reader: jspb.BinaryReader): MarkSuccessResponse;
-}
-
-export namespace MarkSuccessResponse {
-  export type AsObject = {
-  }
-}
-
 export class MarkFailedRequest extends jspb.Message {
-  getTaskId(): string;
-  setTaskId(value: string): void;
+  getTaskRunId(): string;
+  setTaskRunId(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): MarkFailedRequest.AsObject;
@@ -348,23 +370,7 @@ export class MarkFailedRequest extends jspb.Message {
 
 export namespace MarkFailedRequest {
   export type AsObject = {
-    taskId: string,
-  }
-}
-
-export class MarkFailedResponse extends jspb.Message {
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): MarkFailedResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: MarkFailedResponse): MarkFailedResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: MarkFailedResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): MarkFailedResponse;
-  static deserializeBinaryFromReader(message: MarkFailedResponse, reader: jspb.BinaryReader): MarkFailedResponse;
-}
-
-export namespace MarkFailedResponse {
-  export type AsObject = {
+    taskRunId: string,
   }
 }
 
@@ -411,8 +417,8 @@ export namespace GetDurableTaskRunsResponse {
 }
 
 export class SetLogLinkRequest extends jspb.Message {
-  getTaskId(): string;
-  setTaskId(value: string): void;
+  getTaskRunId(): string;
+  setTaskRunId(value: string): void;
 
   getLogLink(): string;
   setLogLink(value: string): void;
@@ -429,24 +435,8 @@ export class SetLogLinkRequest extends jspb.Message {
 
 export namespace SetLogLinkRequest {
   export type AsObject = {
-    taskId: string,
+    taskRunId: string,
     logLink: string,
-  }
-}
-
-export class SetLogLinkResponse extends jspb.Message {
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): SetLogLinkResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: SetLogLinkResponse): SetLogLinkResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: SetLogLinkResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): SetLogLinkResponse;
-  static deserializeBinaryFromReader(message: SetLogLinkResponse, reader: jspb.BinaryReader): SetLogLinkResponse;
-}
-
-export namespace SetLogLinkResponse {
-  export type AsObject = {
   }
 }
 
@@ -469,22 +459,6 @@ export class RegisterTaskDefRequest extends jspb.Message {
 export namespace RegisterTaskDefRequest {
   export type AsObject = {
     taskDef?: task_pb.TaskDef.AsObject,
-  }
-}
-
-export class RegisterTaskDefResponse extends jspb.Message {
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): RegisterTaskDefResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: RegisterTaskDefResponse): RegisterTaskDefResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: RegisterTaskDefResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): RegisterTaskDefResponse;
-  static deserializeBinaryFromReader(message: RegisterTaskDefResponse, reader: jspb.BinaryReader): RegisterTaskDefResponse;
-}
-
-export namespace RegisterTaskDefResponse {
-  export type AsObject = {
   }
 }
 
@@ -584,22 +558,6 @@ export namespace RegisterCronRequest {
   }
 }
 
-export class RegisterCronResponse extends jspb.Message {
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): RegisterCronResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: RegisterCronResponse): RegisterCronResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: RegisterCronResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): RegisterCronResponse;
-  static deserializeBinaryFromReader(message: RegisterCronResponse, reader: jspb.BinaryReader): RegisterCronResponse;
-}
-
-export namespace RegisterCronResponse {
-  export type AsObject = {
-  }
-}
-
 export class RegisterExecutorRequest extends jspb.Message {
   getExecutorId(): string;
   setExecutorId(value: string): void;
@@ -638,22 +596,6 @@ export namespace RegisterExecutorRequest {
   }
 }
 
-export class RegisterExecutorResponse extends jspb.Message {
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): RegisterExecutorResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: RegisterExecutorResponse): RegisterExecutorResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: RegisterExecutorResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): RegisterExecutorResponse;
-  static deserializeBinaryFromReader(message: RegisterExecutorResponse, reader: jspb.BinaryReader): RegisterExecutorResponse;
-}
-
-export namespace RegisterExecutorResponse {
-  export type AsObject = {
-  }
-}
-
 export class UpdateExecutorQueuesRequest extends jspb.Message {
   getExecutorId(): string;
   setExecutorId(value: string): void;
@@ -680,19 +622,77 @@ export namespace UpdateExecutorQueuesRequest {
   }
 }
 
-export class UpdateExecutorQueuesResponse extends jspb.Message {
+export class UpdateExecutorStatsRequest extends jspb.Message {
+  getExecutorId(): string;
+  setExecutorId(value: string): void;
+
+  hasExecutorStats(): boolean;
+  clearExecutorStats(): void;
+  getExecutorStats(): google_protobuf_struct_pb.Struct | undefined;
+  setExecutorStats(value?: google_protobuf_struct_pb.Struct): void;
+
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): UpdateExecutorQueuesResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: UpdateExecutorQueuesResponse): UpdateExecutorQueuesResponse.AsObject;
+  toObject(includeInstance?: boolean): UpdateExecutorStatsRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: UpdateExecutorStatsRequest): UpdateExecutorStatsRequest.AsObject;
   static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
   static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: UpdateExecutorQueuesResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): UpdateExecutorQueuesResponse;
-  static deserializeBinaryFromReader(message: UpdateExecutorQueuesResponse, reader: jspb.BinaryReader): UpdateExecutorQueuesResponse;
+  static serializeBinaryToWriter(message: UpdateExecutorStatsRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): UpdateExecutorStatsRequest;
+  static deserializeBinaryFromReader(message: UpdateExecutorStatsRequest, reader: jspb.BinaryReader): UpdateExecutorStatsRequest;
 }
 
-export namespace UpdateExecutorQueuesResponse {
+export namespace UpdateExecutorStatsRequest {
   export type AsObject = {
+    executorId: string,
+    executorStats?: google_protobuf_struct_pb.Struct.AsObject,
+  }
+}
+
+export class ExecutorHeartbeatRequest extends jspb.Message {
+  clearExecutorIdsList(): void;
+  getExecutorIdsList(): Array<string>;
+  setExecutorIdsList(value: Array<string>): void;
+  addExecutorIds(value: string, index?: number): string;
+
+  hasTimestamp(): boolean;
+  clearTimestamp(): void;
+  getTimestamp(): google_protobuf_timestamp_pb.Timestamp | undefined;
+  setTimestamp(value?: google_protobuf_timestamp_pb.Timestamp): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ExecutorHeartbeatRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: ExecutorHeartbeatRequest): ExecutorHeartbeatRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: ExecutorHeartbeatRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ExecutorHeartbeatRequest;
+  static deserializeBinaryFromReader(message: ExecutorHeartbeatRequest, reader: jspb.BinaryReader): ExecutorHeartbeatRequest;
+}
+
+export namespace ExecutorHeartbeatRequest {
+  export type AsObject = {
+    executorIdsList: Array<string>,
+    timestamp?: google_protobuf_timestamp_pb.Timestamp.AsObject,
+  }
+}
+
+export class DisconnectExecutorRequest extends jspb.Message {
+  getExecutorId(): string;
+  setExecutorId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DisconnectExecutorRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DisconnectExecutorRequest): DisconnectExecutorRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: DisconnectExecutorRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DisconnectExecutorRequest;
+  static deserializeBinaryFromReader(message: DisconnectExecutorRequest, reader: jspb.BinaryReader): DisconnectExecutorRequest;
+}
+
+export namespace DisconnectExecutorRequest {
+  export type AsObject = {
+    executorId: string,
   }
 }
 
@@ -715,22 +715,6 @@ export class RegisterAppRequest extends jspb.Message {
 export namespace RegisterAppRequest {
   export type AsObject = {
     appInfo?: google_protobuf_struct_pb.Struct.AsObject,
-  }
-}
-
-export class RegisterAppResponse extends jspb.Message {
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): RegisterAppResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: RegisterAppResponse): RegisterAppResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: RegisterAppResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): RegisterAppResponse;
-  static deserializeBinaryFromReader(message: RegisterAppResponse, reader: jspb.BinaryReader): RegisterAppResponse;
-}
-
-export namespace RegisterAppResponse {
-  export type AsObject = {
   }
 }
 
@@ -777,6 +761,30 @@ export class AcquireSchedulerLockResponse extends jspb.Message {
 export namespace AcquireSchedulerLockResponse {
   export type AsObject = {
     lockId: number,
+  }
+}
+
+export class WriteLogsRequest extends jspb.Message {
+  getTaskRunId(): string;
+  setTaskRunId(value: string): void;
+
+  getLogs(): string;
+  setLogs(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): WriteLogsRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: WriteLogsRequest): WriteLogsRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: WriteLogsRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): WriteLogsRequest;
+  static deserializeBinaryFromReader(message: WriteLogsRequest, reader: jspb.BinaryReader): WriteLogsRequest;
+}
+
+export namespace WriteLogsRequest {
+  export type AsObject = {
+    taskRunId: string,
+    logs: string,
   }
 }
 

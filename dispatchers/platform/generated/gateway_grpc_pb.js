@@ -60,6 +60,17 @@ function deserialize_hyrex_performanceserver_DequeueResponse(buffer_arg) {
   return requests_pb.DequeueResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
+function serialize_hyrex_performanceserver_DisconnectExecutorRequest(arg) {
+  if (!(arg instanceof requests_pb.DisconnectExecutorRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.DisconnectExecutorRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_DisconnectExecutorRequest(buffer_arg) {
+  return requests_pb.DisconnectExecutorRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_hyrex_performanceserver_EnqueueRequest(arg) {
   if (!(arg instanceof requests_pb.EnqueueRequest)) {
     throw new Error('Expected argument of type hyrex.performanceserver.EnqueueRequest');
@@ -71,15 +82,15 @@ function deserialize_hyrex_performanceserver_EnqueueRequest(buffer_arg) {
   return requests_pb.EnqueueRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_hyrex_performanceserver_EnqueueResponse(arg) {
-  if (!(arg instanceof requests_pb.EnqueueResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.EnqueueResponse');
+function serialize_hyrex_performanceserver_ExecutorHeartbeatRequest(arg) {
+  if (!(arg instanceof requests_pb.ExecutorHeartbeatRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.ExecutorHeartbeatRequest');
   }
   return Buffer.from(arg.serializeBinary());
 }
 
-function deserialize_hyrex_performanceserver_EnqueueResponse(buffer_arg) {
-  return requests_pb.EnqueueResponse.deserializeBinary(new Uint8Array(buffer_arg));
+function deserialize_hyrex_performanceserver_ExecutorHeartbeatRequest(buffer_arg) {
+  return requests_pb.ExecutorHeartbeatRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_GetAllTaskDefsRequest(arg) {
@@ -225,17 +236,6 @@ function deserialize_hyrex_performanceserver_MarkFailedRequest(buffer_arg) {
   return requests_pb.MarkFailedRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_hyrex_performanceserver_MarkFailedResponse(arg) {
-  if (!(arg instanceof requests_pb.MarkFailedResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.MarkFailedResponse');
-  }
-  return Buffer.from(arg.serializeBinary());
-}
-
-function deserialize_hyrex_performanceserver_MarkFailedResponse(buffer_arg) {
-  return requests_pb.MarkFailedResponse.deserializeBinary(new Uint8Array(buffer_arg));
-}
-
 function serialize_hyrex_performanceserver_MarkSuccessRequest(arg) {
   if (!(arg instanceof requests_pb.MarkSuccessRequest)) {
     throw new Error('Expected argument of type hyrex.performanceserver.MarkSuccessRequest');
@@ -245,17 +245,6 @@ function serialize_hyrex_performanceserver_MarkSuccessRequest(arg) {
 
 function deserialize_hyrex_performanceserver_MarkSuccessRequest(buffer_arg) {
   return requests_pb.MarkSuccessRequest.deserializeBinary(new Uint8Array(buffer_arg));
-}
-
-function serialize_hyrex_performanceserver_MarkSuccessResponse(arg) {
-  if (!(arg instanceof requests_pb.MarkSuccessResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.MarkSuccessResponse');
-  }
-  return Buffer.from(arg.serializeBinary());
-}
-
-function deserialize_hyrex_performanceserver_MarkSuccessResponse(buffer_arg) {
-  return requests_pb.MarkSuccessResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_RegisterAppRequest(arg) {
@@ -269,17 +258,6 @@ function deserialize_hyrex_performanceserver_RegisterAppRequest(buffer_arg) {
   return requests_pb.RegisterAppRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_hyrex_performanceserver_RegisterAppResponse(arg) {
-  if (!(arg instanceof requests_pb.RegisterAppResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.RegisterAppResponse');
-  }
-  return Buffer.from(arg.serializeBinary());
-}
-
-function deserialize_hyrex_performanceserver_RegisterAppResponse(buffer_arg) {
-  return requests_pb.RegisterAppResponse.deserializeBinary(new Uint8Array(buffer_arg));
-}
-
 function serialize_hyrex_performanceserver_RegisterExecutorRequest(arg) {
   if (!(arg instanceof requests_pb.RegisterExecutorRequest)) {
     throw new Error('Expected argument of type hyrex.performanceserver.RegisterExecutorRequest');
@@ -289,17 +267,6 @@ function serialize_hyrex_performanceserver_RegisterExecutorRequest(arg) {
 
 function deserialize_hyrex_performanceserver_RegisterExecutorRequest(buffer_arg) {
   return requests_pb.RegisterExecutorRequest.deserializeBinary(new Uint8Array(buffer_arg));
-}
-
-function serialize_hyrex_performanceserver_RegisterExecutorResponse(arg) {
-  if (!(arg instanceof requests_pb.RegisterExecutorResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.RegisterExecutorResponse');
-  }
-  return Buffer.from(arg.serializeBinary());
-}
-
-function deserialize_hyrex_performanceserver_RegisterExecutorResponse(buffer_arg) {
-  return requests_pb.RegisterExecutorResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_RegisterTaskDefRequest(arg) {
@@ -313,15 +280,15 @@ function deserialize_hyrex_performanceserver_RegisterTaskDefRequest(buffer_arg) 
   return requests_pb.RegisterTaskDefRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_hyrex_performanceserver_RegisterTaskDefResponse(arg) {
-  if (!(arg instanceof requests_pb.RegisterTaskDefResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.RegisterTaskDefResponse');
+function serialize_hyrex_performanceserver_RetryTaskRunRequest(arg) {
+  if (!(arg instanceof requests_pb.RetryTaskRunRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.RetryTaskRunRequest');
   }
   return Buffer.from(arg.serializeBinary());
 }
 
-function deserialize_hyrex_performanceserver_RegisterTaskDefResponse(buffer_arg) {
-  return requests_pb.RegisterTaskDefResponse.deserializeBinary(new Uint8Array(buffer_arg));
+function deserialize_hyrex_performanceserver_RetryTaskRunRequest(buffer_arg) {
+  return requests_pb.RetryTaskRunRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_SetLogLinkRequest(arg) {
@@ -335,15 +302,15 @@ function deserialize_hyrex_performanceserver_SetLogLinkRequest(buffer_arg) {
   return requests_pb.SetLogLinkRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_hyrex_performanceserver_SetLogLinkResponse(arg) {
-  if (!(arg instanceof requests_pb.SetLogLinkResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.SetLogLinkResponse');
+function serialize_hyrex_performanceserver_TaskRunHeartbeatRequest(arg) {
+  if (!(arg instanceof requests_pb.TaskRunHeartbeatRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.TaskRunHeartbeatRequest');
   }
   return Buffer.from(arg.serializeBinary());
 }
 
-function deserialize_hyrex_performanceserver_SetLogLinkResponse(buffer_arg) {
-  return requests_pb.SetLogLinkResponse.deserializeBinary(new Uint8Array(buffer_arg));
+function deserialize_hyrex_performanceserver_TaskRunHeartbeatRequest(buffer_arg) {
+  return requests_pb.TaskRunHeartbeatRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_UpdateExecutorQueuesRequest(arg) {
@@ -357,15 +324,26 @@ function deserialize_hyrex_performanceserver_UpdateExecutorQueuesRequest(buffer_
   return requests_pb.UpdateExecutorQueuesRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_hyrex_performanceserver_UpdateExecutorQueuesResponse(arg) {
-  if (!(arg instanceof requests_pb.UpdateExecutorQueuesResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.UpdateExecutorQueuesResponse');
+function serialize_hyrex_performanceserver_UpdateExecutorStatsRequest(arg) {
+  if (!(arg instanceof requests_pb.UpdateExecutorStatsRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.UpdateExecutorStatsRequest');
   }
   return Buffer.from(arg.serializeBinary());
 }
 
-function deserialize_hyrex_performanceserver_UpdateExecutorQueuesResponse(buffer_arg) {
-  return requests_pb.UpdateExecutorQueuesResponse.deserializeBinary(new Uint8Array(buffer_arg));
+function deserialize_hyrex_performanceserver_UpdateExecutorStatsRequest(buffer_arg) {
+  return requests_pb.UpdateExecutorStatsRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_WriteLogsRequest(arg) {
+  if (!(arg instanceof requests_pb.WriteLogsRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.WriteLogsRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_WriteLogsRequest(buffer_arg) {
+  return requests_pb.WriteLogsRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 
@@ -381,17 +359,29 @@ var GatewayServiceService = exports.GatewayServiceService = {
     responseSerialize: serialize_google_protobuf_Empty,
     responseDeserialize: deserialize_google_protobuf_Empty,
   },
+  // ---- S3 requests ----
+writeLogs: {
+    path: '/hyrex.performanceserver.GatewayService/WriteLogs',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.WriteLogsRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_WriteLogsRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_WriteLogsRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
   // ---- Valkey requests ----
 enqueue: {
     path: '/hyrex.performanceserver.GatewayService/Enqueue',
     requestStream: false,
     responseStream: false,
     requestType: requests_pb.EnqueueRequest,
-    responseType: requests_pb.EnqueueResponse,
+    responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_EnqueueRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_EnqueueRequest,
-    responseSerialize: serialize_hyrex_performanceserver_EnqueueResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_EnqueueResponse,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
   },
   dequeue: {
     path: '/hyrex.performanceserver.GatewayService/Dequeue',
@@ -431,22 +421,22 @@ enqueue: {
     requestStream: false,
     responseStream: false,
     requestType: requests_pb.MarkSuccessRequest,
-    responseType: requests_pb.MarkSuccessResponse,
+    responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_MarkSuccessRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_MarkSuccessRequest,
-    responseSerialize: serialize_hyrex_performanceserver_MarkSuccessResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_MarkSuccessResponse,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
   },
   markFailed: {
     path: '/hyrex.performanceserver.GatewayService/MarkFailed',
     requestStream: false,
     responseStream: false,
     requestType: requests_pb.MarkFailedRequest,
-    responseType: requests_pb.MarkFailedResponse,
+    responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_MarkFailedRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_MarkFailedRequest,
-    responseSerialize: serialize_hyrex_performanceserver_MarkFailedResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_MarkFailedResponse,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
   },
   getTaskRun: {
     path: '/hyrex.performanceserver.GatewayService/GetTaskRun',
@@ -470,17 +460,39 @@ enqueue: {
     responseSerialize: serialize_hyrex_performanceserver_GetDurableTaskRunsResponse,
     responseDeserialize: deserialize_hyrex_performanceserver_GetDurableTaskRunsResponse,
   },
+  retryTaskRun: {
+    path: '/hyrex.performanceserver.GatewayService/RetryTaskRun',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.RetryTaskRunRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_RetryTaskRunRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_RetryTaskRunRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  taskRunHeartbeat: {
+    path: '/hyrex.performanceserver.GatewayService/TaskRunHeartbeat',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.TaskRunHeartbeatRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_TaskRunHeartbeatRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_TaskRunHeartbeatRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
   // ---- Postgres requests ----
 registerTaskDef: {
     path: '/hyrex.performanceserver.GatewayService/RegisterTaskDef',
     requestStream: false,
     responseStream: false,
     requestType: requests_pb.RegisterTaskDefRequest,
-    responseType: requests_pb.RegisterTaskDefResponse,
+    responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_RegisterTaskDefRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_RegisterTaskDefRequest,
-    responseSerialize: serialize_hyrex_performanceserver_RegisterTaskDefResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_RegisterTaskDefResponse,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
   },
   getTaskDef: {
     path: '/hyrex.performanceserver.GatewayService/GetTaskDef',
@@ -509,44 +521,77 @@ registerTaskDef: {
     requestStream: false,
     responseStream: false,
     requestType: requests_pb.RegisterExecutorRequest,
-    responseType: requests_pb.RegisterExecutorResponse,
+    responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_RegisterExecutorRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_RegisterExecutorRequest,
-    responseSerialize: serialize_hyrex_performanceserver_RegisterExecutorResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_RegisterExecutorResponse,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  executorHeartbeat: {
+    path: '/hyrex.performanceserver.GatewayService/ExecutorHeartbeat',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.ExecutorHeartbeatRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_ExecutorHeartbeatRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_ExecutorHeartbeatRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  updateExecutorStats: {
+    path: '/hyrex.performanceserver.GatewayService/UpdateExecutorStats',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.UpdateExecutorStatsRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_UpdateExecutorStatsRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_UpdateExecutorStatsRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
   },
   updateExecutorQueues: {
     path: '/hyrex.performanceserver.GatewayService/UpdateExecutorQueues',
     requestStream: false,
     responseStream: false,
     requestType: requests_pb.UpdateExecutorQueuesRequest,
-    responseType: requests_pb.UpdateExecutorQueuesResponse,
+    responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_UpdateExecutorQueuesRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_UpdateExecutorQueuesRequest,
-    responseSerialize: serialize_hyrex_performanceserver_UpdateExecutorQueuesResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_UpdateExecutorQueuesResponse,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  disconnectExecutor: {
+    path: '/hyrex.performanceserver.GatewayService/DisconnectExecutor',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.DisconnectExecutorRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_DisconnectExecutorRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_DisconnectExecutorRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
   },
   registerApp: {
     path: '/hyrex.performanceserver.GatewayService/RegisterApp',
     requestStream: false,
     responseStream: false,
     requestType: requests_pb.RegisterAppRequest,
-    responseType: requests_pb.RegisterAppResponse,
+    responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_RegisterAppRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_RegisterAppRequest,
-    responseSerialize: serialize_hyrex_performanceserver_RegisterAppResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_RegisterAppResponse,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
   },
   setLogLink: {
     path: '/hyrex.performanceserver.GatewayService/SetLogLink',
     requestStream: false,
     responseStream: false,
     requestType: requests_pb.SetLogLinkRequest,
-    responseType: requests_pb.SetLogLinkResponse,
+    responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_SetLogLinkRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_SetLogLinkRequest,
-    responseSerialize: serialize_hyrex_performanceserver_SetLogLinkResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_SetLogLinkResponse,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
   },
   acquireSchedulerLock: {
     path: '/hyrex.performanceserver.GatewayService/AcquireSchedulerLock',

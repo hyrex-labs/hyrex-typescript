@@ -264,6 +264,28 @@ function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, qu
             hyrexLogger.info("process-management", `Executor ${executorNumber} exited.`, "magenta")
         }
 
+        // Clean up references to this process
+        const index = childProcesses.indexOf(executor);
+        if (index > -1) {
+            childProcesses.splice(index, 1);
+        }
+        
+        // Clean up executor ID mapping
+        for (const [executorId, proc] of executorIdToProcess.entries()) {
+            if (proc === executor) {
+                executorIdToProcess.delete(executorId);
+                break;
+            }
+        }
+        
+        // Clean up task ID mapping
+        for (const [taskId, proc] of taskIdToProcess.entries()) {
+            if (proc === executor) {
+                taskIdToProcess.delete(taskId);
+                break;
+            }
+        }
+
         // Optionally, respawn the executor if it exited unexpectedly
         if (!isShuttingDown) {
             console.log(`Respawning Executor ${executorNumber}...`);
@@ -308,6 +330,16 @@ function spawnCronScheduler(workerName: string, scriptPath: string) {
             hyrexLogger.info("process-management", "CronScheduler exited", "magenta");
         }
 
+        // Clean up references to this process
+        const index = childProcesses.indexOf(schedulerProcess);
+        if (index > -1) {
+            childProcesses.splice(index, 1);
+        }
+        const cronIndex = cronSchedulerProcesses.indexOf(schedulerProcess);
+        if (cronIndex > -1) {
+            cronSchedulerProcesses.splice(cronIndex, 1);
+        }
+
         // Optionally, respawn the worker if it exited unexpectedly
         if (!isShuttingDown) {
             hyrexLogger.info("process-management", "Respawning CronScheduler...", "magenta");
@@ -345,6 +377,16 @@ function spawnAdmin(scriptPath: string) {
             hyrexLogger.info("process-management", `Admin was killed by signal ${signal}`, 'magenta')
         } else {
             hyrexLogger.info("process-management", `Admin exited.`, 'magenta')
+        }
+
+        // Clean up references to this process
+        const index = childProcesses.indexOf(adminProcess);
+        if (index > -1) {
+            childProcesses.splice(index, 1);
+        }
+        const adminIndex = adminProcesses.indexOf(adminProcess);
+        if (adminIndex > -1) {
+            adminProcesses.splice(adminIndex, 1);
         }
 
         // Optionally, respawn the admin if it exited unexpectedly
@@ -460,20 +502,28 @@ const shutdown = () => {
     hyrexLogger.info("process-management", "Shutting down all workers...", 'magenta')
     isShuttingDown = true;
 
-    const workerExitPromises = childProcesses.map((worker) => {
+    // Filter out already dead processes
+    const aliveProcesses = childProcesses.filter(worker => !worker.killed);
+    
+    if (aliveProcesses.length === 0) {
+        hyrexLogger.info("process-management", "No alive workers found. Exiting immediately.", 'magenta');
+        process.exit(0);
+        return;
+    }
+
+    const workerExitPromises = aliveProcesses.map((worker) => {
         return new Promise<void>((resolve) => {
             worker.once('exit', resolve);
         });
     });
 
-
-    for (const worker of childProcesses) {
+    for (const worker of aliveProcesses) {
         worker.kill('SIGTERM');
     }
 
     // Forcefully kill workers that don't exit within the timeout
-    const timeoutHandle = setTimeout(() => {
-        for (const worker of childProcesses) {
+    const killTimeoutHandle = setTimeout(() => {
+        for (const worker of aliveProcesses) {
             if (!worker.killed) {
                 hyrexLogger.warn('process-management', `Worker with PID ${worker.pid} did not exit in time. Sending SIGKILL.`, 'yellow')
                 worker.kill('SIGKILL');
@@ -481,14 +531,23 @@ const shutdown = () => {
         }
     }, SHUTDOWN_TIMEOUT);
 
+    // Force exit after max timeout regardless of worker status
+    const forceExitHandle = setTimeout(() => {
+        hyrexLogger.error('process-management', 'Force exiting after shutdown timeout exceeded.', 'red');
+        process.exit(1);
+    }, SHUTDOWN_TIMEOUT + 5000); // Give 5 extra seconds after SIGKILL
+
     // Wait for all workers to exit
     Promise.all(workerExitPromises)
         .then(() => {
-            clearTimeout(timeoutHandle); // Clear the timeout if all workers have exited
+            clearTimeout(killTimeoutHandle);
+            clearTimeout(forceExitHandle);
             hyrexLogger.info("process-management", "All workers have exited. Shutting down parent process.", 'magenta');
             process.exit(0);
         })
         .catch((err) => {
+            clearTimeout(killTimeoutHandle);
+            clearTimeout(forceExitHandle);
             console.error("Error while waiting for workers to exit:", err);
             process.exit(1);
         });

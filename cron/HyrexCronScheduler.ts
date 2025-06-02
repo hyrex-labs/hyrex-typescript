@@ -84,16 +84,30 @@ export class HyrexCronScheduler {
     async runCronScheduler(): Promise<void> {
         hyrexLogger.info('cron-scheduling', "Kicking off cron scheduler.", 'dim')
         let lockId: number | null = null
+        let shouldStop = false;
+
+        // Set up cleanup handlers
+        const cleanup = () => {
+            shouldStop = true;
+            if (this.dispatcher && typeof (this.dispatcher as any).close === 'function') {
+                (this.dispatcher as any).close();
+            }
+        };
+
+        process.on('SIGINT', cleanup);
+        process.on('SIGTERM', cleanup);
 
         try {
             // Keep trying to acquire lock until successful
-            while (!lockId) {
+            while (!lockId && !shouldStop) {
                 lockId = await this.acquireSchedulerLock()
                 if (!lockId) {
                     hyrexLogger.info('cron-scheduling', "Could not acquire lock. Going to sleep.", 'dim')
                     await sleep(15 * 1000) // Sleep 15 secs
                 }
             }
+
+            if (shouldStop) return;
 
             hyrexLogger.info('cron-scheduling', "Acquired Lock.", 'dim')
 
@@ -113,7 +127,7 @@ export class HyrexCronScheduler {
 
 
             // Main scheduler loop - now with the lock held
-            while (true) {
+            while (!shouldStop) {
                 const loopStartTime = new Date()
                 try {
                     // Pull cron expressions

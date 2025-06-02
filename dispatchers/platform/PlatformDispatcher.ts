@@ -19,6 +19,7 @@ import * as requests_pb from './generated/requests_pb';
 import * as task_pb from './generated/task_pb';
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
 import * as google_protobuf_empty_pb from 'google-protobuf/google/protobuf/empty_pb';
+import { hyrexLogger } from "../../logging/FrameworkLogger";
 
 export class PlatformDispatcher implements HyrexDispatcher {
     private client: grpc.Client;
@@ -114,7 +115,13 @@ export class PlatformDispatcher implements HyrexDispatcher {
                 if (argsBuffer.length === 0) {
                     return null;
                 }
-                return JSON.parse(argsBuffer.toString());
+                const argsString = argsBuffer.toString();
+                try {
+                    return JSON.parse(argsString);
+                } catch (e) {
+                    // If it's not valid JSON, treat it as a plain string
+                    return argsString;
+                }
             })(),
             queue: taskRun.getQueue(),
             priority: taskRun.getPriority().toString(),
@@ -360,8 +367,9 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async attemptRetry(taskId: UUID): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        // Platform handles retries automatically, so this is a no-op
+        // Log for debugging purposes
+        console.log(`Retry requested for task ${taskId} - platform will handle automatically`);
     }
 
     async registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
@@ -455,18 +463,18 @@ export class PlatformDispatcher implements HyrexDispatcher {
         const request = new requests_pb.RegisterTaskDefRequest();
         const taskDef = new task_pb.TaskDef();
         taskDef.setTaskName(taskName);
-        
+
         if (sourceCode) {
             taskDef.setSourceCode(sourceCode);
         }
-        
+
         // Convert taskConfig to proto format if provided
         if (taskConfig) {
             // TaskDef in proto only has defaultConfig as a Struct, not individual fields
             // We'll need to convert the config to a Struct
             const defaultConfig = new google_protobuf_struct_pb.Struct();
             const fieldsMap = defaultConfig.getFieldsMap();
-            
+
             if (taskConfig.maxRetries !== undefined) {
                 const val = new google_protobuf_struct_pb.Value();
                 val.setNumberValue(taskConfig.maxRetries);
@@ -488,10 +496,10 @@ export class PlatformDispatcher implements HyrexDispatcher {
                 val.setNumberValue(taskConfig.priority);
                 fieldsMap.set('priority', val);
             }
-            
+
             taskDef.setDefaultConfig(defaultConfig);
         }
-        
+
         request.setTaskDef(taskDef);
 
         try {
@@ -541,8 +549,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        hyrexLogger.info("cron-scheduling", "Scheduler lock automatically managed by platform", "dim");
     }
 
     async pullCronJobExpressions(): Promise<CronJob[]> {

@@ -52,6 +52,17 @@ export class HyrexAdmin {
             }
         }
 
+        // Set up cleanup handlers
+        const cleanup = () => {
+            if (this.dispatcher && typeof (this.dispatcher as any).close === 'function') {
+                (this.dispatcher as any).close();
+            }
+            process.exit(0);
+        };
+
+        process.on('SIGINT', cleanup);
+        process.on('SIGTERM', cleanup);
+
         // await this.dispatcher.listen({
         //     taskCancelCallback: emitIPCMessage,
         //     taskHeartbeatCallback: emitIPCMessage

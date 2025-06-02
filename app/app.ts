@@ -200,7 +200,7 @@ const choices: sendTaskArgs[] = [
 
 if (process.argv.includes('--submit')) {
     // onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
-    for (const i of range(1000)) {
+    for (const i of range(1)) {
         levelThreeTask.send()
     }
     console.log("submitted!")

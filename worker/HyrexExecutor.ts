@@ -317,6 +317,12 @@ export class HyrexExecutor {
         }
 
         await this.dispatcher.disconnectExecutor({ executorId: this.executorId, stats })
+        
+        // Clean up dispatcher connections
+        if (this.dispatcher && typeof (this.dispatcher as any).close === 'function') {
+            (this.dispatcher as any).close();
+        }
+        
         hyrexLogger.info('task-processing', `Executor ${this.name} stopped.`, 'green')
     }
 }

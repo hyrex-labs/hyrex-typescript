@@ -119,6 +119,7 @@ export interface HyrexDispatcher {
 
     // Remote Logs
     setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void>
+    writeS3Logs(taskId: string, logs: string[]): Promise<void>
 
     registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void>
 

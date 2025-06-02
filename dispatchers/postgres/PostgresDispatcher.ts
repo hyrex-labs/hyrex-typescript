@@ -20,6 +20,8 @@ import { UPSERT_WORKFLOW } from "./sql/workflowSql";
 import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
 import { createDequeueQuery } from "./sql/sql";
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { envVariables } from "../../EnvironmentVariables";
 
 type HyrexPostgresDispatcherConfig = {
     conn: string
@@ -113,6 +115,8 @@ export function globToSqlLike(glob: string): string {
 
 export class PostgresDispatcher implements HyrexDispatcher {
     private pool: Pool
+    private s3Client: S3Client | null = null
+    private bucket: string | null = null
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
         this.pool = new Pool({
@@ -125,6 +129,19 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
         const dbName = new URL(config.conn).pathname.substring(1)
         hyrexLogger.info('postgres', `Created Postgres Pool. dbName="${dbName}" pid=${process.pid}`, 'magenta')
+
+        // Initialize S3 client if bucket is configured
+        const s3LogBucket = envVariables.getS3LogBucket()
+        if (s3LogBucket) {
+            this.bucket = s3LogBucket
+            try {
+                this.s3Client = new S3Client({})
+                hyrexLogger.info('postgres', `S3 client initialized for bucket: ${s3LogBucket}`, 'magenta')
+            } catch (err) {
+                hyrexLogger.error('postgres', `Failed to initialize S3 client: ${err}`, 'red')
+                this.s3Client = null
+            }
+        }
     }
 
     async registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void> {
@@ -620,6 +637,45 @@ export class PostgresDispatcher implements HyrexDispatcher {
         return this.queryWithRetry(async (client) => {
             await client.query(sql.SET_LOG_LINK, [taskId, logLink])
         })
+    }
+
+    async writeS3Logs(taskId: string, logs: string[]): Promise<void> {
+        if (!this.bucket || !this.s3Client) {
+            hyrexLogger.warn('postgres', 'S3 client not initialized, skipping log upload', 'yellow')
+            return
+        }
+
+        if (!taskId) {
+            throw new Error('No taskId provided for writeS3Logs')
+        }
+
+        const objectKey = `hyrex-logs/${taskId}.log`
+        const putObjectCommand: PutObjectCommand = new PutObjectCommand({
+            Bucket: this.bucket,
+            Key: objectKey,
+            Body: logs.join(''),
+            ContentType: 'text/plain',
+        })
+
+        try {
+            await this.s3Client.send(putObjectCommand)
+            
+            // Construct the S3 link and update it in the database
+            const logLink = `s3://${this.bucket}/${objectKey}`
+            await this.setLogLink({ taskId, logLink })
+            
+            hyrexLogger.info('postgres', `Logs successfully uploaded to S3. taskId=${taskId}, logLink=${logLink}`, 'green')
+        } catch (error: any) {
+            // Handle S3 errors gracefully
+            if (error.Code === 'AccessDenied' || error.name === 'AccessDenied') {
+                hyrexLogger.error('postgres', `S3 Access Denied: Unable to upload logs for task ${taskId}. Please check S3 bucket permissions.`, 'red')
+            } else if (error.$metadata?.httpStatusCode === 403) {
+                hyrexLogger.error('postgres', `S3 Permission Error (403): Unable to upload logs for task ${taskId}. Please verify IAM permissions for bucket: ${this.bucket}`, 'red')
+            } else {
+                hyrexLogger.error('postgres', `Failed to upload logs to S3 for task ${taskId}: ${error.message || error}`, 'red')
+            }
+            throw error
+        }
     }
 
     async acquireListenerLock({ workerName }: { workerName: string }): Promise<string | null> {

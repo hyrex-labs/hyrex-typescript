@@ -165,7 +165,6 @@ export class HyrexCronScheduler {
         } finally {
             // Only release lock if we acquired it
             if (lockId) {
-                console.log("Releasing scheduler lock...")
                 await this.dispatcher.releaseSchedulerLock({
                     workerName: this.workerName
                 })

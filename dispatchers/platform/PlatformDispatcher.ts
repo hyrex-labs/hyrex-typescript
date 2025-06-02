@@ -154,7 +154,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
                 request.setParentId(task.parent_id);
             }
 
-            request.setStatus(this.taskStatusToProto(task.status));
+            // Status is not set on EnqueueRequest - it's determined by the server
             request.setTaskName(task.task_name);
             request.setArgs(Buffer.from(JSON.stringify(task.args || null)));
             request.setQueue(task.queue);
@@ -171,7 +171,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
             try {
                 await new Promise<void>((resolve, reject) => {
-                    this.serviceClient.enqueue(request, this.metadata, (err: Error | null, response?: requests_pb.EnqueueResponse) => {
+                    this.serviceClient.enqueue(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                         if (err) reject(err);
                         else resolve();
                     });
@@ -247,11 +247,11 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
     async markTaskSuccess(taskId: UUID): Promise<void> {
         const request = new requests_pb.MarkSuccessRequest();
-        request.setTaskId(taskId);
+        request.setTaskRunId(taskId);
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.markSuccess(request, this.metadata, (err: Error | null, response?: requests_pb.MarkSuccessResponse) => {
+                this.serviceClient.markSuccess(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -264,11 +264,11 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
     async markTaskFailed(taskId: UUID): Promise<void> {
         const request = new requests_pb.MarkFailedRequest();
-        request.setTaskId(taskId);
+        request.setTaskRunId(taskId);
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.markFailed(request, this.metadata, (err: Error | null, response?: requests_pb.MarkFailedResponse) => {
+                this.serviceClient.markFailed(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -285,11 +285,11 @@ export class PlatformDispatcher implements HyrexDispatcher {
     async markTaskCanceled(taskId: UUID): Promise<boolean> {
         // Mark as failed with a cancellation message
         const request = new requests_pb.MarkFailedRequest();
-        request.setTaskId(taskId);
+        request.setTaskRunId(taskId);
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.markFailed(request, this.metadata, (err: Error | null, response?: requests_pb.MarkFailedResponse) => {
+                this.serviceClient.markFailed(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -303,12 +303,12 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
     async saveResult(taskId: UUID, result: JsonType): Promise<boolean> {
         const request = new requests_pb.MarkSuccessRequest();
-        request.setTaskId(taskId);
+        request.setTaskRunId(taskId);
         request.setResult(JSON.stringify(result));
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.markSuccess(request, this.metadata, (err: Error | null, response?: requests_pb.MarkSuccessResponse) => {
+                this.serviceClient.markSuccess(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -322,7 +322,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
     async getResult(taskId: UUID): Promise<JsonType> {
         const request = new requests_pb.GetTaskRunRequest();
-        request.setTaskId(taskId);
+        request.setTaskRunId(taskId);
 
         try {
             const response = await new Promise<requests_pb.GetTaskRunResponse | undefined>((resolve, reject) => {
@@ -348,7 +348,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
     async updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void> {
         // Not directly implemented in the proto, but we can use GetTaskRunStatus to check if task is still running
         const request = new requests_pb.GetTaskRunStatusRequest();
-        request.setTaskId(heartbeatMsg.body.taskId);
+        request.setTaskRunId(heartbeatMsg.body.taskId);
 
         try {
             const response = await new Promise<requests_pb.GetTaskRunStatusResponse | undefined>((resolve, reject) => {
@@ -388,7 +388,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.registerExecutor(request, this.metadata, (err: Error | null, response?: requests_pb.RegisterExecutorResponse) => {
+                this.serviceClient.registerExecutor(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -408,7 +408,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.updateExecutorQueues(request, this.metadata, (err: Error | null, response?: requests_pb.UpdateExecutorQueuesResponse) => {
+                this.serviceClient.updateExecutorQueues(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -434,7 +434,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.updateExecutorQueues(request, this.metadata, (err: Error | null, response?: requests_pb.UpdateExecutorQueuesResponse) => {
+                this.serviceClient.updateExecutorQueues(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -504,7 +504,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.registerTaskDef(request, this.metadata, (err: Error | null, response?: requests_pb.RegisterTaskDefResponse) => {
+                this.serviceClient.registerTaskDef(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -574,18 +574,38 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
     async setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void> {
         const request = new requests_pb.SetLogLinkRequest();
-        request.setTaskId(taskId);
+        request.setTaskRunId(taskId);
         request.setLogLink(logLink);
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.setLogLink(request, this.metadata, (err: Error | null, response?: requests_pb.SetLogLinkResponse) => {
+                this.serviceClient.setLogLink(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
             });
         } catch (error) {
             console.error('Error setting log link:', error);
+            throw error;
+        }
+    }
+
+    async writeS3Logs(taskId: string, logs: string[]): Promise<void> {
+        const request = new requests_pb.WriteLogsRequest();
+        request.setTaskRunId(taskId);
+        request.setLogs(logs.join(''));
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.writeLogs(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            
+            hyrexLogger.info('platform', `Logs successfully sent to platform for upload. taskId=${taskId}`, 'green');
+        } catch (error) {
+            hyrexLogger.error('platform', `Failed to send logs to platform for task ${taskId}: ${error}`, 'red');
             throw error;
         }
     }
@@ -608,7 +628,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.registerApp(request, this.metadata, (err: Error | null, response?: requests_pb.RegisterAppResponse) => {
+                this.serviceClient.registerApp(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });

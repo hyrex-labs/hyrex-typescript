@@ -80,7 +80,13 @@ const argv = yargs(hideBin(process.argv))
             }
 
             spawnAdmin(scriptPath)
-            spawnCronScheduler(workerName, scriptPath)
+
+            // Skip cron scheduler in performance mode (when using platform dispatcher)
+            if (!process.env.HYREX_API_KEY) {
+                spawnCronScheduler(workerName, scriptPath)
+            } else {
+                hyrexLogger.info("process-management", "Platform mode detected (HYREX_API_KEY present) - skipping cron scheduler spawn", 'yellow')
+            }
 
             // Set up a heartbeat interval to run every 30 seconds
             const heartbeatInterval = setInterval(() => {
@@ -269,7 +275,7 @@ function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, qu
         if (index > -1) {
             childProcesses.splice(index, 1);
         }
-        
+
         // Clean up executor ID mapping
         for (const [executorId, proc] of executorIdToProcess.entries()) {
             if (proc === executor) {
@@ -277,7 +283,7 @@ function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, qu
                 break;
             }
         }
-        
+
         // Clean up task ID mapping
         for (const [taskId, proc] of taskIdToProcess.entries()) {
             if (proc === executor) {
@@ -504,7 +510,7 @@ const shutdown = () => {
 
     // Filter out already dead processes
     const aliveProcesses = childProcesses.filter(worker => !worker.killed);
-    
+
     if (aliveProcesses.length === 0) {
         hyrexLogger.info("process-management", "No alive workers found. Exiting immediately.", 'magenta');
         process.exit(0);

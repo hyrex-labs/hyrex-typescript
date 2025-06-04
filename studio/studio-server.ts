@@ -1,9 +1,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import morgan from 'morgan';
 import { Pool } from 'pg';
-import * as path from 'path';
-import * as fs from 'fs';
 import dotenv from 'dotenv';
 import { envVariables } from "../EnvironmentVariables";
 
@@ -22,6 +21,7 @@ if (!DB_CONNECTION_STRING) {
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use(morgan('combined'));
 
 // Create a PostgreSQL connection pool
 const pool = new Pool({
@@ -77,7 +77,7 @@ app.post('/api/query', (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Hyrex Studio Server running on port ${PORT}`);
   const dbName = new URL(DB_CONNECTION_STRING).pathname.substring(1)
-  console.log(`Using database: ${dbName}`);
+console.log(`Using database: ${dbName}`);
 });
 
 // Handle server shutdown

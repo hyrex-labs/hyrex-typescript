@@ -97,6 +97,45 @@ const colorize = (text: string, color: keyof typeof COLOR_MAP): string => {
   return `\x1b[${COLOR_MAP[color]}m${text}\x1b[${COLOR_MAP.reset}m`;
 };
 
+// Helper function to create a box with proper alignment
+const createBox = (lines: Array<{text: string, color?: keyof typeof COLOR_MAP}>, boxColor: keyof typeof COLOR_MAP, width: number = 55) => {
+  const horizontalLine = '+' + '-'.repeat(width) + '+';
+  
+  console.log(colorize('  ' + horizontalLine, boxColor));
+  
+  lines.forEach(line => {
+    if (!line.text) {
+      // Empty line
+      console.log(colorize('  |' + ' '.repeat(width) + '|', boxColor));
+    } else {
+      // Calculate padding needed
+      const textLength = line.text.length;
+      const totalPadding = width - textLength;
+      const leftPadding = Math.floor(totalPadding / 2);
+      const rightPadding = totalPadding - leftPadding;
+      
+      // Build the line
+      const paddedText = ' '.repeat(leftPadding) + line.text + ' '.repeat(rightPadding);
+      
+      if (line.color) {
+        // If text has its own color, we need to color the box and text separately
+        console.log(
+          colorize('  |', boxColor) + 
+          ' '.repeat(leftPadding) +
+          colorize(line.text, line.color) + 
+          ' '.repeat(rightPadding) +
+          colorize('|', boxColor)
+        );
+      } else {
+        // Simple case - everything is the same color
+        console.log(colorize('  |' + paddedText + '|', boxColor));
+      }
+    }
+  });
+  
+  console.log(colorize('  ' + horizontalLine, boxColor));
+};
+
 // Start the server
 app.listen(PORT, () => {
   const dbName = new URL(DB_CONNECTION_STRING).pathname.substring(1);
@@ -106,11 +145,11 @@ app.listen(PORT, () => {
   
   // Display colorful header
   console.log('\n');
-  console.log(colorize('  +=======================================================+', 'cyan'));
-  console.log(colorize('  |                                                       |', 'cyan'));
-  console.log(colorize('  |', 'cyan') + colorize('                HYREX STUDIO SERVER                ', 'brightMagenta') + colorize('|', 'cyan'));
-  console.log(colorize('  |                                                       |', 'cyan'));
-  console.log(colorize('  +=======================================================+', 'cyan'));
+  createBox([
+    { text: '' },
+    { text: 'HYREX STUDIO SERVER', color: 'brightMagenta' },
+    { text: '' }
+  ], 'cyan');
   console.log('\n');
   
   // Display connection info
@@ -121,13 +160,13 @@ app.listen(PORT, () => {
   console.log('\n');
   
   // Display URL with emphasis
-  console.log(colorize('  +-----------------------------------------------------+', 'brightBlue'));
-  console.log(colorize('  |                                                     |', 'brightBlue'));
-  console.log(colorize('  |', 'brightBlue') + '     ' + colorize('Open Hyrex Studio in your browser:', 'brightWhite') + '          ' + colorize('|', 'brightBlue'));
-  console.log(colorize('  |                                                     |', 'brightBlue'));
-  console.log(colorize('  |', 'brightBlue') + '     ' + colorize('-> ', 'brightCyan') + colorize('https://local.hyrex.studio', 'brightCyan') + '            ' + colorize('|', 'brightBlue'));
-  console.log(colorize('  |                                                     |', 'brightBlue'));
-  console.log(colorize('  +-----------------------------------------------------+', 'brightBlue'));
+  createBox([
+    { text: '' },
+    { text: 'Open Hyrex Studio in your browser:', color: 'brightWhite' },
+    { text: '' },
+    { text: '-> https://local.hyrex.studio', color: 'brightCyan' },
+    { text: '' }
+  ], 'brightBlue');
   console.log('\n');
   
   if (!isVerbose) {

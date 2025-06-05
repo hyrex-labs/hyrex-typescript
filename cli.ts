@@ -245,6 +245,33 @@ const argv = yargs(hideBin(process.argv))
             require('./studio/studio-server');
         }
     )
+    .command(
+        'init',
+        'Initialize a new Hyrex application',
+        (yargs) => {
+            yargs
+                .option('name', {
+                    describe: 'Name of the application',
+                    type: 'string',
+                    alias: 'n',
+                    default: 'my-hyrex-app'
+                })
+                .option('dir', {
+                    describe: 'Directory to create the app in',
+                    type: 'string',
+                    alias: 'd',
+                    default: '.'
+                });
+        },
+        async (args) => {
+            const appName = args.name as string;
+            const directory = args.dir as string;
+            
+            // Import init handler
+            const { handleInit } = require('./commands/init');
+            await handleInit(appName, directory);
+        }
+    )
     .demandCommand(1, 'You need to specify a command.')
     .help()
     .argv;

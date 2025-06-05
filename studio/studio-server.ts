@@ -98,15 +98,29 @@ const colorize = (text: string, color: keyof typeof COLOR_MAP): string => {
 };
 
 // Helper function to create a box with proper alignment
-const createBox = (lines: Array<{text: string, color?: keyof typeof COLOR_MAP}>, boxColor: keyof typeof COLOR_MAP, width: number = 55) => {
-  const horizontalLine = '+' + '-'.repeat(width) + '+';
+const createBox = (lines: Array<{text: string, color?: keyof typeof COLOR_MAP}>, boxColor: keyof typeof COLOR_MAP, width: number = 55, style: 'double' | 'single' | 'rounded' = 'double') => {
+  let chars: {tl: string, tr: string, bl: string, br: string, h: string, v: string};
   
-  console.log(colorize('  ' + horizontalLine, boxColor));
+  switch (style) {
+    case 'double':
+      chars = { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║' };
+      break;
+    case 'rounded':
+      chars = { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│' };
+      break;
+    default:
+      chars = { tl: '┌', tr: '┐', bl: '└', br: '┘', h: '─', v: '│' };
+  }
+  
+  const topLine = chars.tl + chars.h.repeat(width) + chars.tr;
+  const bottomLine = chars.bl + chars.h.repeat(width) + chars.br;
+  
+  console.log(colorize('  ' + topLine, boxColor));
   
   lines.forEach(line => {
     if (!line.text) {
       // Empty line
-      console.log(colorize('  |' + ' '.repeat(width) + '|', boxColor));
+      console.log(colorize('  ' + chars.v + ' '.repeat(width) + chars.v, boxColor));
     } else {
       // Calculate padding needed
       const textLength = line.text.length;
@@ -114,26 +128,23 @@ const createBox = (lines: Array<{text: string, color?: keyof typeof COLOR_MAP}>,
       const leftPadding = Math.floor(totalPadding / 2);
       const rightPadding = totalPadding - leftPadding;
       
-      // Build the line
-      const paddedText = ' '.repeat(leftPadding) + line.text + ' '.repeat(rightPadding);
-      
       if (line.color) {
         // If text has its own color, we need to color the box and text separately
         console.log(
-          colorize('  |', boxColor) + 
+          colorize('  ' + chars.v, boxColor) + 
           ' '.repeat(leftPadding) +
           colorize(line.text, line.color) + 
           ' '.repeat(rightPadding) +
-          colorize('|', boxColor)
+          colorize(chars.v, boxColor)
         );
       } else {
         // Simple case - everything is the same color
-        console.log(colorize('  |' + paddedText + '|', boxColor));
+        console.log(colorize('  ' + chars.v + ' '.repeat(leftPadding) + line.text + ' '.repeat(rightPadding) + chars.v, boxColor));
       }
     }
   });
   
-  console.log(colorize('  ' + horizontalLine, boxColor));
+  console.log(colorize('  ' + bottomLine, boxColor));
 };
 
 // Start the server
@@ -143,30 +154,31 @@ app.listen(PORT, () => {
   // Clear the console for a clean display
   console.clear();
   
-  // Display colorful header
+  // Display colorful header with sparkles
   console.log('\n');
+  console.log(colorize('  ✨', 'brightYellow') + ' ' + colorize('Welcome to', 'brightWhite') + ' ' + colorize('✨', 'brightYellow'));
   createBox([
     { text: '' },
-    { text: 'HYREX STUDIO SERVER', color: 'brightMagenta' },
+    { text: '🚀 HYREX STUDIO SERVER 🚀', color: 'brightMagenta' },
     { text: '' }
-  ], 'cyan');
+  ], 'brightCyan', 55, 'double');
   console.log('\n');
   
-  // Display connection info
-  console.log(colorize('  * Status: ', 'yellow') + colorize('Running', 'brightGreen'));
-  console.log(colorize('  * Port: ', 'yellow') + colorize(String(PORT), 'brightWhite'));
-  console.log(colorize('  * Database: ', 'yellow') + colorize(dbName, 'brightWhite'));
-  console.log(colorize('  * Verbose: ', 'yellow') + colorize(isVerbose ? 'Enabled' : 'Disabled', isVerbose ? 'brightGreen' : 'dim'));
+  // Display connection info with icons
+  console.log(colorize('  ▸ ', 'brightGreen') + colorize('Status:', 'yellow') + ' ' + colorize('● Running', 'brightGreen'));
+  console.log(colorize('  ▸ ', 'brightBlue') + colorize('Port:', 'yellow') + ' ' + colorize(String(PORT), 'brightWhite'));
+  console.log(colorize('  ▸ ', 'brightMagenta') + colorize('Database:', 'yellow') + ' ' + colorize(dbName, 'brightWhite'));
+  console.log(colorize('  ▸ ', 'brightCyan') + colorize('Verbose:', 'yellow') + ' ' + colorize(isVerbose ? '✓ Enabled' : '✗ Disabled', isVerbose ? 'brightGreen' : 'dim'));
   console.log('\n');
   
-  // Display URL with emphasis
+  // Display URL with emphasis and emojis
   createBox([
     { text: '' },
-    { text: 'Open Hyrex Studio in your browser:', color: 'brightWhite' },
+    { text: '🌐 Open Hyrex Studio in your browser:', color: 'brightWhite' },
     { text: '' },
-    { text: '-> https://local.hyrex.studio', color: 'brightCyan' },
+    { text: '👉 https://local.hyrex.studio 👈', color: 'brightCyan' },
     { text: '' }
-  ], 'brightBlue');
+  ], 'brightBlue', 55, 'rounded');
   console.log('\n');
   
   if (!isVerbose) {

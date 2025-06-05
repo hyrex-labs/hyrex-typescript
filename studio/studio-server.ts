@@ -21,7 +21,11 @@ if (!DB_CONNECTION_STRING) {
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(morgan('combined'));
+
+// Only add morgan logging if verbose flag is set
+if (process.env.STUDIO_VERBOSE === 'true') {
+  app.use(morgan('combined'));
+}
 
 // Create a PostgreSQL connection pool
 const pool = new Pool({
@@ -36,6 +40,8 @@ app.get('/health', (req: Request, res: Response) => {
 // Execute raw SQL query
 app.post('/api/query', (req: Request, res: Response) => {
   const { query, params = [] } = req.body;
+
+  console.log('Received query payload:', JSON.stringify({ query, params }, null, 2));
 
   if (!query) {
     return res.status(400).json({ error: 'Query is required' });

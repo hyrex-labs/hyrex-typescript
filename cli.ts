@@ -223,6 +223,28 @@ const argv = yargs(hideBin(process.argv))
             });
         }
     )
+    .command(
+        'studio',
+        'Run Hyrex Studio Server',
+        (yargs) => {
+            yargs
+                .option('verbose', {
+                    describe: 'Enable verbose express logging',
+                    type: 'boolean',
+                    alias: 'v',
+                    default: false
+                });
+        },
+        async (args) => {
+            const verbose = args.verbose as boolean;
+            
+            // Set environment variable for studio server to check
+            process.env.STUDIO_VERBOSE = verbose.toString();
+            
+            // Run the studio server directly
+            require('./studio/studio-server');
+        }
+    )
     .demandCommand(1, 'You need to specify a command.')
     .help()
     .argv;

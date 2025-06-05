@@ -79,28 +79,28 @@ function OnboardUserBody(workflowBuilder: HyrexWorkflowBuilder) {
 }
 
 
-// const onboardUser = hy.workflow({
-//     name: "onboardUser",
-//     config: { queue: "onboard-user" },
-//     workflowArgSchema: z.object({
-//         "userEmail": z.string(),
-//         "signUpTier": z.enum(["FREE", "PRO", "ENTERPRISE"])
-//     }),
-//     body: (workflowBuilder: HyrexWorkflowBuilder) => {
-//         workflowBuilder
-//             .start(initiateOnboard)
-//             .next([validatePayment, validateIdentity, validateOrg])
-//             .next(approveUser)
-//
-//         validateIdentity
-//             .next(checkCredit)
-//             .next(trainCreditMachineLearningModel)
-//
-//
-//
-//         return workflowBuilder
-//     }
-// })
+const onboardUser = hy.workflow({
+    name: "onboardUser",
+    config: { queue: "onboard-user" },
+    workflowArgSchema: z.object({
+        "userEmail": z.string(),
+        "signUpTier": z.enum(["FREE", "PRO", "ENTERPRISE"])
+    }),
+    body: (workflowBuilder: HyrexWorkflowBuilder) => {
+        workflowBuilder
+            .start(initiateOnboard)
+            .next([validatePayment, validateIdentity, validateOrg])
+            .next(approveUser)
+
+        validateIdentity
+            .next(checkCredit)
+            .next(trainCreditMachineLearningModel)
+
+
+
+        return workflowBuilder
+    }
+})
 
 // onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
 

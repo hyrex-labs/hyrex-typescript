@@ -16,7 +16,7 @@
     "worker": "ts-node cli.ts run-worker",
     "workerjs": "node dist/cli.js run-worker",
     "init-db": "node dist/cli.js init-db",
-    "studio": "ts-node studio/studio-server.ts"
+    "studio": "ts-node cli.ts studio"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.723.0",

@@ -6,11 +6,13 @@ import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import { envVariables } from "../EnvironmentVariables";
 
+
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.STUDIO_PORT || 1337;
+const isVerbose = process.env.STUDIO_VERBOSE === 'true';
 
 // Database connection string
 const DB_CONNECTION_STRING = envVariables.getDatabaseUrl()
@@ -41,7 +43,11 @@ app.get('/health', (req: Request, res: Response) => {
 app.post('/api/query', (req: Request, res: Response) => {
   const { query, params = [] } = req.body;
 
-  console.log('Received query payload:', JSON.stringify({ query, params }, null, 2));
+  if (process.env.STUDIO_VERBOSE === 'true') {
+    if (isVerbose) {
+    console.log('Received query payload:', JSON.stringify({ query, params }, null, 2));
+  }
+  }
 
   if (!query) {
     return res.status(400).json({ error: 'Query is required' });
@@ -63,7 +69,9 @@ app.post('/api/query', (req: Request, res: Response) => {
         })
         .catch(error => {
           client.release();
-          console.error('Error executing query:', error);
+          if (isVerbose) {
+            console.error('Error executing query:', error);
+          }
           res.status(500).json({
             error: 'Error executing query',
             message: error instanceof Error ? error.message : String(error)
@@ -71,7 +79,9 @@ app.post('/api/query', (req: Request, res: Response) => {
         });
     })
     .catch(error => {
-      console.error('Error connecting to database:', error);
+      if (isVerbose) {
+        console.error('Error connecting to database:', error);
+      }
       res.status(500).json({
         error: 'Error connecting to database',
         message: error instanceof Error ? error.message : String(error)
@@ -83,7 +93,7 @@ app.post('/api/query', (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Hyrex Studio Server running on port ${PORT}`);
   const dbName = new URL(DB_CONNECTION_STRING).pathname.substring(1)
-console.log(`Using database: ${dbName}`);
+  console.log(`Using database: ${dbName}`);
 });
 
 // Handle server shutdown

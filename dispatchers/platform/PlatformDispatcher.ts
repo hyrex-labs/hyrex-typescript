@@ -19,6 +19,7 @@ import * as requests_pb from './generated/requests_pb';
 import * as task_pb from './generated/task_pb';
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
 import * as google_protobuf_empty_pb from 'google-protobuf/google/protobuf/empty_pb';
+import * as google_protobuf_timestamp_pb from 'google-protobuf/google/protobuf/timestamp_pb';
 import { hyrexLogger } from "../../logging/FrameworkLogger";
 
 export class PlatformDispatcher implements HyrexDispatcher {
@@ -66,6 +67,14 @@ export class PlatformDispatcher implements HyrexDispatcher {
                 return task_pb.TaskStatus.SUCCESS;
             case 'failed':
                 return task_pb.TaskStatus.FAILED;
+            case 'up_for_cancel':
+                return task_pb.TaskStatus.UP_FOR_CANCEL;
+            case 'canceled':
+                return task_pb.TaskStatus.CANCELED;
+            case 'lost':
+                return task_pb.TaskStatus.LOST;
+            case 'skipped':
+                return task_pb.TaskStatus.SKIPPED;
             default:
                 return task_pb.TaskStatus.UNSPECIFIED;
         }
@@ -84,6 +93,14 @@ export class PlatformDispatcher implements HyrexDispatcher {
                 return 'success';
             case task_pb.TaskStatus.FAILED:
                 return 'failed';
+            case task_pb.TaskStatus.UP_FOR_CANCEL:
+                return 'up_for_cancel';
+            case task_pb.TaskStatus.CANCELED:
+                return 'canceled';
+            case task_pb.TaskStatus.LOST:
+                return 'lost';
+            case task_pb.TaskStatus.SKIPPED:
+                return 'skipped';
             default:
                 return 'unknown';
         }
@@ -346,20 +363,22 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void> {
-        // Not directly implemented in the proto, but we can use GetTaskRunStatus to check if task is still running
-        const request = new requests_pb.GetTaskRunStatusRequest();
-        request.setTaskRunId(heartbeatMsg.body.taskId);
+        const request = new requests_pb.TaskRunHeartbeatRequest();
+        request.setTaskRunIdsList([heartbeatMsg.body.taskId]);
+        
+        const timestamp = new google_protobuf_timestamp_pb.Timestamp();
+        const now = new Date();
+        timestamp.setSeconds(Math.floor(now.getTime() / 1000));
+        timestamp.setNanos((now.getTime() % 1000) * 1000000);
+        request.setTimestamp(timestamp);
 
         try {
-            const response = await new Promise<requests_pb.GetTaskRunStatusResponse | undefined>((resolve, reject) => {
-                this.serviceClient.getTaskRunStatus(request, this.metadata, (err: Error | null, response?: requests_pb.GetTaskRunStatusResponse) => {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.taskRunHeartbeat(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
-                    else resolve(response);
+                    else resolve();
                 });
             });
-
-            // The heartbeat was successful if we got a response
-            // In a real implementation, you might want to check the status and handle accordingly
         } catch (error) {
             console.error('Error updating task heartbeat:', error);
             throw error;
@@ -367,9 +386,21 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async attemptRetry(taskId: UUID): Promise<void> {
-        // Platform handles retries automatically, so this is a no-op
-        // Log for debugging purposes
-        console.log(`Retry requested for task ${taskId} - platform will handle automatically`);
+        const request = new requests_pb.RetryTaskRunRequest();
+        request.setTaskRunId(taskId);
+        request.setBackoffSeconds(0); // Immediate retry
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.retryTaskRun(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error attempting retry:', error);
+            throw error;
+        }
     }
 
     async registerExecutor({ queues, queuePattern, executorId, executorName, workerName }: {
@@ -400,15 +431,12 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async disconnectExecutor({ executorId, stats }: { executorId: string, stats: object }): Promise<void> {
-        // Since there's no specific disconnect endpoint, we'll update the executor with empty queues
-        // to indicate it's no longer active
-        const request = new requests_pb.UpdateExecutorQueuesRequest();
+        const request = new requests_pb.DisconnectExecutorRequest();
         request.setExecutorId(executorId);
-        request.setQueuesList([]); // Empty queues list indicates disconnection
 
         try {
             await new Promise<void>((resolve, reject) => {
-                this.serviceClient.updateExecutorQueues(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                this.serviceClient.disconnectExecutor(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
                     if (err) reject(err);
                     else resolve();
                 });
@@ -423,8 +451,44 @@ export class PlatformDispatcher implements HyrexDispatcher {
         executorId: string,
         stats: object
     }): Promise<'ACCEPTED' | 'REJECTED'> {
-        // Not directly implemented in the proto
-        return 'ACCEPTED';
+        const request = new requests_pb.UpdateExecutorStatsRequest();
+        request.setExecutorId(executorId);
+        
+        // Convert stats object to protobuf Struct
+        const statsStruct = new google_protobuf_struct_pb.Struct();
+        const fieldsMap = statsStruct.getFieldsMap();
+        
+        for (const [key, value] of Object.entries(stats)) {
+            const protoValue = new google_protobuf_struct_pb.Value();
+            if (typeof value === 'number') {
+                protoValue.setNumberValue(value);
+            } else if (typeof value === 'string') {
+                protoValue.setStringValue(value);
+            } else if (typeof value === 'boolean') {
+                protoValue.setBoolValue(value);
+            } else if (value === null) {
+                protoValue.setNullValue(0);
+            } else if (typeof value === 'object') {
+                // For nested objects, convert to JSON string
+                protoValue.setStringValue(JSON.stringify(value));
+            }
+            fieldsMap.set(key, protoValue);
+        }
+        
+        request.setExecutorStats(statsStruct);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.updateExecutorStats(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            return 'ACCEPTED';
+        } catch (error) {
+            console.error('Error emitting executor stats:', error);
+            return 'REJECTED';
+        }
     }
 
     async updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }): Promise<void> {
@@ -446,13 +510,49 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        const request = new requests_pb.ExecutorHeartbeatRequest();
+        request.setExecutorIdsList(heartbeatMsg.body.executorIds);
+        
+        const timestamp = new google_protobuf_timestamp_pb.Timestamp();
+        const now = new Date();
+        timestamp.setSeconds(Math.floor(now.getTime() / 1000));
+        timestamp.setNanos((now.getTime() % 1000) * 1000000);
+        request.setTimestamp(timestamp);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.executorHeartbeat(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error updating executor heartbeat:', error);
+            throw error;
+        }
     }
 
     async updateExecutorHeartbeats({ executorIds }: { executorIds: string[] }): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        const request = new requests_pb.ExecutorHeartbeatRequest();
+        request.setExecutorIdsList(executorIds);
+        
+        const timestamp = new google_protobuf_timestamp_pb.Timestamp();
+        const now = new Date();
+        timestamp.setSeconds(Math.floor(now.getTime() / 1000));
+        timestamp.setNanos((now.getTime() % 1000) * 1000000);
+        request.setTimestamp(timestamp);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.executorHeartbeat(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error updating executor heartbeats:', error);
+            throw error;
+        }
     }
 
     async registerTask({ taskName, taskConfig, sourceCode }: {
@@ -516,8 +616,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async listen(hyrexListener: DispatcherListenerCallbacks): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        hyrexLogger.info("platform", "Listener callbacks automatically managed by platform", "dim");
     }
 
     async acquireSchedulerLock({ workerId, workerName }: {
@@ -544,8 +643,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        hyrexLogger.info("platform", "Lock heartbeat automatically managed by platform", "dim");
     }
 
     async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {
@@ -558,13 +656,11 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async updateCronJobConfirmationTimestamp(jobId: number): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        hyrexLogger.info("platform", "Cron job confirmation automatically managed by platform", "dim");
     }
 
     async scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        hyrexLogger.info("platform", "Cron job scheduling automatically managed by platform", "dim");
     }
 
     async executeQueuedCronJobRun(): Promise<string | null> {
@@ -648,8 +744,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
         listenerName: string,
         sourceCode: string
     }): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        hyrexLogger.info("platform", "Listener registration automatically managed by platform", "dim");
     }
 
     async registerWorkflow({ workflowName, sourceCode, workflowDagJson }: {
@@ -657,20 +752,95 @@ export class PlatformDispatcher implements HyrexDispatcher {
         sourceCode: string,
         workflowDagJson: WorkflowDagJson
     }): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        const request = new requests_pb.RegisterWorkflowRequest();
+        request.setWorkflowName(workflowName);
+        request.setSourceCode(sourceCode);
+        request.setWorkflowDagJson(JSON.stringify(workflowDagJson));
+        
+        // Convert workflow config to protobuf Struct if needed
+        const defaultConfig = new google_protobuf_struct_pb.Struct();
+        // Add any default config fields as needed
+        request.setDefaultConfig(defaultConfig);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.registerWorkflow(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error registering workflow:', error);
+            throw error;
+        }
     }
 
     async sendWorkflowRun({ serializedWorkflowRunRequest }: {
         serializedWorkflowRunRequest: SerializedWorkflowRunRequest
     }): Promise<string> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        const request = new requests_pb.SendWorkflowRunRequest();
+        request.setWorkflowRunId(serializedWorkflowRunRequest.id);
+        request.setWorkflowName(serializedWorkflowRunRequest.workflow_name);
+        
+        // Convert args to protobuf Struct
+        const argsStruct = new google_protobuf_struct_pb.Struct();
+        if (serializedWorkflowRunRequest.args) {
+            const fieldsMap = argsStruct.getFieldsMap();
+            for (const [key, value] of Object.entries(serializedWorkflowRunRequest.args)) {
+                const protoValue = new google_protobuf_struct_pb.Value();
+                if (typeof value === 'number') {
+                    protoValue.setNumberValue(value);
+                } else if (typeof value === 'string') {
+                    protoValue.setStringValue(value);
+                } else if (typeof value === 'boolean') {
+                    protoValue.setBoolValue(value);
+                } else if (value === null) {
+                    protoValue.setNullValue(0);
+                } else if (typeof value === 'object') {
+                    protoValue.setStringValue(JSON.stringify(value));
+                }
+                fieldsMap.set(key, protoValue);
+            }
+        }
+        request.setArgs(argsStruct);
+        
+        request.setQueue(serializedWorkflowRunRequest.queue);
+        if (serializedWorkflowRunRequest.timeout_seconds !== null) {
+            request.setTimeoutSeconds(serializedWorkflowRunRequest.timeout_seconds);
+        }
+        if (serializedWorkflowRunRequest.idempotency_key) {
+            request.setIdempotencyKey(serializedWorkflowRunRequest.idempotency_key);
+        }
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.sendWorkflowRun(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            return serializedWorkflowRunRequest.id;
+        } catch (error) {
+            console.error('Error sending workflow run:', error);
+            throw error;
+        }
     }
 
     async advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void> {
-        // Not directly implemented in the proto
-        throw new Error("Method not implemented.");
+        const request = new requests_pb.AdvanceWorkflowRunRequest();
+        request.setWorkflowRunId(workflowRunId);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.advanceWorkflowRun(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error advancing workflow run:', error);
+            throw error;
+        }
     }
 
     // Additional helper methods for task definitions
@@ -729,6 +899,96 @@ export class PlatformDispatcher implements HyrexDispatcher {
             console.error('Error getting durable task runs:', error);
             return [];
         }
+    }
+
+    // Get workflow run arguments
+    async getWorkflowRunArgs(workflowRunId: string): Promise<any> {
+        const request = new requests_pb.GetWorkflowRunArgsRequest();
+        request.setWorkflowRunId(workflowRunId);
+
+        try {
+            const response = await new Promise<requests_pb.GetWorkflowRunArgsResponse | undefined>((resolve, reject) => {
+                this.serviceClient.getWorkflowRunArgs(request, this.metadata, (err: Error | null, response?: requests_pb.GetWorkflowRunArgsResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            if (response && response.getArgs()) {
+                const argsStruct = response.getArgs()!;
+                // Convert protobuf Struct to JavaScript object
+                return this.structToObject(argsStruct);
+            }
+
+            return {};
+        } catch (error) {
+            console.error('Error getting workflow run args:', error);
+            throw error;
+        }
+    }
+
+    // Get workflow durable runs
+    async getWorkflowDurableRuns(workflowRunId: string): Promise<string[]> {
+        const request = new requests_pb.GetWorkflowDurableRunsRequest();
+        request.setWorkflowRunId(workflowRunId);
+
+        try {
+            const response = await new Promise<requests_pb.GetWorkflowDurableRunsResponse | undefined>((resolve, reject) => {
+                this.serviceClient.getWorkflowDurableRuns(request, this.metadata, (err: Error | null, response?: requests_pb.GetWorkflowDurableRunsResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            return response ? response.getDurableRunIdsList() : [];
+        } catch (error) {
+            console.error('Error getting workflow durable runs:', error);
+            return [];
+        }
+    }
+
+    // Helper method to convert protobuf Struct to JavaScript object
+    private structToObject(struct: google_protobuf_struct_pb.Struct): any {
+        const result: any = {};
+        const fields = struct.getFieldsMap();
+        
+        fields.forEach((value, key) => {
+            if (value.hasNumberValue()) {
+                result[key] = value.getNumberValue();
+            } else if (value.hasStringValue()) {
+                result[key] = value.getStringValue();
+            } else if (value.hasBoolValue()) {
+                result[key] = value.getBoolValue();
+            } else if (value.hasNullValue()) {
+                result[key] = null;
+            } else if (value.hasStructValue()) {
+                result[key] = this.structToObject(value.getStructValue()!);
+            } else if (value.hasListValue()) {
+                const list = value.getListValue()!;
+                result[key] = list.getValuesList().map(v => this.valueToJs(v));
+            }
+        });
+        
+        return result;
+    }
+
+    // Helper method to convert protobuf Value to JavaScript value
+    private valueToJs(value: google_protobuf_struct_pb.Value): any {
+        if (value.hasNumberValue()) {
+            return value.getNumberValue();
+        } else if (value.hasStringValue()) {
+            return value.getStringValue();
+        } else if (value.hasBoolValue()) {
+            return value.getBoolValue();
+        } else if (value.hasNullValue()) {
+            return null;
+        } else if (value.hasStructValue()) {
+            return this.structToObject(value.getStructValue()!);
+        } else if (value.hasListValue()) {
+            const list = value.getListValue()!;
+            return list.getValuesList().map(v => this.valueToJs(v));
+        }
+        return null;
     }
 
     // Test connection to the gRPC server

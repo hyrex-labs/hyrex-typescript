@@ -38,6 +38,17 @@ function deserialize_hyrex_performanceserver_AcquireSchedulerLockResponse(buffer
   return requests_pb.AcquireSchedulerLockResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
+function serialize_hyrex_performanceserver_AdvanceWorkflowRunRequest(arg) {
+  if (!(arg instanceof requests_pb.AdvanceWorkflowRunRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.AdvanceWorkflowRunRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_AdvanceWorkflowRunRequest(buffer_arg) {
+  return requests_pb.AdvanceWorkflowRunRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_hyrex_performanceserver_DequeueRequest(arg) {
   if (!(arg instanceof requests_pb.DequeueRequest)) {
     throw new Error('Expected argument of type hyrex.performanceserver.DequeueRequest');
@@ -225,6 +236,50 @@ function deserialize_hyrex_performanceserver_GetTaskRunStatusResponse(buffer_arg
   return requests_pb.GetTaskRunStatusResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
+function serialize_hyrex_performanceserver_GetWorkflowDurableRunsRequest(arg) {
+  if (!(arg instanceof requests_pb.GetWorkflowDurableRunsRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.GetWorkflowDurableRunsRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_GetWorkflowDurableRunsRequest(buffer_arg) {
+  return requests_pb.GetWorkflowDurableRunsRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_GetWorkflowDurableRunsResponse(arg) {
+  if (!(arg instanceof requests_pb.GetWorkflowDurableRunsResponse)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.GetWorkflowDurableRunsResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_GetWorkflowDurableRunsResponse(buffer_arg) {
+  return requests_pb.GetWorkflowDurableRunsResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_GetWorkflowRunArgsRequest(arg) {
+  if (!(arg instanceof requests_pb.GetWorkflowRunArgsRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.GetWorkflowRunArgsRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_GetWorkflowRunArgsRequest(buffer_arg) {
+  return requests_pb.GetWorkflowRunArgsRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_GetWorkflowRunArgsResponse(arg) {
+  if (!(arg instanceof requests_pb.GetWorkflowRunArgsResponse)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.GetWorkflowRunArgsResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_GetWorkflowRunArgsResponse(buffer_arg) {
+  return requests_pb.GetWorkflowRunArgsResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_hyrex_performanceserver_MarkFailedRequest(arg) {
   if (!(arg instanceof requests_pb.MarkFailedRequest)) {
     throw new Error('Expected argument of type hyrex.performanceserver.MarkFailedRequest');
@@ -280,6 +335,17 @@ function deserialize_hyrex_performanceserver_RegisterTaskDefRequest(buffer_arg) 
   return requests_pb.RegisterTaskDefRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
+function serialize_hyrex_performanceserver_RegisterWorkflowRequest(arg) {
+  if (!(arg instanceof requests_pb.RegisterWorkflowRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.RegisterWorkflowRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_RegisterWorkflowRequest(buffer_arg) {
+  return requests_pb.RegisterWorkflowRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_hyrex_performanceserver_RetryTaskRunRequest(arg) {
   if (!(arg instanceof requests_pb.RetryTaskRunRequest)) {
     throw new Error('Expected argument of type hyrex.performanceserver.RetryTaskRunRequest');
@@ -289,6 +355,17 @@ function serialize_hyrex_performanceserver_RetryTaskRunRequest(arg) {
 
 function deserialize_hyrex_performanceserver_RetryTaskRunRequest(buffer_arg) {
   return requests_pb.RetryTaskRunRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_SendWorkflowRunRequest(arg) {
+  if (!(arg instanceof requests_pb.SendWorkflowRunRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.SendWorkflowRunRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_SendWorkflowRunRequest(buffer_arg) {
+  return requests_pb.SendWorkflowRunRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_SetLogLinkRequest(arg) {
@@ -603,6 +680,61 @@ registerTaskDef: {
     requestDeserialize: deserialize_hyrex_performanceserver_AcquireSchedulerLockRequest,
     responseSerialize: serialize_hyrex_performanceserver_AcquireSchedulerLockResponse,
     responseDeserialize: deserialize_hyrex_performanceserver_AcquireSchedulerLockResponse,
+  },
+  registerWorkflow: {
+    path: '/hyrex.performanceserver.GatewayService/RegisterWorkflow',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.RegisterWorkflowRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_RegisterWorkflowRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_RegisterWorkflowRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  sendWorkflowRun: {
+    path: '/hyrex.performanceserver.GatewayService/SendWorkflowRun',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.SendWorkflowRunRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_SendWorkflowRunRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_SendWorkflowRunRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  getWorkflowRunArgs: {
+    path: '/hyrex.performanceserver.GatewayService/GetWorkflowRunArgs',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.GetWorkflowRunArgsRequest,
+    responseType: requests_pb.GetWorkflowRunArgsResponse,
+    requestSerialize: serialize_hyrex_performanceserver_GetWorkflowRunArgsRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_GetWorkflowRunArgsRequest,
+    responseSerialize: serialize_hyrex_performanceserver_GetWorkflowRunArgsResponse,
+    responseDeserialize: deserialize_hyrex_performanceserver_GetWorkflowRunArgsResponse,
+  },
+  advanceWorkflowRun: {
+    path: '/hyrex.performanceserver.GatewayService/AdvanceWorkflowRun',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.AdvanceWorkflowRunRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_AdvanceWorkflowRunRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_AdvanceWorkflowRunRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  getWorkflowDurableRuns: {
+    path: '/hyrex.performanceserver.GatewayService/GetWorkflowDurableRuns',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.GetWorkflowDurableRunsRequest,
+    responseType: requests_pb.GetWorkflowDurableRunsResponse,
+    requestSerialize: serialize_hyrex_performanceserver_GetWorkflowDurableRunsRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_GetWorkflowDurableRunsRequest,
+    responseSerialize: serialize_hyrex_performanceserver_GetWorkflowDurableRunsResponse,
+    responseDeserialize: deserialize_hyrex_performanceserver_GetWorkflowDurableRunsResponse,
   },
 };
 

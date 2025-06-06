@@ -32,6 +32,11 @@ interface IGatewayServiceService extends grpc.ServiceDefinition<grpc.UntypedServ
   registerApp: grpc.MethodDefinition<requests_pb.RegisterAppRequest, google_protobuf_empty_pb.Empty>;
   setLogLink: grpc.MethodDefinition<requests_pb.SetLogLinkRequest, google_protobuf_empty_pb.Empty>;
   acquireSchedulerLock: grpc.MethodDefinition<requests_pb.AcquireSchedulerLockRequest, requests_pb.AcquireSchedulerLockResponse>;
+  registerWorkflow: grpc.MethodDefinition<requests_pb.RegisterWorkflowRequest, google_protobuf_empty_pb.Empty>;
+  sendWorkflowRun: grpc.MethodDefinition<requests_pb.SendWorkflowRunRequest, google_protobuf_empty_pb.Empty>;
+  getWorkflowRunArgs: grpc.MethodDefinition<requests_pb.GetWorkflowRunArgsRequest, requests_pb.GetWorkflowRunArgsResponse>;
+  advanceWorkflowRun: grpc.MethodDefinition<requests_pb.AdvanceWorkflowRunRequest, google_protobuf_empty_pb.Empty>;
+  getWorkflowDurableRuns: grpc.MethodDefinition<requests_pb.GetWorkflowDurableRunsRequest, requests_pb.GetWorkflowDurableRunsResponse>;
 }
 
 export const GatewayServiceService: IGatewayServiceService;
@@ -60,6 +65,11 @@ export interface IGatewayServiceServer extends grpc.UntypedServiceImplementation
   registerApp: grpc.handleUnaryCall<requests_pb.RegisterAppRequest, google_protobuf_empty_pb.Empty>;
   setLogLink: grpc.handleUnaryCall<requests_pb.SetLogLinkRequest, google_protobuf_empty_pb.Empty>;
   acquireSchedulerLock: grpc.handleUnaryCall<requests_pb.AcquireSchedulerLockRequest, requests_pb.AcquireSchedulerLockResponse>;
+  registerWorkflow: grpc.handleUnaryCall<requests_pb.RegisterWorkflowRequest, google_protobuf_empty_pb.Empty>;
+  sendWorkflowRun: grpc.handleUnaryCall<requests_pb.SendWorkflowRunRequest, google_protobuf_empty_pb.Empty>;
+  getWorkflowRunArgs: grpc.handleUnaryCall<requests_pb.GetWorkflowRunArgsRequest, requests_pb.GetWorkflowRunArgsResponse>;
+  advanceWorkflowRun: grpc.handleUnaryCall<requests_pb.AdvanceWorkflowRunRequest, google_protobuf_empty_pb.Empty>;
+  getWorkflowDurableRuns: grpc.handleUnaryCall<requests_pb.GetWorkflowDurableRunsRequest, requests_pb.GetWorkflowDurableRunsResponse>;
 }
 
 export class GatewayServiceClient extends grpc.Client {
@@ -133,4 +143,19 @@ export class GatewayServiceClient extends grpc.Client {
   acquireSchedulerLock(argument: requests_pb.AcquireSchedulerLockRequest, callback: grpc.requestCallback<requests_pb.AcquireSchedulerLockResponse>): grpc.ClientUnaryCall;
   acquireSchedulerLock(argument: requests_pb.AcquireSchedulerLockRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.AcquireSchedulerLockResponse>): grpc.ClientUnaryCall;
   acquireSchedulerLock(argument: requests_pb.AcquireSchedulerLockRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.AcquireSchedulerLockResponse>): grpc.ClientUnaryCall;
+  registerWorkflow(argument: requests_pb.RegisterWorkflowRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  registerWorkflow(argument: requests_pb.RegisterWorkflowRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  registerWorkflow(argument: requests_pb.RegisterWorkflowRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  sendWorkflowRun(argument: requests_pb.SendWorkflowRunRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  sendWorkflowRun(argument: requests_pb.SendWorkflowRunRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  sendWorkflowRun(argument: requests_pb.SendWorkflowRunRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  getWorkflowRunArgs(argument: requests_pb.GetWorkflowRunArgsRequest, callback: grpc.requestCallback<requests_pb.GetWorkflowRunArgsResponse>): grpc.ClientUnaryCall;
+  getWorkflowRunArgs(argument: requests_pb.GetWorkflowRunArgsRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.GetWorkflowRunArgsResponse>): grpc.ClientUnaryCall;
+  getWorkflowRunArgs(argument: requests_pb.GetWorkflowRunArgsRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.GetWorkflowRunArgsResponse>): grpc.ClientUnaryCall;
+  advanceWorkflowRun(argument: requests_pb.AdvanceWorkflowRunRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  advanceWorkflowRun(argument: requests_pb.AdvanceWorkflowRunRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  advanceWorkflowRun(argument: requests_pb.AdvanceWorkflowRunRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  getWorkflowDurableRuns(argument: requests_pb.GetWorkflowDurableRunsRequest, callback: grpc.requestCallback<requests_pb.GetWorkflowDurableRunsResponse>): grpc.ClientUnaryCall;
+  getWorkflowDurableRuns(argument: requests_pb.GetWorkflowDurableRunsRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.GetWorkflowDurableRunsResponse>): grpc.ClientUnaryCall;
+  getWorkflowDurableRuns(argument: requests_pb.GetWorkflowDurableRunsRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.GetWorkflowDurableRunsResponse>): grpc.ClientUnaryCall;
 }

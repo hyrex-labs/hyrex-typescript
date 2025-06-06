@@ -788,3 +788,193 @@ export namespace WriteLogsRequest {
   }
 }
 
+export class RegisterWorkflowRequest extends jspb.Message {
+  getWorkflowName(): string;
+  setWorkflowName(value: string): void;
+
+  getSourceCode(): string;
+  setSourceCode(value: string): void;
+
+  getWorkflowDagJson(): string;
+  setWorkflowDagJson(value: string): void;
+
+  hasWorkflowArgSchema(): boolean;
+  clearWorkflowArgSchema(): void;
+  getWorkflowArgSchema(): google_protobuf_struct_pb.Struct | undefined;
+  setWorkflowArgSchema(value?: google_protobuf_struct_pb.Struct): void;
+
+  hasDefaultConfig(): boolean;
+  clearDefaultConfig(): void;
+  getDefaultConfig(): google_protobuf_struct_pb.Struct | undefined;
+  setDefaultConfig(value?: google_protobuf_struct_pb.Struct): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RegisterWorkflowRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: RegisterWorkflowRequest): RegisterWorkflowRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: RegisterWorkflowRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RegisterWorkflowRequest;
+  static deserializeBinaryFromReader(message: RegisterWorkflowRequest, reader: jspb.BinaryReader): RegisterWorkflowRequest;
+}
+
+export namespace RegisterWorkflowRequest {
+  export type AsObject = {
+    workflowName: string,
+    sourceCode: string,
+    workflowDagJson: string,
+    workflowArgSchema?: google_protobuf_struct_pb.Struct.AsObject,
+    defaultConfig?: google_protobuf_struct_pb.Struct.AsObject,
+  }
+}
+
+export class SendWorkflowRunRequest extends jspb.Message {
+  getWorkflowRunId(): string;
+  setWorkflowRunId(value: string): void;
+
+  getWorkflowName(): string;
+  setWorkflowName(value: string): void;
+
+  hasArgs(): boolean;
+  clearArgs(): void;
+  getArgs(): google_protobuf_struct_pb.Struct | undefined;
+  setArgs(value?: google_protobuf_struct_pb.Struct): void;
+
+  getQueue(): string;
+  setQueue(value: string): void;
+
+  hasTimeoutSeconds(): boolean;
+  clearTimeoutSeconds(): void;
+  getTimeoutSeconds(): number;
+  setTimeoutSeconds(value: number): void;
+
+  hasIdempotencyKey(): boolean;
+  clearIdempotencyKey(): void;
+  getIdempotencyKey(): string;
+  setIdempotencyKey(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SendWorkflowRunRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SendWorkflowRunRequest): SendWorkflowRunRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: SendWorkflowRunRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SendWorkflowRunRequest;
+  static deserializeBinaryFromReader(message: SendWorkflowRunRequest, reader: jspb.BinaryReader): SendWorkflowRunRequest;
+}
+
+export namespace SendWorkflowRunRequest {
+  export type AsObject = {
+    workflowRunId: string,
+    workflowName: string,
+    args?: google_protobuf_struct_pb.Struct.AsObject,
+    queue: string,
+    timeoutSeconds: number,
+    idempotencyKey: string,
+  }
+}
+
+export class GetWorkflowRunArgsRequest extends jspb.Message {
+  getWorkflowRunId(): string;
+  setWorkflowRunId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetWorkflowRunArgsRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetWorkflowRunArgsRequest): GetWorkflowRunArgsRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: GetWorkflowRunArgsRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetWorkflowRunArgsRequest;
+  static deserializeBinaryFromReader(message: GetWorkflowRunArgsRequest, reader: jspb.BinaryReader): GetWorkflowRunArgsRequest;
+}
+
+export namespace GetWorkflowRunArgsRequest {
+  export type AsObject = {
+    workflowRunId: string,
+  }
+}
+
+export class GetWorkflowRunArgsResponse extends jspb.Message {
+  hasArgs(): boolean;
+  clearArgs(): void;
+  getArgs(): google_protobuf_struct_pb.Struct | undefined;
+  setArgs(value?: google_protobuf_struct_pb.Struct): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetWorkflowRunArgsResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetWorkflowRunArgsResponse): GetWorkflowRunArgsResponse.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: GetWorkflowRunArgsResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetWorkflowRunArgsResponse;
+  static deserializeBinaryFromReader(message: GetWorkflowRunArgsResponse, reader: jspb.BinaryReader): GetWorkflowRunArgsResponse;
+}
+
+export namespace GetWorkflowRunArgsResponse {
+  export type AsObject = {
+    args?: google_protobuf_struct_pb.Struct.AsObject,
+  }
+}
+
+export class AdvanceWorkflowRunRequest extends jspb.Message {
+  getWorkflowRunId(): string;
+  setWorkflowRunId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AdvanceWorkflowRunRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: AdvanceWorkflowRunRequest): AdvanceWorkflowRunRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: AdvanceWorkflowRunRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AdvanceWorkflowRunRequest;
+  static deserializeBinaryFromReader(message: AdvanceWorkflowRunRequest, reader: jspb.BinaryReader): AdvanceWorkflowRunRequest;
+}
+
+export namespace AdvanceWorkflowRunRequest {
+  export type AsObject = {
+    workflowRunId: string,
+  }
+}
+
+export class GetWorkflowDurableRunsRequest extends jspb.Message {
+  getWorkflowRunId(): string;
+  setWorkflowRunId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetWorkflowDurableRunsRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetWorkflowDurableRunsRequest): GetWorkflowDurableRunsRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: GetWorkflowDurableRunsRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetWorkflowDurableRunsRequest;
+  static deserializeBinaryFromReader(message: GetWorkflowDurableRunsRequest, reader: jspb.BinaryReader): GetWorkflowDurableRunsRequest;
+}
+
+export namespace GetWorkflowDurableRunsRequest {
+  export type AsObject = {
+    workflowRunId: string,
+  }
+}
+
+export class GetWorkflowDurableRunsResponse extends jspb.Message {
+  clearDurableRunIdsList(): void;
+  getDurableRunIdsList(): Array<string>;
+  setDurableRunIdsList(value: Array<string>): void;
+  addDurableRunIds(value: string, index?: number): string;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetWorkflowDurableRunsResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetWorkflowDurableRunsResponse): GetWorkflowDurableRunsResponse.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: GetWorkflowDurableRunsResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetWorkflowDurableRunsResponse;
+  static deserializeBinaryFromReader(message: GetWorkflowDurableRunsResponse, reader: jspb.BinaryReader): GetWorkflowDurableRunsResponse;
+}
+
+export namespace GetWorkflowDurableRunsResponse {
+  export type AsObject = {
+    durableRunIdsList: Array<string>,
+  }
+}
+

@@ -68,4 +68,4 @@ will be recorded in the System Log table. This effect will last as long as the `
 
 If configured, Hyrex will automatically send task logs to S3. 
 Simply set the env vars `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` for credentials.
-Then set `HYREX_S3_LOG_BUCKET_NAME` for the log name.
+Then set `HYREX_S3_LOG_BUCKET` for the log name.

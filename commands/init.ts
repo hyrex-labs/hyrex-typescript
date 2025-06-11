@@ -97,7 +97,7 @@ const generateEnvTemplate = (config: { mode: 'cloud' | 'postgres', apiKey?: stri
         if (config.s3Bucket) {
             lines.push('');
             lines.push('# S3 Logging Configuration (Optional)');
-            lines.push(`HYREX_S3_LOG_BUCKET_NAME=${config.s3Bucket}`);
+            lines.push(`HYREX_S3_LOG_BUCKET=${config.s3Bucket}`);
             lines.push('# AWS credentials should be configured via AWS CLI or environment variables');
         }
     }
@@ -182,7 +182,7 @@ ${mode === 'postgres' ? '5' : '4'}. Submit a test task:
 
 - **Mode**: ${mode === 'cloud' ? 'Cloud (using Hyrex platform)' : 'PostgreSQL (self-hosted)'}
 ${mode === 'cloud' ? '- **API Key**: Set in HYREX_API_KEY environment variable' : '- **Database**: PostgreSQL connection via HYREX_DATABASE_URL'}
-${mode === 'postgres' ? '- **Logging**: Optional S3 bucket via HYREX_S3_LOG_BUCKET_NAME' : ''}
+${mode === 'postgres' ? '- **Logging**: Optional S3 bucket via HYREX_S3_LOG_BUCKET' : ''}
 
 ## Tasks
 

@@ -104,7 +104,7 @@ await app.init()
 ## Important Environment Variables
 - `HYREX_DATABASE_URL`: PostgreSQL connection string
 - `HYREX_API_KEY`: Platform API key (for cloud mode)
-- `HYREX_S3_LOG_BUCKET_NAME`: S3 bucket for log storage
+- `HYREX_S3_LOG_BUCKET`: S3 bucket for log storage
 - AWS credentials for S3 logging
 
 ## SQL Runner Pattern

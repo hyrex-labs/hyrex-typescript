@@ -6,7 +6,7 @@ class EnvVariables {
     }
 
     getS3LogBucket() {
-        return process.env.HYREX_S3_LOG_BUCKET_NAME
+        return process.env.HYREX_S3_LOG_BUCKET
     }
 
     getApiKey() {
@@ -25,5 +25,5 @@ if (envVariables.getApiKey()) {
 }
 
 if (envVariables.getS3LogBucket()) {
-    hyrexLogger.info("init", "Found HYREX_S3_LOG_BUCKET_NAME.", "blue")
+    hyrexLogger.info("init", "Found HYREX_S3_LOG_BUCKET.", "blue")
 }

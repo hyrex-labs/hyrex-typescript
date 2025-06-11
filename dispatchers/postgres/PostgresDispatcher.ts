@@ -5,7 +5,6 @@ import * as sql from "./sql/sql"
 import * as cronSQL from "./sql/cronSql"
 import * as statsSQL from "./sql/stats"
 import * as durabilitySQL from './sql/durability/durabilitySql'
-import * as listenerSQL from "./sql/listenerSql"
 import * as workflowSQL from "./sql/workflowSql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
@@ -165,7 +164,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await client.query(cronSQL.CreateHyrexSchedulerLockTable);
             await client.query(cronSQL.CREATE_EXECUTE_QUEUED_COMMAND_FUNCTION);
             await client.query(statsSQL.CREATE_HISTORICAL_TASK_STATUS_COUNTS);
-            await client.query(listenerSQL.CreateHyrexListenerTable);
             await client.query(workflowSQL.CreateWorkflowTable)
             await client.query(workflowSQL.CreateWorkflowRunTable)
 
@@ -659,11 +657,11 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
         try {
             await this.s3Client.send(putObjectCommand)
-            
+
             // Construct the S3 link and update it in the database
             const logLink = `s3://${this.bucket}/${objectKey}`
             await this.setLogLink({ taskId, logLink })
-            
+
             hyrexLogger.info('postgres', `Logs successfully uploaded to S3. taskId=${taskId}, logLink=${logLink}`, 'green')
         } catch (error: any) {
             // Handle S3 errors gracefully
@@ -676,19 +674,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
             }
             throw error
         }
-    }
-
-    async acquireListenerLock({ workerName }: { workerName: string }): Promise<string | null> {
-        return "lock"
-    }
-
-    async registerHyrexListener({ listenerName, sourceCode }: {
-        listenerName: string,
-        sourceCode: string
-    }): Promise<void> {
-        return this.queryWithRetry(async (client) => {
-            await client.query(listenerSQL.REGISTER_HYREX_LISTENER, [listenerName, sourceCode])
-        })
     }
 
     // Workflow

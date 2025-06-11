@@ -120,13 +120,7 @@ export interface HyrexDispatcher {
     // Remote Logs
     setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void>
     writeS3Logs(taskId: string, logs: string[]): Promise<void>
-
     registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void>
-
-    // Listener
-    acquireListenerLock({ workerName }: { workerName: string }): Promise<string | null>
-
-    registerHyrexListener({ listenerName, sourceCode }: { listenerName: string, sourceCode: string }): Promise<void>
 
     // Workflow
     registerWorkflow({ workflowName, sourceCode, workflowDagJson }: {

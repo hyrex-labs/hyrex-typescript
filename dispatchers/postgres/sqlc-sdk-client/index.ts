@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
-// This file exports all SQLC generated query functions
-// Generated on: 2025-06-12T20:18:43.687Z
+// This file exports all SQLC generated query functions plus convenience helpers
+// Generated on: 2025-06-12T20:45:47.573Z
 
 // Scheduler
 export * from './acquire_scheduler_lock_sql';
@@ -41,10 +41,6 @@ export * from './pull_active_cron_expressions_sql';
 export * from './turn_off_cron_for_task_sql';
 export * from './update_cron_job_confirmation_ts_sql';
 
-// Schema Init
-export * from './create_functions_sql';
-export * from './create_tables_sql';
-
 // Stats
 export * from './fill_historical_task_status_counts_table_sql';
 
@@ -81,5 +77,41 @@ export * from './upsert_task_sql';
 export * from './upsert_workflow_sql';
 
 // Other
+export * from './create_functions_sql';
+export * from './create_tables_sql';
 export * from './create_workflow_trigger_sql';
 export * from './insert_workflow_run_sql';
+import { createJobSourceTypeEnum, createCronJobTable, createAppTable, createWorkflowRunStatusEnum, createWorkflowRunTable, createSystemLogTable, createTaskRunStatusEnum, createTaskRunTable, createTaskRunIndexes, createResultsTable, createStatsTaskStatusCountsTable, createStatsTaskStatusCountsIndex, createExecutorStatusEnum, createExecutorTable, createSchedulerLockTable, createTaskDefTable, createWorkflowTable, createCronJobStatusEnum, createCronJobRunDetailsTable } from './create_tables_sql';
+import { createExecuteQueuedCronJobFunction, createUuid7Function, createTriggerWorkflowRunFunction } from './create_functions_sql';
+import { QueryArrayConfig, QueryArrayResult } from 'pg';
+
+export interface DatabaseClient { query: (config: QueryArrayConfig) => Promise<QueryArrayResult>; }
+
+export async function createTables(client: DatabaseClient): Promise<void> {
+  await createJobSourceTypeEnum(client);
+  await createCronJobTable(client);
+  await createAppTable(client);
+  await createWorkflowRunStatusEnum(client);
+  await createWorkflowRunTable(client);
+  await createSystemLogTable(client);
+  await createTaskRunStatusEnum(client);
+  await createTaskRunTable(client);
+  await createTaskRunIndexes(client);
+  await createResultsTable(client);
+  await createStatsTaskStatusCountsTable(client);
+  await createStatsTaskStatusCountsIndex(client);
+  await createExecutorStatusEnum(client);
+  await createExecutorTable(client);
+  await createSchedulerLockTable(client);
+  await createTaskDefTable(client);
+  await createWorkflowTable(client);
+  await createCronJobStatusEnum(client);
+  await createCronJobRunDetailsTable(client);
+}
+
+export async function createFunctions(client: DatabaseClient): Promise<void> {
+  await createExecuteQueuedCronJobFunction(client);
+  await createUuid7Function(client);
+  await createTriggerWorkflowRunFunction(client);
+}
+

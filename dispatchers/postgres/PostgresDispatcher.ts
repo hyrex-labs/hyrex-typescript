@@ -22,6 +22,19 @@ import { createDequeueQuery } from "./legacy-sql/sql";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { envVariables } from "../../EnvironmentVariables";
 
+// ──────────────────────────────────────────────────────────────
+// sqlc-generated helpers (new, typed queries)
+// We will gradually migrate PostgresDispatcher to these helpers.
+// For now we only use a small subset so we import them explicitly.
+// ──────────────────────────────────────────────────────────────
+
+import {
+    fetchActiveQueueNames as fetchActiveQueueNamesQuery,
+    FetchActiveQueueNamesRow,
+    registerExecutor as registerExecutorQuery,
+    RegisterExecutorArgs,
+} from "./sqlc-sdk-client";
+
 type HyrexPostgresDispatcherConfig = {
     conn: string
 }
@@ -380,12 +393,17 @@ export class PostgresDispatcher implements HyrexDispatcher {
         executorName: string,
         workerName: string
     }): Promise<void> {
-        const client = await this.pool.connect()
-        try {
-            await client.query(sql.REGISTER_EXECUTOR, [executorId, executorName, queuePattern.pattern, queues, workerName])
-        } finally {
-            client.release();
-        }
+        return this.queryWithRetry(async (client) => {
+            const args: RegisterExecutorArgs = {
+                id: executorId,
+                name: executorName,
+                queuePattern: queuePattern.pattern,
+                queues,
+                workerName
+            }
+
+            await registerExecutorQuery(client, args);
+        });
     }
 
     async updateQueuesOnExecutor({ executorId, queues }: { executorId: string, queues: HyrexQueue[] }) {
@@ -496,12 +514,15 @@ export class PostgresDispatcher implements HyrexDispatcher {
     async fetchActiveQueueNames({ queuePattern }: { queuePattern: string }): Promise<string[]> {
         return this.queryWithRetry(async (client) => {
             const sqlPattern = globToSqlLike(queuePattern);
-            const { rows } = await client.query<{ queue: string }>(
-                sql.FETCH_ACTIVE_QUEUE_NAMES,
-                [sqlPattern]
-            );
+
+            const rows: FetchActiveQueueNamesRow[] = await fetchActiveQueueNamesQuery(client, { queue: sqlPattern });
+
             return rows.map(r => r.queue);
         });
+    }
+
+    async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
+
     }
 
     async registerTask({ taskName, taskConfig, sourceCode }: {

@@ -115,6 +115,8 @@ export interface HyrexDispatcher {
 
     executeQueuedCronJobRun(): Promise<string | null>
 
+    updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void>
+
     // Remote Logs
     setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void>
     writeS3Logs(taskId: string, logs: string[]): Promise<void>

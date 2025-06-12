@@ -642,6 +642,10 @@ export class PlatformDispatcher implements HyrexDispatcher {
         }
     }
 
+    async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
+        hyrexLogger.info("cron-scheduling", "Scheduler lock automatically managed by platform", "dim");
+    }
+
     async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {
         hyrexLogger.info("cron-scheduling", "Scheduler lock automatically managed by platform", "dim");
     }

@@ -365,7 +365,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
     async updateTaskHeartbeat(heartbeatMsg: TaskHeartbeatResultMessage): Promise<void> {
         const request = new requests_pb.TaskRunHeartbeatRequest();
         request.setTaskRunIdsList([heartbeatMsg.body.taskId]);
-        
+
         const timestamp = new google_protobuf_timestamp_pb.Timestamp();
         const now = new Date();
         timestamp.setSeconds(Math.floor(now.getTime() / 1000));
@@ -453,11 +453,11 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }): Promise<'ACCEPTED' | 'REJECTED'> {
         const request = new requests_pb.UpdateExecutorStatsRequest();
         request.setExecutorId(executorId);
-        
+
         // Convert stats object to protobuf Struct
         const statsStruct = new google_protobuf_struct_pb.Struct();
         const fieldsMap = statsStruct.getFieldsMap();
-        
+
         for (const [key, value] of Object.entries(stats)) {
             const protoValue = new google_protobuf_struct_pb.Value();
             if (typeof value === 'number') {
@@ -474,7 +474,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
             }
             fieldsMap.set(key, protoValue);
         }
-        
+
         request.setExecutorStats(statsStruct);
 
         try {
@@ -512,7 +512,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
     async updateExecutorHeartbeat(heartbeatMsg: ExecutorHeartbeatResultMessage): Promise<void> {
         const request = new requests_pb.ExecutorHeartbeatRequest();
         request.setExecutorIdsList(heartbeatMsg.body.executorIds);
-        
+
         const timestamp = new google_protobuf_timestamp_pb.Timestamp();
         const now = new Date();
         timestamp.setSeconds(Math.floor(now.getTime() / 1000));
@@ -535,7 +535,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
     async updateExecutorHeartbeats({ executorIds }: { executorIds: string[] }): Promise<void> {
         const request = new requests_pb.ExecutorHeartbeatRequest();
         request.setExecutorIdsList(executorIds);
-        
+
         const timestamp = new google_protobuf_timestamp_pb.Timestamp();
         const now = new Date();
         timestamp.setSeconds(Math.floor(now.getTime() / 1000));
@@ -642,10 +642,6 @@ export class PlatformDispatcher implements HyrexDispatcher {
         }
     }
 
-    async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
-        hyrexLogger.info("platform", "Lock heartbeat automatically managed by platform", "dim");
-    }
-
     async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {
         hyrexLogger.info("cron-scheduling", "Scheduler lock automatically managed by platform", "dim");
     }
@@ -698,7 +694,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
                     else resolve();
                 });
             });
-            
+
             hyrexLogger.info('platform', `Logs successfully sent to platform for upload. taskId=${taskId}`, 'green');
         } catch (error) {
             hyrexLogger.error('platform', `Failed to send logs to platform for task ${taskId}: ${error}`, 'red');
@@ -756,7 +752,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
         request.setWorkflowName(workflowName);
         request.setSourceCode(sourceCode);
         request.setWorkflowDagJson(JSON.stringify(workflowDagJson));
-        
+
         // Convert workflow config to protobuf Struct if needed
         const defaultConfig = new google_protobuf_struct_pb.Struct();
         // Add any default config fields as needed
@@ -781,7 +777,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
         const request = new requests_pb.SendWorkflowRunRequest();
         request.setWorkflowRunId(serializedWorkflowRunRequest.id);
         request.setWorkflowName(serializedWorkflowRunRequest.workflow_name);
-        
+
         // Convert args to protobuf Struct
         const argsStruct = new google_protobuf_struct_pb.Struct();
         if (serializedWorkflowRunRequest.args) {
@@ -803,7 +799,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
             }
         }
         request.setArgs(argsStruct);
-        
+
         request.setQueue(serializedWorkflowRunRequest.queue);
         if (serializedWorkflowRunRequest.timeout_seconds !== null) {
             request.setTimeoutSeconds(serializedWorkflowRunRequest.timeout_seconds);
@@ -951,7 +947,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
     private structToObject(struct: google_protobuf_struct_pb.Struct): any {
         const result: any = {};
         const fields = struct.getFieldsMap();
-        
+
         fields.forEach((value, key) => {
             if (value.hasNumberValue()) {
                 result[key] = value.getNumberValue();
@@ -968,7 +964,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
                 result[key] = list.getValuesList().map(v => this.valueToJs(v));
             }
         });
-        
+
         return result;
     }
 

@@ -105,8 +105,6 @@ export interface HyrexDispatcher {
     // Cron scheduling
     acquireSchedulerLock({ workerId, workerName }: { workerId: string, workerName: string }): Promise<number | null>
 
-    updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void>
-
     releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void>
 
     pullCronJobExpressions(): Promise<CronJob[]>

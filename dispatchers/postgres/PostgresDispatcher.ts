@@ -1,11 +1,11 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
 import { HyrexTaskConfig, JsonType, UUID, uuidSchema } from "../../utils";
 import { Notification, Pool, PoolClient } from 'pg';
-import * as sql from "./sql/sql"
-import * as cronSQL from "./sql/cronSql"
-import * as statsSQL from "./sql/stats"
-import * as durabilitySQL from './sql/durability/durabilitySql'
-import * as workflowSQL from "./sql/workflowSql"
+import * as sql from "./legacy-sql/sql"
+import * as cronSQL from "./legacy-sql/cronSql"
+import * as statsSQL from "./legacy-sql/stats"
+import * as durabilitySQL from './legacy-sql/durability/durabilitySql'
+import * as workflowSQL from "./legacy-sql/workflowSql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
@@ -13,12 +13,12 @@ import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
-import { createInsertTaskCronExpression, TURN_OFF_CRON_FOR_TASK } from "./sql/cronSql";
+import { createInsertTaskCronExpression, TURN_OFF_CRON_FOR_TASK } from "./legacy-sql/cronSql";
 import { HyrexWorkflowBuilder, WorkflowDagJson } from "../../workflow/HyrexWorkflowBuilder";
-import { UPSERT_WORKFLOW } from "./sql/workflowSql";
+import { UPSERT_WORKFLOW } from "./legacy-sql/workflowSql";
 import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
-import { createDequeueQuery } from "./sql/sql";
+import { createDequeueQuery } from "./legacy-sql/sql";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { envVariables } from "../../EnvironmentVariables";
 
@@ -566,10 +566,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
             const { rows } = await client.query<CronJob>(cronSQL.PULL_ACTIVE_CRON_EXPRESSIONS)
             return rows
         })
-    }
-
-    async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
-
     }
 
     async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {

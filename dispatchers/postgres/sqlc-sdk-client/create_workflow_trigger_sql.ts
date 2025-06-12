@@ -1,0 +1,184 @@
+import { QueryArrayConfig, QueryArrayResult } from "pg";
+
+interface Client {
+    query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
+}
+
+export const createWorkflowTriggerQuery = `-- name: CreateWorkflowTrigger :exec
+
+CREATE OR REPLACE FUNCTION trigger_workflow_atomic(
+    p_workflow_run_id UUID,
+    p_workflow_name TEXT,
+    p_args JSONB,
+    p_queue TEXT,
+    p_timeout_seconds INTEGER,
+    p_idempotency_key TEXT
+) RETURNS TABLE (
+    workflow_run_id UUID,
+    task_count INTEGER,
+    success BOOLEAN,
+    message TEXT
+) AS $$
+DECLARE
+    v_workflow_record RECORD;
+    v_node RECORD;
+    v_task_id UUID;
+    v_task_count INTEGER := 0;
+    v_workflow_dependencies UUID[];
+    v_dep_durable_id TEXT;
+    v_node_id_map JSONB := '{}'::JSONB;
+BEGIN
+    -- Start transaction
+    BEGIN
+        -- Get workflow definition including DAG structure
+        SELECT * INTO v_workflow_record
+        FROM hyrex_workflow
+        WHERE workflow_name = p_workflow_name
+        LIMIT 1;
+        
+        IF v_workflow_record IS NULL THEN
+            RETURN QUERY SELECT 
+                NULL::UUID,
+                0,
+                FALSE,
+                'Workflow not found: ' || p_workflow_name;
+            RETURN;
+        END IF;
+        
+        -- Insert workflow run
+        INSERT INTO hyrex_workflow_run (
+            id,
+            parent_id,
+            workflow_name,
+            args,
+            queue,
+            timeout_seconds,
+            status,
+            queued,
+            last_heartbeat,
+            idempotency_key
+        )
+        VALUES (
+            p_workflow_run_id,
+            NULL,
+            p_workflow_name,
+            p_args,
+            p_queue,
+            p_timeout_seconds,
+            'running'::workflow_run_status,
+            NOW(),
+            NOW(),
+            p_idempotency_key
+        );
+        
+        -- Create task runs from DAG structure
+        IF v_workflow_record.dag_structure IS NOT NULL AND 
+           v_workflow_record.dag_structure->'nodes' IS NOT NULL THEN
+            
+            -- First pass: Create mapping of node IDs to task UUIDs
+            FOR v_node IN 
+                SELECT value FROM jsonb_array_elements(v_workflow_record.dag_structure->'nodes')
+            LOOP
+                -- Generate a new UUID for this task
+                v_task_id := gen_random_uuid();
+                
+                -- Store the mapping from node ID to task UUID
+                v_node_id_map := v_node_id_map || jsonb_build_object(v_node.value->>'id', v_task_id::TEXT);
+            END LOOP;
+            
+            -- Second pass: Create task runs with proper dependencies
+            FOR v_node IN 
+                SELECT value FROM jsonb_array_elements(v_workflow_record.dag_structure->'nodes')
+            LOOP
+                -- Get the task UUID we generated for this node
+                v_task_id := (v_node_id_map->>(v_node.value->>'id'))::UUID;
+                
+                -- Build workflow_dependencies array based on edges
+                v_workflow_dependencies := ARRAY[]::UUID[];
+                
+                -- Find all nodes that point to this node (dependencies)
+                FOR v_dep_durable_id IN
+                    SELECT DISTINCT value->>'from' 
+                    FROM jsonb_array_elements(v_workflow_record.dag_structure->'edges')
+                    WHERE value->>'to' = v_node.value->>'id'
+                LOOP
+                    -- Map the dependency node ID to its task UUID
+                    v_workflow_dependencies := array_append(v_workflow_dependencies, (v_node_id_map->>v_dep_durable_id)::UUID);
+                END LOOP;
+                
+                -- Insert task run
+                INSERT INTO hyrex_task_run (
+                    id,
+                    durable_id,
+                    root_id,
+                    parent_id,
+                    workflow_run_id,
+                    workflow_dependencies,
+                    task_name,
+                    args,
+                    queue,
+                    max_retries,
+                    priority,
+                    timeout_seconds,
+                    idempotency_key,
+                    status,
+                    attempt_number,
+                    scheduled_start,
+                    queued,
+                    last_heartbeat
+                )
+                VALUES (
+                    v_task_id,
+                    v_task_id,  -- SDK uses same UUID for id and durable_id
+                    v_task_id,  -- SDK uses same UUID for root_id too
+                    NULL,  -- No parent for workflow tasks
+                    p_workflow_run_id,
+                    v_workflow_dependencies,
+                    v_node.value->>'name',
+                    p_args,  -- Pass workflow args to each task
+                    p_queue,
+                    3,  -- Default max retries
+                    0,  -- Default priority
+                    p_timeout_seconds,
+                    NULL,  -- No idempotency key for individual tasks
+                    CASE 
+                        WHEN array_length(v_workflow_dependencies, 1) IS NULL OR array_length(v_workflow_dependencies, 1) = 0 
+                        THEN 'queued'::task_run_status
+                        ELSE 'waiting'::task_run_status
+                    END,
+                    0,  -- Initial attempt number
+                    NULL,  -- No scheduled_start for workflow tasks
+                    NOW(),
+                    NOW()
+                );
+                
+                v_task_count := v_task_count + 1;
+            END LOOP;
+        END IF;
+        
+        -- Return success
+        RETURN QUERY SELECT 
+            p_workflow_run_id,
+            v_task_count,
+            TRUE,
+            'Workflow triggered successfully with ' || v_task_count || ' tasks';
+            
+    EXCEPTION WHEN OTHERS THEN
+        -- Rollback will happen automatically
+        RETURN QUERY SELECT 
+            NULL::UUID,
+            0,
+            FALSE,
+            'Error triggering workflow: ' || SQLERRM;
+    END;
+END;
+$$ LANGUAGE plpgsql`;
+
+export async function createWorkflowTrigger(client: Client): Promise<void> {
+    await client.query({
+        text: createWorkflowTriggerQuery,
+        values: [],
+        rowMode: "array"
+    });
+}
+

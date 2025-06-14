@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-12T20:45:47.573Z
+// Generated on: 2025-06-13T17:37:38.908Z
 
 // Scheduler
 export * from './acquire_scheduler_lock_sql';
@@ -66,52 +66,88 @@ export * from './get_workflows_paginated_sql';
 // App
 export * from './register_app_info_sql';
 
+// Task Def
+export * from './register_task_def_sql';
+
 // Durability
 export * from './set_executor_to_lost_if_no_heartbeat_sql';
 export * from './set_orphaned_task_execution_to_lost_and_retry_sql';
-
-// Task
-export * from './upsert_task_sql';
 
 // Workflow
 export * from './upsert_workflow_sql';
 
 // Other
-export * from './create_functions_sql';
-export * from './create_tables_sql';
-export * from './create_workflow_trigger_sql';
-export * from './insert_workflow_run_sql';
-import { createJobSourceTypeEnum, createCronJobTable, createAppTable, createWorkflowRunStatusEnum, createWorkflowRunTable, createSystemLogTable, createTaskRunStatusEnum, createTaskRunTable, createTaskRunIndexes, createResultsTable, createStatsTaskStatusCountsTable, createStatsTaskStatusCountsIndex, createExecutorStatusEnum, createExecutorTable, createSchedulerLockTable, createTaskDefTable, createWorkflowTable, createCronJobStatusEnum, createCronJobRunDetailsTable } from './create_tables_sql';
-import { createExecuteQueuedCronJobFunction, createUuid7Function, createTriggerWorkflowRunFunction } from './create_functions_sql';
+export * from './create_cron_job_status_enum_sql';
+export * from './create_execute_queued_cron_job_func_sql';
+export * from './create_executor_status_enum_sql';
+export * from './create_executor_table_sql';
+export * from './create_hyrex_app_table_sql';
+export * from './create_hyrex_cron_job_run_details_table_sql';
+export * from './create_hyrex_cron_job_table_sql';
+export * from './create_hyrex_scheduler_lock_table_sql';
+export * from './create_hyrex_stats_task_status_counts_table_sql';
+export * from './create_hyrex_task_def_table_sql';
+export * from './create_hyrex_task_run_table_sql';
+export * from './create_job_source_type_enum_sql';
+export * from './create_results_table_sql';
+export * from './create_system_log_table_sql';
+export * from './create_task_run_status_enum_sql';
+export * from './create_uuid7_func_sql';
+export * from './create_workflow_run_status_enum_sql';
+export * from './create_workflow_run_table_sql';
+export * from './create_workflow_table_sql';
+export * from './create_workflow_trigger_func_sql';
 import { QueryArrayConfig, QueryArrayResult } from 'pg';
 
 export interface DatabaseClient { query: (config: QueryArrayConfig) => Promise<QueryArrayResult>; }
 
-export async function createTables(client: DatabaseClient): Promise<void> {
-  await createJobSourceTypeEnum(client);
-  await createCronJobTable(client);
-  await createAppTable(client);
-  await createWorkflowRunStatusEnum(client);
-  await createWorkflowRunTable(client);
-  await createSystemLogTable(client);
-  await createTaskRunStatusEnum(client);
-  await createTaskRunTable(client);
-  await createTaskRunIndexes(client);
-  await createResultsTable(client);
-  await createStatsTaskStatusCountsTable(client);
-  await createStatsTaskStatusCountsIndex(client);
-  await createExecutorStatusEnum(client);
-  await createExecutorTable(client);
-  await createSchedulerLockTable(client);
-  await createTaskDefTable(client);
-  await createWorkflowTable(client);
+import { createCronJobStatusEnum } from './create_cron_job_status_enum_sql';
+import { createExecutorStatusEnum } from './create_executor_status_enum_sql';
+import { createJobSourceTypeEnum } from './create_job_source_type_enum_sql';
+import { createTaskRunStatusEnum } from './create_task_run_status_enum_sql';
+import { createWorkflowRunStatusEnum } from './create_workflow_run_status_enum_sql';
+import { createExecutorTable } from './create_executor_table_sql';
+import { createAppTable } from './create_hyrex_app_table_sql';
+import { createCronJobRunDetailsTable } from './create_hyrex_cron_job_run_details_table_sql';
+import { createCronJobTable } from './create_hyrex_cron_job_table_sql';
+import { createSchedulerLockTable } from './create_hyrex_scheduler_lock_table_sql';
+import { createStatsTaskStatusCountsTable } from './create_hyrex_stats_task_status_counts_table_sql';
+import { createTaskDefTable } from './create_hyrex_task_def_table_sql';
+import { createTaskRunTable } from './create_hyrex_task_run_table_sql';
+import { createResultsTable } from './create_results_table_sql';
+import { createSystemLogTable } from './create_system_log_table_sql';
+import { createWorkflowRunTable } from './create_workflow_run_table_sql';
+import { createWorkflowTable } from './create_workflow_table_sql';
+import { createExecuteQueuedCronJobFunction } from './create_execute_queued_cron_job_func_sql';
+import { createUuid7Function } from './create_uuid7_func_sql';
+import { createWorkflowTrigger } from './create_workflow_trigger_func_sql';
+
+export async function createEnums(client: DatabaseClient): Promise<void> {
   await createCronJobStatusEnum(client);
+  await createExecutorStatusEnum(client);
+  await createJobSourceTypeEnum(client);
+  await createTaskRunStatusEnum(client);
+  await createWorkflowRunStatusEnum(client);
+}
+
+export async function createTables(client: DatabaseClient): Promise<void> {
+  await createAppTable(client);
   await createCronJobRunDetailsTable(client);
+  await createCronJobTable(client);
+  await createExecutorTable(client);
+  await createResultsTable(client);
+  await createSchedulerLockTable(client);
+  await createStatsTaskStatusCountsTable(client);
+  await createSystemLogTable(client);
+  await createTaskDefTable(client);
+  await createTaskRunTable(client);
+  await createWorkflowRunTable(client);
+  await createWorkflowTable(client);
 }
 
 export async function createFunctions(client: DatabaseClient): Promise<void> {
   await createExecuteQueuedCronJobFunction(client);
   await createUuid7Function(client);
-  await createTriggerWorkflowRunFunction(client);
+  await createWorkflowTrigger(client);
 }
 

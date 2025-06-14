@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-13T17:37:38.908Z
+// Generated on: 2025-06-14T18:48:14.171Z
 
 // Scheduler
 export * from './acquire_scheduler_lock_sql';
@@ -22,17 +22,21 @@ export * from './update_queues_on_executor_sql';
 
 // Task Run
 export * from './conditionally_retry_task_sql';
-export * from './enqueue_task_sql';
 export * from './fetch_active_queue_names_sql';
 export * from './fetch_result_sql';
 export * from './fetch_task_sql';
 export * from './fetch_task_with_concurrency_limit_sql';
-export * from './mark_task_canceled_sql';
-export * from './mark_task_failed_sql';
-export * from './mark_task_lost_sql';
-export * from './mark_task_success_sql';
 export * from './save_result_sql';
 export * from './set_log_link_sql';
+export * from './transition_task_state_sql';
+
+// Functions
+export * from './create_conditionally_retry_task_func_sql';
+export * from './create_execute_queued_cron_job_func_sql';
+export * from './create_task_run_sql';
+export * from './create_transition_task_run_state_func_sql';
+export * from './create_uuid7_func_sql';
+export * from './create_workflow_trigger_func_sql';
 
 // Cron Job
 export * from './create_cron_job_for_sql_query_sql';
@@ -40,6 +44,27 @@ export * from './create_cron_job_for_task_sql';
 export * from './pull_active_cron_expressions_sql';
 export * from './turn_off_cron_for_task_sql';
 export * from './update_cron_job_confirmation_ts_sql';
+
+// Enums
+export * from './create_cron_job_status_enum_sql';
+export * from './create_executor_status_enum_sql';
+export * from './create_job_source_type_enum_sql';
+export * from './create_task_run_status_enum_sql';
+export * from './create_workflow_run_status_enum_sql';
+
+// Tables
+export * from './create_executor_table_sql';
+export * from './create_hyrex_app_table_sql';
+export * from './create_hyrex_cron_job_run_details_table_sql';
+export * from './create_hyrex_cron_job_table_sql';
+export * from './create_hyrex_scheduler_lock_table_sql';
+export * from './create_hyrex_stats_task_status_counts_table_sql';
+export * from './create_hyrex_task_def_table_sql';
+export * from './create_hyrex_task_run_table_sql';
+export * from './create_results_table_sql';
+export * from './create_system_log_table_sql';
+export * from './create_workflow_run_table_sql';
+export * from './create_workflow_table_sql';
 
 // Stats
 export * from './fill_historical_task_status_counts_table_sql';
@@ -76,27 +101,6 @@ export * from './set_orphaned_task_execution_to_lost_and_retry_sql';
 // Workflow
 export * from './upsert_workflow_sql';
 
-// Other
-export * from './create_cron_job_status_enum_sql';
-export * from './create_execute_queued_cron_job_func_sql';
-export * from './create_executor_status_enum_sql';
-export * from './create_executor_table_sql';
-export * from './create_hyrex_app_table_sql';
-export * from './create_hyrex_cron_job_run_details_table_sql';
-export * from './create_hyrex_cron_job_table_sql';
-export * from './create_hyrex_scheduler_lock_table_sql';
-export * from './create_hyrex_stats_task_status_counts_table_sql';
-export * from './create_hyrex_task_def_table_sql';
-export * from './create_hyrex_task_run_table_sql';
-export * from './create_job_source_type_enum_sql';
-export * from './create_results_table_sql';
-export * from './create_system_log_table_sql';
-export * from './create_task_run_status_enum_sql';
-export * from './create_uuid7_func_sql';
-export * from './create_workflow_run_status_enum_sql';
-export * from './create_workflow_run_table_sql';
-export * from './create_workflow_table_sql';
-export * from './create_workflow_trigger_func_sql';
 import { QueryArrayConfig, QueryArrayResult } from 'pg';
 
 export interface DatabaseClient { query: (config: QueryArrayConfig) => Promise<QueryArrayResult>; }
@@ -118,7 +122,10 @@ import { createResultsTable } from './create_results_table_sql';
 import { createSystemLogTable } from './create_system_log_table_sql';
 import { createWorkflowRunTable } from './create_workflow_run_table_sql';
 import { createWorkflowTable } from './create_workflow_table_sql';
+import { createConditionallyRetryTaskFunc } from './create_conditionally_retry_task_func_sql';
 import { createExecuteQueuedCronJobFunction } from './create_execute_queued_cron_job_func_sql';
+import { createTaskRun, createTaskRunFunction } from './create_task_run_sql';
+import { createTransitionTaskRunStateFunc } from './create_transition_task_run_state_func_sql';
 import { createUuid7Function } from './create_uuid7_func_sql';
 import { createWorkflowTrigger } from './create_workflow_trigger_func_sql';
 
@@ -146,7 +153,10 @@ export async function createTables(client: DatabaseClient): Promise<void> {
 }
 
 export async function createFunctions(client: DatabaseClient): Promise<void> {
+  await createConditionallyRetryTaskFunc(client);
   await createExecuteQueuedCronJobFunction(client);
+  await createTaskRunFunction(client);
+  await createTransitionTaskRunStateFunc(client);
   await createUuid7Function(client);
   await createWorkflowTrigger(client);
 }

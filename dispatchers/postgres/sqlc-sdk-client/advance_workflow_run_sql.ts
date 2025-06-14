@@ -10,6 +10,7 @@ WITH latest_attempts AS (
     SELECT DISTINCT ON (durable_id) durable_id,
                                     status
     FROM hyrex_task_run
+    WHERE hyrex_task_run.workflow_run_id = $1
     ORDER BY durable_id, attempt_number DESC),
      tasks_ready_to_queue AS (
          -- Find waiting tasks where all dependencies are successful

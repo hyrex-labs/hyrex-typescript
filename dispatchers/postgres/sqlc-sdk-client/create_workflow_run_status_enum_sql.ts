@@ -12,12 +12,12 @@ BEGIN
                    WHERE typname = 'workflow_run_status' 
                      AND typnamespace = 'public'::regnamespace) THEN
         CREATE TYPE public.workflow_run_status AS ENUM (
-            'success',
-            'failed',
-            'running',
-            'up_for_cancel',
-            'canceled',
-            'asleep'
+            'SUCCESS',
+            'FAILED',
+            'RUNNING',
+            'UP_FOR_CANCEL',
+            'CANCELED',
+            'ASLEEP'
         );
     END IF;
 END $$`;

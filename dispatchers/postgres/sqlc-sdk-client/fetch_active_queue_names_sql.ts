@@ -5,30 +5,14 @@ interface Client {
 }
 
 export const fetchActiveQueueNamesQuery = `-- name: FetchActiveQueueNames :many
-WITH distinct_queues AS (SELECT DISTINCT queue
-                         FROM hyrex_task_run
-                         WHERE status = 'queued'
-                           AND queue LIKE $1),
-     queue_count AS (SELECT COUNT(*) AS cnt
-                     FROM distinct_queues)
-SELECT queue
-FROM (
-         -- If count <= 100000, just select all queues
-         SELECT dq.queue
-         FROM distinct_queues dq,
-              queue_count qc
-         WHERE qc.cnt <= 100000
-
-         UNION ALL
-
-         -- If count > 100000, select a random subset
-         SELECT queue
-         FROM (SELECT dq.queue,
-                      row_number() OVER (ORDER BY random()) AS rn
-               FROM distinct_queues dq,
-                    queue_count qc
-               WHERE qc.cnt > 100000) sub
-         WHERE rn <= 100000) final_result`;
+/* Fetch up to 100 000 distinct queue names that are currently queued
+   If there are fewer than 100 000, you’ll simply get them all.        */
+SELECT DISTINCT queue
+FROM   hyrex_task_run
+WHERE  status = 'queued'
+  AND  queue  LIKE $1
+ORDER  BY random()        -- randomise the order
+LIMIT  100000`;
 
 export interface FetchActiveQueueNamesArgs {
     queue: string;

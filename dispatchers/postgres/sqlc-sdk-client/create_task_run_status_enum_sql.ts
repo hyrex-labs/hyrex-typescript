@@ -12,15 +12,17 @@ BEGIN
                    WHERE typname = 'task_run_status'
                      AND typnamespace = 'public'::regnamespace) THEN
         CREATE TYPE public.task_run_status AS ENUM (
-            'success',
-            'failed',
-            'running',
-            'queued',
-            'up_for_cancel',
-            'canceled',
-            'waiting',
-            'lost',
-            'skipped'
+            'SUCCESS',
+            'FAILED',
+            'RUNNING',
+            'QUEUED',
+            'UP_FOR_CANCEL',
+            'CANCELED',
+            'LOST',
+            'STOPPED',
+            'SKIPPED',
+            'AWAIT_DEPS',
+            'AWAIT_START_TIME'
             );
     END IF;
 END $$`;

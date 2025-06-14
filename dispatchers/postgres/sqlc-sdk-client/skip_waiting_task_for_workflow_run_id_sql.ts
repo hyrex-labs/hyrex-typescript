@@ -6,9 +6,9 @@ interface Client {
 
 export const skipWaitingTaskForWorkflowRunIdQuery = `-- name: SkipWaitingTaskForWorkflowRunId :exec
 UPDATE hyrex_task_run
-SET status   = 'skipped'::task_run_status,
+SET status   = 'SKIPPED'::task_run_status,
     finished = CURRENT_TIMESTAMP
-WHERE status = 'waiting'
+WHERE status = 'AWAIT_DEPS'
   AND workflow_run_id = $1`;
 
 export interface SkipWaitingTaskForWorkflowRunIdArgs {

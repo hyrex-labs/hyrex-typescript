@@ -65,7 +65,7 @@ BEGIN
             p_args,
             p_queue,
             p_timeout_seconds,
-            'running'::workflow_run_status,
+            'RUNNING'::workflow_run_status,
             NOW(),
             NOW(),
             p_idempotency_key
@@ -106,50 +106,27 @@ BEGIN
                     v_workflow_dependencies := array_append(v_workflow_dependencies, (v_node_id_map->>v_dep_durable_id)::UUID);
                 END LOOP;
 
-                -- Insert task run
-                INSERT INTO hyrex_task_run (
-                    id,
-                    durable_id,
-                    root_id,
-                    parent_id,
-                    workflow_run_id,
-                    workflow_dependencies,
-                    task_name,
-                    args,
-                    queue,
-                    max_retries,
-                    priority,
-                    timeout_seconds,
-                    idempotency_key,
-                    status,
-                    attempt_number,
-                    scheduled_start,
-                    queued,
-                    last_heartbeat
-                )
-                VALUES (
+                -- Use create_task_run function with workflow parameters
+                PERFORM create_task_run(
                     v_task_id,
                     v_task_id,  -- SDK uses same UUID for id and durable_id
                     v_task_id,  -- SDK uses same UUID for root_id too
                     NULL,  -- No parent for workflow tasks
-                    p_workflow_run_id,
-                    v_workflow_dependencies,
+                    CASE
+                        WHEN array_length(v_workflow_dependencies, 1) IS NULL OR array_length(v_workflow_dependencies, 1) = 0
+                        THEN 'QUEUED'::task_run_status
+                        ELSE 'AWAIT_DEPS'::task_run_status
+                    END,
                     v_node.value->>'name',
-                    p_args,  -- Pass workflow args to each task
+                    p_args::JSON,  -- Pass workflow args to each task
                     p_queue,
                     3,  -- Default max retries
                     0,  -- Default priority
                     p_timeout_seconds,
                     NULL,  -- No idempotency key for individual tasks
-                    CASE
-                        WHEN array_length(v_workflow_dependencies, 1) IS NULL OR array_length(v_workflow_dependencies, 1) = 0
-                        THEN 'queued'::task_run_status
-                        ELSE 'waiting'::task_run_status
-                    END,
-                    0,  -- Initial attempt number
                     NULL,  -- No scheduled_start for workflow tasks
-                    NOW(),
-                    NOW()
+                    p_workflow_run_id,
+                    v_workflow_dependencies
                 );
 
                 v_task_count := v_task_count + 1;

@@ -49,6 +49,7 @@ export * from './transition_task_state_sql';
 // Functions
 export * from './create_conditionally_retry_task_func_sql';
 export * from './create_execute_queued_cron_job_func_sql';
+export * from './create_schedule_cron_job_runs_func_sql';
 export * from './create_task_run_sql';
 export * from './create_transition_task_run_state_func_sql';
 export * from './create_uuid7_func_sql';
@@ -58,6 +59,7 @@ export * from './create_workflow_trigger_func_sql';
 export * from './create_cron_job_for_sql_query_sql';
 export * from './create_cron_job_for_task_sql';
 export * from './pull_active_cron_expressions_sql';
+export * from './schedule_cron_job_runs_sql';
 export * from './trigger_execute_queued_cron_job_sql';
 export * from './turn_off_cron_for_task_sql';
 export * from './update_cron_job_confirmation_ts_sql';
@@ -129,6 +131,7 @@ import { createTaskRunTableIndexes } from './13_create_hyrex_task_run_table_inde
 import { createResultsTable } from './14_create_results_table_sql';
 import { createConditionallyRetryTaskFunc } from './create_conditionally_retry_task_func_sql';
 import { createExecuteQueuedCronJobFunction } from './create_execute_queued_cron_job_func_sql';
+import { createScheduleCronJobRunsFunc } from './create_schedule_cron_job_runs_func_sql';
 import { createTaskRun, createTaskRunFunction } from './create_task_run_sql';
 import { createTransitionTaskRunStateFunc } from './create_transition_task_run_state_func_sql';
 import { createUuid7Function } from './create_uuid7_func_sql';
@@ -162,6 +165,7 @@ export async function createTables(client: DatabaseClient): Promise<void> {
 export async function createFunctions(client: DatabaseClient): Promise<void> {
   await createConditionallyRetryTaskFunc(client);
   await createExecuteQueuedCronJobFunction(client);
+  await createScheduleCronJobRunsFunc(client);
   await createTaskRunFunction(client);
   await createTransitionTaskRunStateFunc(client);
   await createUuid7Function(client);

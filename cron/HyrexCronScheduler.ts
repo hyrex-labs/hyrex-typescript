@@ -137,6 +137,7 @@ export class HyrexCronScheduler {
                     for (const cronJob of cronExpressions) {
                         hyrexLogger.info('cron-scheduling', `Got Cron Job. ${cronJob.jobname}, confirmed_until=${cronJob.scheduled_jobs_confirmed_until}`, 'dim')
                         const scheduledJobs = await this.imputeScheduledCronJobRunsList(cronJob)
+                        hyrexLogger.info('cron-scheduling', `scheduledJobs ${scheduledJobs}`, 'dim')
                         await this.dispatcher.scheduleCronJobRuns(scheduledJobs)
                     }
 

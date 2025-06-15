@@ -57,7 +57,9 @@ import {
     RegisterAppInfoArgs,
     registerTaskDef,
     triggerExecuteQueuedCronJob as triggerExecuteQueuedCronJobQuery,
-    createTables, createFunctions, createEnums, 
+    scheduleCronJobRuns as scheduleCronJobRunsQuery,
+    ScheduleCronJobRunsArgs,
+    createTables, createFunctions, createEnums,
     fetchTask,
     fetchTaskWithConcurrencyLimit
 } from "./sqlc-sdk-client";
@@ -689,29 +691,38 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void> {
-        const allSameId = cronJobRuns.every(job => job.jobid === cronJobRuns[0].jobid)
-        if (!allSameId) {
-            console.log("Got jobIds", cronJobRuns.map(o => o.jobid), cronJobRuns)
-            throw new Error("All cronJobsRuns submitted here need to have the same job id.")
-        }
-
+        hyrexLogger.info("cron-scheduling", `scheduleCronJobRuns ${cronJobRuns}`, "dim")
+        
         if (cronJobRuns.length === 0) {
             return
         }
 
-        const result = await this.queryWithRetry(async (client) => {
+        await this.queryWithRetry(async (client) => {
+            const args: ScheduleCronJobRunsArgs = {
+                runs: cronJobRuns.map(run => ({
+                    jobid: run.jobid,
+                    command: run.command,
+                    scheduleTime: run.schedule_time
+                }))
+            };
 
-            const { sql, values } = cronSQL.cronJobRunsToSQL(cronJobRuns)
-            // hyrexLogger.info("cron-scheduling", `<====== Running SQL =======>:\n\n${sql}\n\n${values}\n\n<==== DONE =====>\n\n`, 'dim')
-            await client.query(sql, values)
-        })
-
-
-        await this.updateCronJobConfirmationTimestamp(cronJobRuns[0].jobid)
-
-        return result
+            const result = await scheduleCronJobRunsQuery(client, args);
+            
+            if (!result) {
+                throw new Error("Failed to schedule cron job runs");
+            }
+            
+            if (!result.success) {
+                throw new Error(`Failed to schedule cron job runs: ${result.message}`);
+            }
+            
+            hyrexLogger.info("cron-scheduling", 
+                `Scheduled cron jobs: ${result.message}, inserted: ${result.insertedCount}`, 
+                "dim");
+        });
     }
 
+    // Note: updateCronJobConfirmationTimestamp is now handled within the schedule_cron_job_runs PL/pgSQL function
     async updateCronJobConfirmationTimestamp(jobId: number): Promise<void> {
         await this.queryWithRetry(async (client) => {
             await client.query(cronSQL.UPDATE_CRON_JOB_CONFIRMATION_TS, [jobId])

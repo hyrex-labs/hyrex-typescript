@@ -131,7 +131,7 @@ export function cronJobRunsToSQL(runs: CronJobRun[]): { sql: string; values: any
     const values = runs.flatMap(run => [
         run.jobid,
         run.command,
-        'queued',
+        'QUEUED',
         run.schedule_time.toISOString()
     ]);
 

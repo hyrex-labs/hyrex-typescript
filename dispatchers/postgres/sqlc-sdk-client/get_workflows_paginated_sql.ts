@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const getWorkflowsPaginatedQuery = `-- name: GetWorkflowsPaginated :exec
+export const getWorkflowsPaginatedQuery = `-- name: GetWorkflowsPaginated :many
 SELECT 
     ROW_NUMBER() OVER (ORDER BY last_updated DESC) as row_number,
     workflow_name,
@@ -30,11 +30,21 @@ export interface GetWorkflowsPaginatedRow {
     lastUpdated: Date | null;
 }
 
-export async function getWorkflowsPaginated(client: Client, args: GetWorkflowsPaginatedArgs): Promise<void> {
-    await client.query({
+export async function getWorkflowsPaginated(client: Client, args: GetWorkflowsPaginatedArgs): Promise<GetWorkflowsPaginatedRow[]> {
+    const result = await client.query({
         text: getWorkflowsPaginatedQuery,
         values: [args.limit, args.offset],
         rowMode: "array"
+    });
+    return result.rows.map(row => {
+        return {
+            rowNumber: row[0],
+            workflowName: row[1],
+            cronExpr: row[2],
+            sourceCode: row[3],
+            dagStructure: row[4],
+            lastUpdated: row[5]
+        };
     });
 }
 

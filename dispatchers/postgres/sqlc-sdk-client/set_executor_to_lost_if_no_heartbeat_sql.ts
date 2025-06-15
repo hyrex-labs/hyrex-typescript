@@ -7,8 +7,8 @@ interface Client {
 export const setExecutorToLostIfNoHeartbeatQuery = `-- name: SetExecutorToLostIfNoHeartbeat :exec
 WITH lost_executors AS (
     UPDATE hyrex_executor
-        SET status = 'LOST'
-        WHERE status = 'RUNNING'
+        SET status = 'LOST'::executor_status
+        WHERE status = 'RUNNING'::executor_status
             AND (
                   last_heartbeat IS NULL
                       OR last_heartbeat < (NOW() - INTERVAL '5 minutes')

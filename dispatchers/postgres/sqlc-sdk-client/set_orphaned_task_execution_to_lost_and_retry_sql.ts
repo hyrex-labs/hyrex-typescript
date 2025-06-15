@@ -7,15 +7,15 @@ interface Client {
 export const setOrphanedTaskExecutionToLostAndRetryQuery = `-- name: SetOrphanedTaskExecutionToLostAndRetry :exec
 WITH lost_tasks AS (
     UPDATE hyrex_task_run
-        SET status = 'lost'
-        WHERE status = 'running'
+        SET status = 'LOST'::task_run_status
+        WHERE status = 'RUNNING'::task_run_status
             AND (
                   executor_id IS NULL
                       OR NOT EXISTS (
                       SELECT 1
                       FROM hyrex_executor
                       WHERE hyrex_executor.id = hyrex_task_run.executor_id
-                        AND hyrex_executor.status = 'RUNNING'
+                        AND hyrex_executor.status = 'RUNNING'::executor_status
                   )
                   )
         RETURNING id, durable_id, root_id, parent_id, workflow_run_id, workflow_dependencies, task_name, args, queue, max_retries, priority, timeout_seconds, status, attempt_number, scheduled_start, executor_id, queued, started, finished, last_heartbeat, idempotency_key, log_link

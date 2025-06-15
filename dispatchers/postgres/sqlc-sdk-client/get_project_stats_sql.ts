@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const getProjectStatsQuery = `-- name: GetProjectStats :one
+export const getProjectStatsQuery = `-- name: GetProjectStats :many
 SELECT 
     timepoint,
     queued,
@@ -37,29 +37,27 @@ export interface GetProjectStatsRow {
     lostDelta: number | null;
 }
 
-export async function getProjectStats(client: Client): Promise<GetProjectStatsRow | null> {
+export async function getProjectStats(client: Client): Promise<GetProjectStatsRow[]> {
     const result = await client.query({
         text: getProjectStatsQuery,
         values: [],
         rowMode: "array"
     });
-    if (result.rows.length !== 1) {
-        return null;
-    }
-    const row = result.rows[0];
-    return {
-        timepoint: row[0],
-        queued: row[1],
-        running: row[2],
-        waiting: row[3],
-        failed: row[4],
-        success: row[5],
-        lost: row[6],
-        total: row[7],
-        queuedDelta: row[8],
-        successDelta: row[9],
-        failedDelta: row[10],
-        lostDelta: row[11]
-    };
+    return result.rows.map(row => {
+        return {
+            timepoint: row[0],
+            queued: row[1],
+            running: row[2],
+            waiting: row[3],
+            failed: row[4],
+            success: row[5],
+            lost: row[6],
+            total: row[7],
+            queuedDelta: row[8],
+            successDelta: row[9],
+            failedDelta: row[10],
+            lostDelta: row[11]
+        };
+    });
 }
 

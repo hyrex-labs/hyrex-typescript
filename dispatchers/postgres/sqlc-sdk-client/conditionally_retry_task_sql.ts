@@ -5,11 +5,11 @@ interface Client {
 }
 
 export const conditionallyRetryTaskQuery = `-- name: ConditionallyRetryTask :one
-SELECT conditionally_retry_task FROM conditionally_retry_task(
+SELECT result FROM conditionally_retry_task(
     $1::UUID,
     $2::UUID,
     $3::INT
-)`;
+) AS result`;
 
 export interface ConditionallyRetryTaskArgs {
     existingTaskId: string;
@@ -18,7 +18,7 @@ export interface ConditionallyRetryTaskArgs {
 }
 
 export interface ConditionallyRetryTaskRow {
-    conditionallyRetryTask: string | null;
+    result: string | null;
 }
 
 export async function conditionallyRetryTask(client: Client, args: ConditionallyRetryTaskArgs): Promise<ConditionallyRetryTaskRow | null> {
@@ -32,7 +32,7 @@ export async function conditionallyRetryTask(client: Client, args: Conditionally
     }
     const row = result.rows[0];
     return {
-        conditionallyRetryTask: row[0]
+        result: row[0]
     };
 }
 

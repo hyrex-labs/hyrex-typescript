@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const updateExecutorStatsQuery = `-- name: UpdateExecutorStats :exec
+export const updateExecutorStatsQuery = `-- name: UpdateExecutorStats :one
 WITH updated AS (
     UPDATE hyrex_executor
         SET last_heartbeat = CURRENT_TIMESTAMP,
@@ -43,11 +43,21 @@ export interface UpdateExecutorStatsRow {
     stats: any | null;
 }
 
-export async function updateExecutorStats(client: Client, args: UpdateExecutorStatsArgs): Promise<void> {
-    await client.query({
+export async function updateExecutorStats(client: Client, args: UpdateExecutorStatsArgs): Promise<UpdateExecutorStatsRow | null> {
+    const result = await client.query({
         text: updateExecutorStatsQuery,
         values: [args.stats, args.id],
         rowMode: "array"
     });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        result: row[0],
+        status: row[1],
+        lastHeartbeat: row[2],
+        stats: row[3]
+    };
 }
 

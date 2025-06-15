@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const setWorkflowRunStatusBasedOnTaskRunsQuery = `-- name: SetWorkflowRunStatusBasedOnTaskRuns :exec
+export const setWorkflowRunStatusBasedOnTaskRunsQuery = `-- name: SetWorkflowRunStatusBasedOnTaskRuns :one
 WITH latest_attempts AS (
     -- Get the latest attempt for each durable_id
     SELECT DISTINCT ON (durable_id)
@@ -24,7 +24,7 @@ WITH latest_attempts AS (
                         SELECT 1
                         FROM latest_attempts
                         WHERE latest_attempts.workflow_run_id = w.id
-                          AND status = 'failed'
+                          AND status = 'FAILED'::task_run_status
                           AND attempt_number >= max_retries
                     ) THEN 'failed'::workflow_run_status
 
@@ -79,11 +79,19 @@ export interface SetWorkflowRunStatusBasedOnTaskRunsRow {
     status: string;
 }
 
-export async function setWorkflowRunStatusBasedOnTaskRuns(client: Client, args: SetWorkflowRunStatusBasedOnTaskRunsArgs): Promise<void> {
-    await client.query({
+export async function setWorkflowRunStatusBasedOnTaskRuns(client: Client, args: SetWorkflowRunStatusBasedOnTaskRunsArgs): Promise<SetWorkflowRunStatusBasedOnTaskRunsRow | null> {
+    const result = await client.query({
         text: setWorkflowRunStatusBasedOnTaskRunsQuery,
         values: [args.workflowRunId],
         rowMode: "array"
     });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        id: row[0],
+        status: row[1]
+    };
 }
 

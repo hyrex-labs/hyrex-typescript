@@ -4,22 +4,23 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const fetchTaskQuery = `-- name: FetchTask :exec
+export const fetchTaskQuery = `-- name: FetchTask :one
 WITH next_task AS (SELECT id
                    FROM hyrex_task_run
                    WHERE hyrex_task_run.queue = $1
-                     AND hyrex_task_run.status = 'queued'
+                     AND hyrex_task_run.status = 'QUEUED'::task_run_status
                      AND hyrex_task_run.task_name IN ($2)
                    ORDER BY priority ASC, queued
                        FOR UPDATE SKIP LOCKED
                    LIMIT 1)
 UPDATE hyrex_task_run AS ht
-SET status      = 'running',
+SET status      = 'RUNNING'::task_run_status,
     started     = CURRENT_TIMESTAMP,
     executor_id = $3
 FROM next_task
 WHERE ht.id = next_task.id
 RETURNING ht.id
+    , ht.durable_id
     , ht.root_id
     , ht.parent_id
     , ht.workflow_run_id
@@ -42,6 +43,7 @@ export interface FetchTaskArgs {
 
 export interface FetchTaskRow {
     id: string;
+    durableId: string;
     rootId: string;
     parentId: string | null;
     workflowRunId: string | null;
@@ -57,11 +59,32 @@ export interface FetchTaskRow {
     started: Date | null;
 }
 
-export async function fetchTask(client: Client, args: FetchTaskArgs): Promise<void> {
-    await client.query({
+export async function fetchTask(client: Client, args: FetchTaskArgs): Promise<FetchTaskRow | null> {
+    const result = await client.query({
         text: fetchTaskQuery,
         values: [args.queue, args.taskName, args.executorId],
         rowMode: "array"
     });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        id: row[0],
+        durableId: row[1],
+        rootId: row[2],
+        parentId: row[3],
+        workflowRunId: row[4],
+        taskName: row[5],
+        args: row[6],
+        queue: row[7],
+        attemptNumber: row[8],
+        maxRetries: row[9],
+        priority: row[10],
+        timeoutSeconds: row[11],
+        scheduledStart: row[12],
+        queued: row[13],
+        started: row[14]
+    };
 }
 

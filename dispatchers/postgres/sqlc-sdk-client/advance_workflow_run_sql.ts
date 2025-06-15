@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const advanceWorkflowRunQuery = `-- name: AdvanceWorkflowRun :exec
+export const advanceWorkflowRunQuery = `-- name: AdvanceWorkflowRun :many
 WITH latest_attempts AS (
     -- Get the latest attempt for each durable_id
     SELECT DISTINCT ON (durable_id) durable_id,
@@ -30,7 +30,7 @@ WITH latest_attempts AS (
                     OR la.status != 'success')
              ))
 UPDATE hyrex_task_run
-SET status = 'queued'
+SET status = 'QUEUED'::task_run_status
 WHERE id IN (SELECT id FROM tasks_ready_to_queue)
 RETURNING status, workflow_run_id`;
 
@@ -43,11 +43,17 @@ export interface AdvanceWorkflowRunRow {
     workflowRunId: string | null;
 }
 
-export async function advanceWorkflowRun(client: Client, args: AdvanceWorkflowRunArgs): Promise<void> {
-    await client.query({
+export async function advanceWorkflowRun(client: Client, args: AdvanceWorkflowRunArgs): Promise<AdvanceWorkflowRunRow[]> {
+    const result = await client.query({
         text: advanceWorkflowRunQuery,
         values: [args.workflowRunId],
         rowMode: "array"
+    });
+    return result.rows.map(row => {
+        return {
+            status: row[0],
+            workflowRunId: row[1]
+        };
     });
 }
 

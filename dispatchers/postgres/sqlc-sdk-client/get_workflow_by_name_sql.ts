@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const getWorkflowByNameQuery = `-- name: GetWorkflowByName :exec
+export const getWorkflowByNameQuery = `-- name: GetWorkflowByName :one
 SELECT 
     workflow_name,
     cron_expr,
@@ -26,11 +26,22 @@ export interface GetWorkflowByNameRow {
     lastUpdated: Date | null;
 }
 
-export async function getWorkflowByName(client: Client, args: GetWorkflowByNameArgs): Promise<void> {
-    await client.query({
+export async function getWorkflowByName(client: Client, args: GetWorkflowByNameArgs): Promise<GetWorkflowByNameRow | null> {
+    const result = await client.query({
         text: getWorkflowByNameQuery,
         values: [args.workflowName],
         rowMode: "array"
     });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        workflowName: row[0],
+        cronExpr: row[1],
+        sourceCode: row[2],
+        dagStructure: row[3],
+        lastUpdated: row[4]
+    };
 }
 

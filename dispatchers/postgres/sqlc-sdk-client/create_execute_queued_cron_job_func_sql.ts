@@ -19,7 +19,7 @@ BEGIN
     SELECT command, runid, jobid
       INTO cmd, selected_runid, selected_jobid
       FROM hyrex_cron_job_run_details
-     WHERE status = 'queued'
+     WHERE status = 'QUEUED'
        AND schedule_time <= now()
      ORDER BY schedule_time
      LIMIT 1
@@ -34,11 +34,11 @@ BEGIN
 
         -- 4) Mark the end_time and set status.
         UPDATE hyrex_cron_job_run_details
-           SET status      = 'success',
+           SET status      = 'SUCCESS',
                start_time  = start_ts,
                end_time    = clock_timestamp()
          WHERE runid = selected_runid
-           AND status = 'queued';
+           AND status = 'QUEUED';
 
         -- 5) Retrieve the jobname using the selected jobid.
         SELECT jobname
@@ -55,11 +55,11 @@ EXCEPTION
     WHEN OTHERS THEN
         -- In the event of an error, mark job as failed and record times.
         UPDATE hyrex_cron_job_run_details
-           SET status      = 'failed',
+           SET status      = 'FAILED',
                start_time  = COALESCE(start_ts, clock_timestamp()),
                end_time    = clock_timestamp()
          WHERE runid = selected_runid
-           AND status = 'queued';
+           AND status = 'QUEUED';
         RAISE;
 END;
 $$

@@ -8,7 +8,7 @@ export const registerTaskDefQuery = `-- name: RegisterTaskDef :exec
 INSERT INTO hyrex_task_def (task_name, cron_expr, source_code, last_updated)
 VALUES ($1, $2, $3, NOW())
 ON CONFLICT (task_name)
-DO UPDATE SET 
+DO UPDATE SET
     cron_expr = EXCLUDED.cron_expr,
     source_code = EXCLUDED.source_code,
     last_updated = NOW()`;

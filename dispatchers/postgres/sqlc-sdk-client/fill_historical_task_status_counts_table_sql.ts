@@ -43,7 +43,7 @@ WITH RECURSIVE timepoints AS (
                                CASE
                                    WHEN htr.queued <= t.timepoint
                                        AND (htr.started IS NULL OR htr.started > t.timepoint)
-                                       AND htr.status = 'queued'
+                                       AND htr.status = 'QUEUED'::task_run_status
                                        THEN 1
                                    END
                        ) AS queued,
@@ -51,7 +51,7 @@ WITH RECURSIVE timepoints AS (
                                CASE
                                    WHEN htr.started <= t.timepoint
                                        AND (htr.finished IS NULL OR htr.finished > t.timepoint)
-                                       AND htr.status = 'running'
+                                       AND htr.status = 'RUNNING'::task_run_status
                                        THEN 1
                                    END
                        ) AS running,
@@ -72,14 +72,14 @@ WITH RECURSIVE timepoints AS (
                        ) AS failed,
                        COUNT(
                                CASE
-                                   WHEN htr.status = 'success'
+                                   WHEN htr.status = 'SUCCESS'::task_run_status
                                        AND htr.finished <= t.timepoint
                                        THEN 1
                                    END
                        ) AS success,
                        COUNT(
                                CASE
-                                   WHEN htr.status = 'lost'
+                                   WHEN htr.status = 'LOST'::task_run_status
                                        AND (htr.finished IS NULL OR htr.finished <= t.timepoint)
                                        THEN 1
                                    END

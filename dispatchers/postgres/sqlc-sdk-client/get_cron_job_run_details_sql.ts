@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const getCronJobRunDetailsQuery = `-- name: GetCronJobRunDetails :one
+export const getCronJobRunDetailsQuery = `-- name: GetCronJobRunDetails :many
 SELECT 
     jobid,
     runid,
@@ -32,24 +32,22 @@ export interface GetCronJobRunDetailsRow {
     endTime: Date | null;
 }
 
-export async function getCronJobRunDetails(client: Client, args: GetCronJobRunDetailsArgs): Promise<GetCronJobRunDetailsRow | null> {
+export async function getCronJobRunDetails(client: Client, args: GetCronJobRunDetailsArgs): Promise<GetCronJobRunDetailsRow[]> {
     const result = await client.query({
         text: getCronJobRunDetailsQuery,
         values: [args.jobid],
         rowMode: "array"
     });
-    if (result.rows.length !== 1) {
-        return null;
-    }
-    const row = result.rows[0];
-    return {
-        jobid: row[0],
-        runid: row[1],
-        command: row[2],
-        status: row[3],
-        scheduleTime: row[4],
-        startTime: row[5],
-        endTime: row[6]
-    };
+    return result.rows.map(row => {
+        return {
+            jobid: row[0],
+            runid: row[1],
+            command: row[2],
+            status: row[3],
+            scheduleTime: row[4],
+            startTime: row[5],
+            endTime: row[6]
+        };
+    });
 }
 

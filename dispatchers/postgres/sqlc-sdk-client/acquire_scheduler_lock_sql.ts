@@ -6,7 +6,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const acquireSchedulerLockQuery = `-- name: AcquireSchedulerLock :exec
+export const acquireSchedulerLockQuery = `-- name: AcquireSchedulerLock :one
 INSERT INTO hyrex_scheduler_lock (
     lockid, worker_name, acquired_at, heartbeat_at, release_at, is_active
 )
@@ -42,11 +42,18 @@ export interface AcquireSchedulerLockRow {
     lockid: string;
 }
 
-export async function acquireSchedulerLock(client: Client, args: AcquireSchedulerLockArgs): Promise<void> {
-    await client.query({
+export async function acquireSchedulerLock(client: Client, args: AcquireSchedulerLockArgs): Promise<AcquireSchedulerLockRow | null> {
+    const result = await client.query({
         text: acquireSchedulerLockQuery,
         values: [args.workerName, args.duration],
         rowMode: "array"
     });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        lockid: row[0]
+    };
 }
 

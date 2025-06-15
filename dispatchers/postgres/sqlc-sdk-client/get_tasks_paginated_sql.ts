@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const getTasksPaginatedQuery = `-- name: GetTasksPaginated :exec
+export const getTasksPaginatedQuery = `-- name: GetTasksPaginated :many
 SELECT 
     ROW_NUMBER() OVER (ORDER BY last_updated DESC) as row_number,
     task_name,
@@ -28,11 +28,20 @@ export interface GetTasksPaginatedRow {
     lastUpdated: Date | null;
 }
 
-export async function getTasksPaginated(client: Client, args: GetTasksPaginatedArgs): Promise<void> {
-    await client.query({
+export async function getTasksPaginated(client: Client, args: GetTasksPaginatedArgs): Promise<GetTasksPaginatedRow[]> {
+    const result = await client.query({
         text: getTasksPaginatedQuery,
         values: [args.limit, args.offset],
         rowMode: "array"
+    });
+    return result.rows.map(row => {
+        return {
+            rowNumber: row[0],
+            taskName: row[1],
+            cronExpr: row[2],
+            sourceCode: row[3],
+            lastUpdated: row[4]
+        };
     });
 }
 

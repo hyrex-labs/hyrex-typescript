@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const getTaskAttemptsByDurableIdQuery = `-- name: GetTaskAttemptsByDurableId :one
+export const getTaskAttemptsByDurableIdQuery = `-- name: GetTaskAttemptsByDurableId :many
 SELECT 
     tr.id,
     tr.durable_id,
@@ -57,36 +57,34 @@ export interface GetTaskAttemptsByDurableIdRow {
     result: any | null;
 }
 
-export async function getTaskAttemptsByDurableId(client: Client, args: GetTaskAttemptsByDurableIdArgs): Promise<GetTaskAttemptsByDurableIdRow | null> {
+export async function getTaskAttemptsByDurableId(client: Client, args: GetTaskAttemptsByDurableIdArgs): Promise<GetTaskAttemptsByDurableIdRow[]> {
     const result = await client.query({
         text: getTaskAttemptsByDurableIdQuery,
         values: [args.durableId],
         rowMode: "array"
     });
-    if (result.rows.length !== 1) {
-        return null;
-    }
-    const row = result.rows[0];
-    return {
-        id: row[0],
-        durableId: row[1],
-        rootId: row[2],
-        parentId: row[3],
-        taskName: row[4],
-        args: row[5],
-        queue: row[6],
-        maxRetries: row[7],
-        priority: row[8],
-        status: row[9],
-        attemptNumber: row[10],
-        scheduledStart: row[11],
-        executorId: row[12],
-        queued: row[13],
-        started: row[14],
-        finished: row[15],
-        logLink: row[16],
-        sourceCode: row[17],
-        result: row[18]
-    };
+    return result.rows.map(row => {
+        return {
+            id: row[0],
+            durableId: row[1],
+            rootId: row[2],
+            parentId: row[3],
+            taskName: row[4],
+            args: row[5],
+            queue: row[6],
+            maxRetries: row[7],
+            priority: row[8],
+            status: row[9],
+            attemptNumber: row[10],
+            scheduledStart: row[11],
+            executorId: row[12],
+            queued: row[13],
+            started: row[14],
+            finished: row[15],
+            logLink: row[16],
+            sourceCode: row[17],
+            result: row[18]
+        };
+    });
 }
 

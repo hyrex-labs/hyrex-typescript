@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const getWorkflowRunTaskRunsQuery = `-- name: GetWorkflowRunTaskRuns :one
+export const getWorkflowRunTaskRunsQuery = `-- name: GetWorkflowRunTaskRuns :many
 WITH latest_attempts AS (
     SELECT 
         id as task_id,
@@ -39,22 +39,20 @@ export interface GetWorkflowRunTaskRunsRow {
     workflowDependencies: string[] | null;
 }
 
-export async function getWorkflowRunTaskRuns(client: Client, args: GetWorkflowRunTaskRunsArgs): Promise<GetWorkflowRunTaskRunsRow | null> {
+export async function getWorkflowRunTaskRuns(client: Client, args: GetWorkflowRunTaskRunsArgs): Promise<GetWorkflowRunTaskRunsRow[]> {
     const result = await client.query({
         text: getWorkflowRunTaskRunsQuery,
         values: [args.workflowRunId],
         rowMode: "array"
     });
-    if (result.rows.length !== 1) {
-        return null;
-    }
-    const row = result.rows[0];
-    return {
-        taskId: row[0],
-        durableId: row[1],
-        taskName: row[2],
-        status: row[3],
-        workflowDependencies: row[4]
-    };
+    return result.rows.map(row => {
+        return {
+            taskId: row[0],
+            durableId: row[1],
+            taskName: row[2],
+            status: row[3],
+            workflowDependencies: row[4]
+        };
+    });
 }
 

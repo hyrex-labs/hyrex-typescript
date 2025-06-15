@@ -1,6 +1,22 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-14T18:48:14.171Z
+// Generated on: 2025-06-15T03:03:16.651Z
+
+// Tables
+export * from './01_create_executor_table_sql';
+export * from './02_create_hyrex_app_table_sql';
+export * from './03_create_hyrex_cron_job_table_sql';
+export * from './04_create_hyrex_scheduler_lock_table_sql';
+export * from './05_create_hyrex_stats_task_status_counts_table_sql';
+export * from './06_create_hyrex_stats_task_status_counts_table_indexes_sql';
+export * from './07_create_hyrex_task_def_table_sql';
+export * from './08_create_workflow_table_sql';
+export * from './09_create_system_log_table_sql';
+export * from './10_create_workflow_run_table_sql';
+export * from './11_create_hyrex_cron_job_run_details_table_sql';
+export * from './12_create_hyrex_task_run_table_sql';
+export * from './13_create_hyrex_task_run_table_indexes_sql';
+export * from './14_create_results_table_sql';
 
 // Scheduler
 export * from './acquire_scheduler_lock_sql';
@@ -42,6 +58,7 @@ export * from './create_workflow_trigger_func_sql';
 export * from './create_cron_job_for_sql_query_sql';
 export * from './create_cron_job_for_task_sql';
 export * from './pull_active_cron_expressions_sql';
+export * from './trigger_execute_queued_cron_job_sql';
 export * from './turn_off_cron_for_task_sql';
 export * from './update_cron_job_confirmation_ts_sql';
 
@@ -51,20 +68,6 @@ export * from './create_executor_status_enum_sql';
 export * from './create_job_source_type_enum_sql';
 export * from './create_task_run_status_enum_sql';
 export * from './create_workflow_run_status_enum_sql';
-
-// Tables
-export * from './create_executor_table_sql';
-export * from './create_hyrex_app_table_sql';
-export * from './create_hyrex_cron_job_run_details_table_sql';
-export * from './create_hyrex_cron_job_table_sql';
-export * from './create_hyrex_scheduler_lock_table_sql';
-export * from './create_hyrex_stats_task_status_counts_table_sql';
-export * from './create_hyrex_task_def_table_sql';
-export * from './create_hyrex_task_run_table_sql';
-export * from './create_results_table_sql';
-export * from './create_system_log_table_sql';
-export * from './create_workflow_run_table_sql';
-export * from './create_workflow_table_sql';
 
 // Stats
 export * from './fill_historical_task_status_counts_table_sql';
@@ -110,18 +113,20 @@ import { createExecutorStatusEnum } from './create_executor_status_enum_sql';
 import { createJobSourceTypeEnum } from './create_job_source_type_enum_sql';
 import { createTaskRunStatusEnum } from './create_task_run_status_enum_sql';
 import { createWorkflowRunStatusEnum } from './create_workflow_run_status_enum_sql';
-import { createExecutorTable } from './create_executor_table_sql';
-import { createAppTable } from './create_hyrex_app_table_sql';
-import { createCronJobRunDetailsTable } from './create_hyrex_cron_job_run_details_table_sql';
-import { createCronJobTable } from './create_hyrex_cron_job_table_sql';
-import { createSchedulerLockTable } from './create_hyrex_scheduler_lock_table_sql';
-import { createStatsTaskStatusCountsTable } from './create_hyrex_stats_task_status_counts_table_sql';
-import { createTaskDefTable } from './create_hyrex_task_def_table_sql';
-import { createTaskRunTable } from './create_hyrex_task_run_table_sql';
-import { createResultsTable } from './create_results_table_sql';
-import { createSystemLogTable } from './create_system_log_table_sql';
-import { createWorkflowRunTable } from './create_workflow_run_table_sql';
-import { createWorkflowTable } from './create_workflow_table_sql';
+import { createExecutorTable } from './01_create_executor_table_sql';
+import { createAppTable } from './02_create_hyrex_app_table_sql';
+import { createCronJobTable } from './03_create_hyrex_cron_job_table_sql';
+import { createSchedulerLockTable } from './04_create_hyrex_scheduler_lock_table_sql';
+import { createStatsTaskStatusCountsTable } from './05_create_hyrex_stats_task_status_counts_table_sql';
+import { createStatsTaskStatusCountsTableIndexes } from './06_create_hyrex_stats_task_status_counts_table_indexes_sql';
+import { createTaskDefTable } from './07_create_hyrex_task_def_table_sql';
+import { createWorkflowTable } from './08_create_workflow_table_sql';
+import { createSystemLogTable } from './09_create_system_log_table_sql';
+import { createWorkflowRunTable } from './10_create_workflow_run_table_sql';
+import { createCronJobRunDetailsTable } from './11_create_hyrex_cron_job_run_details_table_sql';
+import { createTaskRunTable } from './12_create_hyrex_task_run_table_sql';
+import { createTaskRunTableIndexes } from './13_create_hyrex_task_run_table_indexes_sql';
+import { createResultsTable } from './14_create_results_table_sql';
 import { createConditionallyRetryTaskFunc } from './create_conditionally_retry_task_func_sql';
 import { createExecuteQueuedCronJobFunction } from './create_execute_queued_cron_job_func_sql';
 import { createTaskRun, createTaskRunFunction } from './create_task_run_sql';
@@ -138,18 +143,20 @@ export async function createEnums(client: DatabaseClient): Promise<void> {
 }
 
 export async function createTables(client: DatabaseClient): Promise<void> {
-  await createAppTable(client);
-  await createCronJobRunDetailsTable(client);
-  await createCronJobTable(client);
   await createExecutorTable(client);
-  await createResultsTable(client);
+  await createAppTable(client);
+  await createCronJobTable(client);
   await createSchedulerLockTable(client);
   await createStatsTaskStatusCountsTable(client);
-  await createSystemLogTable(client);
+  await createStatsTaskStatusCountsTableIndexes(client);
   await createTaskDefTable(client);
-  await createTaskRunTable(client);
-  await createWorkflowRunTable(client);
   await createWorkflowTable(client);
+  await createSystemLogTable(client);
+  await createWorkflowRunTable(client);
+  await createCronJobRunDetailsTable(client);
+  await createTaskRunTable(client);
+  await createTaskRunTableIndexes(client);
+  await createResultsTable(client);
 }
 
 export async function createFunctions(client: DatabaseClient): Promise<void> {

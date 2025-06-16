@@ -1,7 +1,6 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
 import { HyrexTaskConfig, JsonType, UUID, uuidSchema } from "../../utils";
 import { Notification, Pool, PoolClient } from 'pg';
-import * as sql from "./legacy-sql/sql" // Still used in several runtime paths (will migrate later)
 import * as cronSQL from "./legacy-sql/cronSql"
 import * as workflowSQL from "./legacy-sql/workflowSql"
 import { string } from "zod";
@@ -16,7 +15,6 @@ import { HyrexWorkflowBuilder, WorkflowDagJson } from "../../workflow/HyrexWorkf
 import { UPSERT_WORKFLOW } from "./legacy-sql/workflowSql";
 import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
-import { createDequeueQuery } from "./legacy-sql/sql";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { envVariables } from "../../EnvironmentVariables";
 
@@ -47,6 +45,8 @@ import {
     UpdateExecutorStatsArgs,
     batchUpdateHeartbeatOnExecutors as batchUpdateHeartbeatOnExecutorsQuery,
     BatchUpdateHeartbeatOnExecutorsArgs,
+    batchUpdateHeartbeatLog as batchUpdateHeartbeatLogQuery,
+    BatchUpdateHeartbeatLogArgs,
     conditionallyRetryTask as conditionallyRetryTaskQuery,
     ConditionallyRetryTaskArgs,
     setLogLink as setLogLinkQuery,
@@ -471,7 +471,11 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
             // Log the heartbeat update
             const logId = uuidv7();
-            await client.query(sql.BATCH_UPDATE_HEARTBEAT_LOG, [logId, executorIds]);
+            const logArgs: BatchUpdateHeartbeatLogArgs = {
+                logId: logId,
+                executorIds: executorIds
+            };
+            await batchUpdateHeartbeatLogQuery(client, logArgs);
         });
     }
 
@@ -524,19 +528,14 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 id: executorId,
                 stats: stats
             };
-            // updateExecutorStats returns void, so we need to use the raw query
-            const result = await client.query<{
-                result: 'ACCEPTED' | 'REJECTED',
-                status: string,
-                last_heartbeat: Date,
-                stats: any;
-            }>(sql.UPDATE_EXECUTOR_STATS, [executorId, JSON.stringify(stats)]);
+            
+            const result = await updateExecutorStatsQuery(client, args);
 
-            if (result.rows.length === 0) {
+            if (!result) {
                 throw new Error(`No executor found with id ${executorId}`);
             }
 
-            return result.rows[0].result;
+            return result.result as 'ACCEPTED' | 'REJECTED';
         });
     }
 
@@ -700,7 +699,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     async scheduleCronJobRuns(cronJobRuns: CronJobRun[]): Promise<void> {
         hyrexLogger.info("cron-scheduling", `scheduleCronJobRuns ${cronJobRuns}`, "dim")
-        
+
         if (cronJobRuns.length === 0) {
             return
         }
@@ -715,19 +714,19 @@ export class PostgresDispatcher implements HyrexDispatcher {
             };
 
             const queryResult = await scheduleCronJobRunsQuery(client, args);
-            
+
             if (!queryResult) {
                 throw new Error("Failed to schedule cron job runs");
             }
-            
+
             const result = queryResult.result;
-            
+
             if (!result.success) {
                 throw new Error(`Failed to schedule cron job runs: ${result.message}`);
             }
-            
-            hyrexLogger.info("cron-scheduling", 
-                `Scheduled cron jobs: ${result.message}, inserted: ${result.inserted_count}`, 
+
+            hyrexLogger.info("cron-scheduling",
+                `Scheduled cron jobs: ${result.message}, inserted: ${result.inserted_count}`,
                 "dim");
         });
     }

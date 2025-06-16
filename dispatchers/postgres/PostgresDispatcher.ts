@@ -1,8 +1,6 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
 import { HyrexTaskConfig, JsonType, UUID, uuidSchema } from "../../utils";
 import { Notification, Pool, PoolClient } from 'pg';
-import * as cronSQL from "./legacy-sql/cronSql"
-import * as workflowSQL from "./legacy-sql/workflowSql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
@@ -10,9 +8,8 @@ import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { v7 as uuidv7 } from 'uuid';
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { hyrexLogger } from "../../logging/FrameworkLogger";
-import { createInsertTaskCronExpression, TURN_OFF_CRON_FOR_TASK } from "./legacy-sql/cronSql";
+import { createInsertTaskCronExpression } from "./legacy-sql/cronSql";
 import { HyrexWorkflowBuilder, WorkflowDagJson } from "../../workflow/HyrexWorkflowBuilder";
-import { UPSERT_WORKFLOW } from "./legacy-sql/workflowSql";
 import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -64,7 +61,28 @@ import {
     CreateCronJobForSqlQueryArgs,
     fillHistoricalTaskStatusCountsTableQuery,
     setOrphanedTaskExecutionToLostAndRetryQuery,
-    setExecutorToLostIfNoHeartbeatQuery
+    setExecutorToLostIfNoHeartbeatQuery,
+    createCronJobForTask as createCronJobForTaskQuery,
+    CreateCronJobForTaskArgs,
+    turnOffCronForTask as turnOffCronForTaskQuery,
+    TurnOffCronForTaskArgs,
+    acquireSchedulerLock as acquireSchedulerLockQuery,
+    AcquireSchedulerLockArgs,
+    pullActiveCronExpressions as pullActiveCronExpressionsQuery,
+    releaseSchedulerLock as releaseSchedulerLockQuery,
+    ReleaseSchedulerLockArgs,
+    updateCronJobConfirmationTs as updateCronJobConfirmationTsQuery,
+    UpdateCronJobConfirmationTsArgs,
+    registerWorkflow as registerWorkflowQuery,
+    RegisterWorkflowArgs,
+    triggerWorkflow as triggerWorkflowQuery,
+    TriggerWorkflowArgs,
+    setWorkflowRunStatusBasedOnTaskRuns as setWorkflowRunStatusBasedOnTaskRunsQuery,
+    SetWorkflowRunStatusBasedOnTaskRunsArgs,
+    skipWaitingTaskForWorkflowRunId as skipWaitingTaskForWorkflowRunIdQuery,
+    SkipWaitingTaskForWorkflowRunIdArgs,
+    advanceWorkflowRun as advanceWorkflowRunQuery,
+    AdvanceWorkflowRunArgs
 } from "./sqlc-sdk-client";
 
 type HyrexPostgresDispatcherConfig = {
@@ -655,11 +673,17 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 }
 
                 const insertTaskCommand = createInsertTaskCronExpression(taskRequest)
-                await client.query(cronSQL.CREATE_CRON_JOB_FOR_TASK, [
-                    taskConfig.cron, insertTaskCommand, cronJobName
-                ])
+                const createCronArgs: CreateCronJobForTaskArgs = {
+                    schedule: taskConfig.cron,
+                    command: insertTaskCommand,
+                    jobname: cronJobName
+                };
+                await createCronJobForTaskQuery(client, createCronArgs);
             } else {
-                await client.query(cronSQL.TURN_OFF_CRON_FOR_TASK, [cronJobName])
+                const turnOffArgs: TurnOffCronForTaskArgs = {
+                    jobname: cronJobName
+                };
+                await turnOffCronForTaskQuery(client, turnOffArgs);
             }
 
         })
@@ -672,11 +696,13 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }): Promise<number | null> {
         const lockDuration = "1 minute"
         return this.queryWithRetry(async (client) => {
-            const { rows } = await client.query<{
-                lockid: string
-            }>(cronSQL.ACQUIRE_SCHEDULER_LOCK, [workerName, lockDuration])
-            if (rows.length > 0) {
-                return Number(rows[0].lockid)
+            const args: AcquireSchedulerLockArgs = {
+                workerName: workerName,
+                duration: lockDuration as any // PostgreSQL will handle the interval casting
+            };
+            const result = await acquireSchedulerLockQuery(client, args);
+            if (result) {
+                return Number(result.lockid);
             } else {
                 // No rows => couldn't acquire
                 return null
@@ -686,14 +712,27 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     async pullCronJobExpressions(): Promise<CronJob[]> {
         return this.queryWithRetry(async (client) => {
-            const { rows } = await client.query<CronJob>(cronSQL.PULL_ACTIVE_CRON_EXPRESSIONS)
-            return rows
+            const rows = await pullActiveCronExpressionsQuery(client);
+            // Map the sqlc-generated rows to CronJob interface
+            return rows.map(row => ({
+                jobid: Number(row.jobid),
+                schedule: row.schedule || '',
+                command: row.command,
+                active: row.active,
+                jobname: row.jobname,
+                activated_at: row.activatedAt || new Date(),
+                scheduled_jobs_confirmed_until: row.scheduledJobsConfirmedUntil || new Date(),
+                should_backfill: row.shouldBackfill || false
+            }));
         })
     }
 
     async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {
         return this.queryWithRetry(async (client) => {
-            await client.query(cronSQL.RELEASE_SCHEDULER_LOCK, [workerName])
+            const args: ReleaseSchedulerLockArgs = {
+                workerName: workerName
+            };
+            await releaseSchedulerLockQuery(client, args);
         })
     }
 
@@ -734,7 +773,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
     // Note: updateCronJobConfirmationTimestamp is now handled within the schedule_cron_job_runs PL/pgSQL function
     async updateCronJobConfirmationTimestamp(jobId: number): Promise<void> {
         await this.queryWithRetry(async (client) => {
-            await client.query(cronSQL.UPDATE_CRON_JOB_CONFIRMATION_TS, [jobId])
+            const args: UpdateCronJobConfirmationTsArgs = {
+                jobid: String(jobId)
+            };
+            await updateCronJobConfirmationTsQuery(client, args);
         })
     }
 
@@ -807,7 +849,13 @@ export class PostgresDispatcher implements HyrexDispatcher {
         hyrexLogger.info('workflow', JSON.stringify(workflowDagJson, null, 2), 'brightBlue')
         return this.queryWithRetry(async (client) => {
             const cronExpr = null
-            await client.query(workflowSQL.UPSERT_WORKFLOW, [workflowName, cronExpr, sourceCode, workflowDagJson])
+            const args: RegisterWorkflowArgs = {
+                workflowName: workflowName,
+                cronExpr: cronExpr,
+                sourceCode: sourceCode,
+                dagStructure: workflowDagJson
+            };
+            await registerWorkflowQuery(client, args);
         })
     }
 
@@ -816,40 +864,53 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }): Promise<string> {
         return this.queryWithRetry(async (client) => {
             const { id, workflow_name, args, queue, timeout_seconds, idempotency_key } = serializedWorkflowRunRequest
-            const { rows } = await client.query<{
-                id: string
-            }>(workflowSQL.INSERT_WORKFLOW_RUN, [id, workflow_name, args, queue, timeout_seconds, idempotency_key])
-            if (rows.length !== 1) {
-                throw new Error("Insert workflow run failed.")
+            const triggerArgs: TriggerWorkflowArgs = {
+                workflowRunId: id,
+                workflowName: workflow_name,
+                args: args,
+                queue: queue,
+                timeoutSeconds: timeout_seconds || 0,
+                idempotencyKey: idempotency_key || ''
+            };
+            const result = await triggerWorkflowQuery(client, triggerArgs);
+            
+            if (!result || !result.result) {
+                throw new Error("Trigger workflow failed.")
             }
 
-            return rows[0].id
+            return id;
         })
     }
 
     async advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void> {
         hyrexLogger.info('workflow', `Advancing workflow run ${workflowRunId}`, "brightBlue")
         return this.queryWithRetry(async (client) => {
-            const { rows } = await client.query<{
-                id: UUID,
-                status: WorkflowRunStatus
-            }>(workflowSQL.SET_WORKFLOW_RUN_STATUS_BASED_ON_TASK_RUNS, [workflowRunId])
+            const statusArgs: SetWorkflowRunStatusBasedOnTaskRunsArgs = {
+                workflowRunId: workflowRunId
+            };
+            const statusResult = await setWorkflowRunStatusBasedOnTaskRunsQuery(client, statusArgs);
 
-            if (rows.length !== 1) {
+            if (!statusResult) {
                 hyrexLogger.warn('workflow', 'Result of SET_WORKFLOW_RUN_STATUS_BASED_ON_TASK_RUNS is not one row.', 'red')
                 return
             }
 
-            const workflowStatus = rows[0].status
-            if (workflowStatus === 'failed' || workflowStatus === 'success') {
-                if (workflowStatus === 'failed') {
+            const workflowStatus = statusResult.status
+            if (workflowStatus === 'FAILED' || workflowStatus === 'SUCCESS') {
+                if (workflowStatus === 'FAILED') {
                     hyrexLogger.error('workflow', `Workflow ${workflowRunId} failed. Skipping all tasks.`, 'brightBlue')
-                    await client.query(workflowSQL.SKIP_WAITING_TASK_FOR_WORKFLOW_RUN_ID, [workflowRunId])
+                    const skipArgs: SkipWaitingTaskForWorkflowRunIdArgs = {
+                        workflowRunId: workflowRunId
+                    };
+                    await skipWaitingTaskForWorkflowRunIdQuery(client, skipArgs);
                 }
                 return // workflowStatus
             }
 
-            await client.query(workflowSQL.ADVANCE_WORKFLOW_RUN, [workflowRunId])
+            const advanceArgs: AdvanceWorkflowRunArgs = {
+                workflowRunId: workflowRunId
+            };
+            await advanceWorkflowRunQuery(client, advanceArgs);
 
         })
     }

@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-16T17:24:22.410Z
+// Generated on: 2025-06-16T18:30:08.219Z
 
 // Tables
 export * from './01_create_executor_table_sql';
@@ -17,6 +17,7 @@ export * from './11_create_hyrex_cron_job_run_details_table_sql';
 export * from './12_create_hyrex_task_run_table_sql';
 export * from './13_create_hyrex_task_run_table_indexes_sql';
 export * from './14_create_results_table_sql';
+export * from './15_create_hyrex_kv_table_sql';
 
 // Scheduler
 export * from './acquire_scheduler_lock_sql';
@@ -99,12 +100,12 @@ export * from './register_app_info_sql';
 // Task Def
 export * from './register_task_def_sql';
 
+// Workflow
+export * from './register_workflow_sql';
+
 // Durability
 export * from './set_executor_to_lost_if_no_heartbeat_sql';
 export * from './set_orphaned_task_execution_to_lost_and_retry_sql';
-
-// Workflow
-export * from './upsert_workflow_sql';
 
 import { QueryArrayConfig, QueryArrayResult } from 'pg';
 
@@ -129,6 +130,7 @@ import { createCronJobRunDetailsTable } from './11_create_hyrex_cron_job_run_det
 import { createTaskRunTable } from './12_create_hyrex_task_run_table_sql';
 import { createTaskRunTableIndexes } from './13_create_hyrex_task_run_table_indexes_sql';
 import { createResultsTable } from './14_create_results_table_sql';
+import { createHyrexKvTable } from './15_create_hyrex_kv_table_sql';
 import { createConditionallyRetryTaskFunc } from './create_conditionally_retry_task_func_sql';
 import { createExecuteQueuedCronJobFunction } from './create_execute_queued_cron_job_func_sql';
 import { createScheduleCronJobRunsFunc } from './create_schedule_cron_job_runs_func_sql';
@@ -160,6 +162,7 @@ export async function createTables(client: DatabaseClient): Promise<void> {
   await createTaskRunTable(client);
   await createTaskRunTableIndexes(client);
   await createResultsTable(client);
+  await createHyrexKvTable(client);
 }
 
 export async function createFunctions(client: DatabaseClient): Promise<void> {

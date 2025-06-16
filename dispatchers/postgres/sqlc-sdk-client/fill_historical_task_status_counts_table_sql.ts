@@ -15,13 +15,13 @@ WITH RECURSIVE timepoints AS (
                                date_bin(
                                        INTERVAL '15 seconds',
                                        now() - INTERVAL '10 minutes',
-                                       TIMESTAMP '2000-01-01 00$1$1+00'
+                                       TIMESTAMP '2000-01-01 00:00:00+00'
                                )
                        ),
                        date_bin(
                                INTERVAL '15 seconds',
                                now() - INTERVAL '10 minutes',
-                               TIMESTAMP '2000-01-01 00$1$1+00'
+                               TIMESTAMP '2000-01-01 00:00:00+00'
                        )
                ) + INTERVAL '15 seconds' AS timepoint
 
@@ -33,7 +33,7 @@ WITH RECURSIVE timepoints AS (
         WHERE timepoint < date_bin(
                 INTERVAL '15 seconds',
                 now(),
-                TIMESTAMP '2000-01-01 00$1$1+00'
+                TIMESTAMP '2000-01-01 00:00:00+00'
                           )
     ),
                queue_counts AS (

@@ -51,7 +51,7 @@ SELECT
     max_retries,
     priority,
     timeout_seconds,
-    'queued',
+    'QUEUED'::task_run_status,
     attempt_number + 1,
     idempotency_key,
     NOW()

@@ -8,7 +8,7 @@ export const triggerWorkflowQuery = `-- name: TriggerWorkflow :one
 SELECT result FROM trigger_workflow_run(
     $1::UUID, 
     $2, 
-    $3::JSONB, 
+    $3::JSON, 
     $4, 
     $5, 
     $6

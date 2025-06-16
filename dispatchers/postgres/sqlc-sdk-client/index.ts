@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-15T03:03:16.651Z
+// Generated on: 2025-06-15T18:08:04.986Z
 
 // Tables
 export * from './01_create_executor_table_sql';
@@ -59,7 +59,7 @@ export * from './create_workflow_trigger_func_sql';
 export * from './create_cron_job_for_sql_query_sql';
 export * from './create_cron_job_for_task_sql';
 export * from './pull_active_cron_expressions_sql';
-export * from './schedule_cron_job_runs_sql';
+export * from './schedule_cron_job_runs_json_sql';
 export * from './trigger_execute_queued_cron_job_sql';
 export * from './turn_off_cron_for_task_sql';
 export * from './update_cron_job_confirmation_ts_sql';

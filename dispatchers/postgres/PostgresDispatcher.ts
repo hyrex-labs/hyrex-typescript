@@ -57,8 +57,8 @@ import {
     RegisterAppInfoArgs,
     registerTaskDef,
     triggerExecuteQueuedCronJob as triggerExecuteQueuedCronJobQuery,
-    scheduleCronJobRuns as scheduleCronJobRunsQuery,
-    ScheduleCronJobRunsArgs,
+    scheduleCronJobRunsJson as scheduleCronJobRunsQuery,
+    ScheduleCronJobRunsJsonArgs,
     createTables, createFunctions, createEnums,
     fetchTask,
     fetchTaskWithConcurrencyLimit
@@ -698,26 +698,28 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
 
         await this.queryWithRetry(async (client) => {
-            const args: ScheduleCronJobRunsArgs = {
-                runs: cronJobRuns.map(run => ({
+            const args: ScheduleCronJobRunsJsonArgs = {
+                runsJson: JSON.stringify(cronJobRuns.map(run => ({
                     jobid: run.jobid,
                     command: run.command,
-                    scheduleTime: run.schedule_time
-                }))
+                    schedule_time: run.schedule_time.toISOString()
+                })))
             };
 
-            const result = await scheduleCronJobRunsQuery(client, args);
+            const queryResult = await scheduleCronJobRunsQuery(client, args);
             
-            if (!result) {
+            if (!queryResult) {
                 throw new Error("Failed to schedule cron job runs");
             }
+            
+            const result = queryResult.result;
             
             if (!result.success) {
                 throw new Error(`Failed to schedule cron job runs: ${result.message}`);
             }
             
             hyrexLogger.info("cron-scheduling", 
-                `Scheduled cron jobs: ${result.message}, inserted: ${result.insertedCount}`, 
+                `Scheduled cron jobs: ${result.message}, inserted: ${result.inserted_count}`, 
                 "dim");
         });
     }

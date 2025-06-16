@@ -14,7 +14,7 @@ SELECT result FROM conditionally_retry_task(
 export interface ConditionallyRetryTaskArgs {
     existingTaskId: string;
     newTaskId: string;
-    timeoutSeconds: number;
+    timeoutSeconds: number | null;
 }
 
 export interface ConditionallyRetryTaskRow {

@@ -546,7 +546,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 id: executorId,
                 stats: stats
             };
-            
+
             const result = await updateExecutorStatsQuery(client, args);
 
             if (!result) {
@@ -621,7 +621,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
             const args: ConditionallyRetryTaskArgs = {
                 existingTaskId: taskId,
                 newTaskId: newTaskId,
-                timeoutSeconds: 0 // Default timeout
+                timeoutSeconds: null
             };
             await conditionallyRetryTaskQuery(client, args);
         });
@@ -873,7 +873,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 idempotencyKey: idempotency_key || ''
             };
             const result = await triggerWorkflowQuery(client, triggerArgs);
-            
+
             if (!result || !result.result) {
                 throw new Error("Trigger workflow failed.")
             }

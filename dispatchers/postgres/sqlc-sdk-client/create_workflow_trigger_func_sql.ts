@@ -28,6 +28,16 @@ DECLARE
     v_dep_durable_id TEXT;
     v_node_id_map JSONB := '{}'::JSONB;
 BEGIN
+    -- Validate timeout_seconds
+    IF p_timeout_seconds IS NOT NULL AND p_timeout_seconds <= 0 THEN
+        RETURN QUERY SELECT
+            NULL::UUID,
+            0,
+            FALSE,
+            'Invalid timeout_seconds: must be NULL or greater than 0';
+        RETURN;
+    END IF;
+
     -- Start transaction
     BEGIN
         -- Get workflow definition including DAG structure

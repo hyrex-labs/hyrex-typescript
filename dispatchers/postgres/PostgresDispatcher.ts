@@ -75,14 +75,14 @@ import {
     UpdateCronJobConfirmationTsArgs,
     registerWorkflow as registerWorkflowQuery,
     RegisterWorkflowArgs,
-    triggerWorkflow as triggerWorkflowQuery,
-    TriggerWorkflowArgs,
+    createWorkflowRun as createWorkflowRunQuery,
+    CreateWorkflowRunArgs,
     setWorkflowRunStatusBasedOnTaskRuns as setWorkflowRunStatusBasedOnTaskRunsQuery,
     SetWorkflowRunStatusBasedOnTaskRunsArgs,
     skipWaitingTaskForWorkflowRunId as skipWaitingTaskForWorkflowRunIdQuery,
     SkipWaitingTaskForWorkflowRunIdArgs,
-    advanceWorkflowRun as advanceWorkflowRunQuery,
-    AdvanceWorkflowRunArgs
+    advanceWorkflowRunFunc,
+    AdvanceWorkflowRunFuncArgs
 } from "./sqlc-sdk-client";
 
 type HyrexPostgresDispatcherConfig = {
@@ -864,7 +864,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }): Promise<string> {
         return this.queryWithRetry(async (client) => {
             const { id, workflow_name, args, queue, timeout_seconds, idempotency_key } = serializedWorkflowRunRequest
-            const triggerArgs: TriggerWorkflowArgs = {
+            const triggerArgs: CreateWorkflowRunArgs = {
                 workflowRunId: id,
                 workflowName: workflow_name,
                 args: args,
@@ -872,7 +872,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 timeoutSeconds: timeout_seconds || 0,
                 idempotencyKey: idempotency_key || ''
             };
-            const result = await triggerWorkflowQuery(client, triggerArgs);
+            const result = await createWorkflowRunQuery(client, triggerArgs);
 
             if (!result || !result.result) {
                 throw new Error("Trigger workflow failed.")
@@ -895,7 +895,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 return
             }
 
-            const workflowStatus = statusResult.status
+            const workflowStatus = statusResult.setWorkflowRunStatusBasedOnTaskRuns
             if (workflowStatus === 'FAILED' || workflowStatus === 'SUCCESS') {
                 if (workflowStatus === 'FAILED') {
                     hyrexLogger.error('workflow', `Workflow ${workflowRunId} failed. Skipping all tasks.`, 'brightBlue')
@@ -907,10 +907,10 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 return // workflowStatus
             }
 
-            const advanceArgs: AdvanceWorkflowRunArgs = {
+            const advanceArgs: AdvanceWorkflowRunFuncArgs = {
                 workflowRunId: workflowRunId
             };
-            await advanceWorkflowRunQuery(client, advanceArgs);
+            await advanceWorkflowRunFunc(client, advanceArgs);
 
         })
     }

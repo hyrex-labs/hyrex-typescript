@@ -4,7 +4,7 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const triggerWorkflowQuery = `-- name: TriggerWorkflow :one
+export const createWorkflowRunQuery = `-- name: CreateWorkflowRun :one
 SELECT result FROM trigger_workflow_run(
     $1::UUID, 
     $2, 
@@ -14,7 +14,7 @@ SELECT result FROM trigger_workflow_run(
     $6
 ) AS result`;
 
-export interface TriggerWorkflowArgs {
+export interface CreateWorkflowRunArgs {
     workflowRunId: string;
     workflowName: string;
     args: any;
@@ -23,13 +23,13 @@ export interface TriggerWorkflowArgs {
     idempotencyKey: string;
 }
 
-export interface TriggerWorkflowRow {
+export interface CreateWorkflowRunRow {
     result: string | null;
 }
 
-export async function triggerWorkflow(client: Client, args: TriggerWorkflowArgs): Promise<TriggerWorkflowRow | null> {
+export async function createWorkflowRun(client: Client, args: CreateWorkflowRunArgs): Promise<CreateWorkflowRunRow | null> {
     const result = await client.query({
-        text: triggerWorkflowQuery,
+        text: createWorkflowRunQuery,
         values: [args.workflowRunId, args.workflowName, args.args, args.queue, args.timeoutSeconds, args.idempotencyKey],
         rowMode: "array"
     });

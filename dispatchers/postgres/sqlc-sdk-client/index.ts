@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-16T19:42:04.155Z
+// Generated on: 2025-06-16T23:14:49.637Z
 
 // Tables
 export * from './01_create_executor_table_sql';
@@ -24,10 +24,10 @@ export * from './acquire_scheduler_lock_sql';
 export * from './release_scheduler_lock_sql';
 
 // Workflow Run
-export * from './advance_workflow_run_sql';
+export * from './advance_workflow_run_func_sql';
+export * from './create_workflow_run_sql';
 export * from './set_workflow_run_status_based_on_task_runs_sql';
 export * from './skip_waiting_task_for_workflow_run_id_sql';
-export * from './trigger_workflow_sql';
 
 // Executor
 export * from './batch_update_heartbeat_log_sql';
@@ -48,9 +48,11 @@ export * from './set_log_link_sql';
 export * from './transition_task_state_sql';
 
 // Functions
+export * from './create_advance_workflow_run_func_sql';
 export * from './create_conditionally_retry_task_func_sql';
 export * from './create_execute_queued_cron_job_func_sql';
 export * from './create_schedule_cron_job_runs_func_sql';
+export * from './create_set_workflow_run_status_based_on_task_runs_func_sql';
 export * from './create_task_run_sql';
 export * from './create_transition_task_run_state_func_sql';
 export * from './create_uuid7_func_sql';
@@ -131,9 +133,11 @@ import { createTaskRunTable } from './12_create_hyrex_task_run_table_sql';
 import { createTaskRunTableIndexes } from './13_create_hyrex_task_run_table_indexes_sql';
 import { createResultsTable } from './14_create_results_table_sql';
 import { createHyrexKvTable } from './15_create_hyrex_kv_table_sql';
+import { createAdvanceWorkflowRunFunction } from './create_advance_workflow_run_func_sql';
 import { createConditionallyRetryTaskFunc } from './create_conditionally_retry_task_func_sql';
 import { createExecuteQueuedCronJobFunction } from './create_execute_queued_cron_job_func_sql';
 import { createScheduleCronJobRunsFunc } from './create_schedule_cron_job_runs_func_sql';
+import { createSetWorkflowRunStatusBasedOnTaskRunsFunction } from './create_set_workflow_run_status_based_on_task_runs_func_sql';
 import { createTaskRun, createTaskRunFunction } from './create_task_run_sql';
 import { createTransitionTaskRunStateFunc } from './create_transition_task_run_state_func_sql';
 import { createUuid7Function } from './create_uuid7_func_sql';
@@ -166,9 +170,11 @@ export async function createTables(client: DatabaseClient): Promise<void> {
 }
 
 export async function createFunctions(client: DatabaseClient): Promise<void> {
+  await createAdvanceWorkflowRunFunction(client);
   await createConditionallyRetryTaskFunc(client);
   await createExecuteQueuedCronJobFunction(client);
   await createScheduleCronJobRunsFunc(client);
+  await createSetWorkflowRunStatusBasedOnTaskRunsFunction(client);
   await createTaskRunFunction(client);
   await createTransitionTaskRunStateFunc(client);
   await createUuid7Function(client);

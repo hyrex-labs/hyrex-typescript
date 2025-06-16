@@ -57,7 +57,7 @@ WITH RECURSIVE timepoints AS (
                        ) AS running,
                        COUNT(
                                CASE
-                                   WHEN htr.status = 'waiting'
+                                   WHEN htr.status IN ('AWAIT_DEPS'::task_run_status, 'AWAIT_START_TIME'::task_run_status)
                                        AND htr.queued <= t.timepoint
                                        AND (htr.finished IS NULL OR htr.finished > t.timepoint)
                                        THEN 1
@@ -65,7 +65,7 @@ WITH RECURSIVE timepoints AS (
                        ) AS waiting,
                        COUNT(
                                CASE
-                                   WHEN htr.status IN ('failed')
+                                   WHEN htr.status = 'FAILED'::task_run_status
                                        AND htr.finished <= t.timepoint
                                        THEN 1
                                    END
@@ -98,7 +98,7 @@ WITH RECURSIVE timepoints AS (
                                                   OR
                                                   -- Or they failed/succeeded/lost at this exact timepoint
                                               (
-                                                  htr.status IN ('failed','success','lost')
+                                                  htr.status IN ('FAILED'::task_run_status,'SUCCESS'::task_run_status,'LOST'::task_run_status)
                                                       AND htr.finished <= t.timepoint
                                                   )
                                               )

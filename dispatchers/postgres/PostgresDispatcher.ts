@@ -3,8 +3,6 @@ import { HyrexTaskConfig, JsonType, UUID, uuidSchema } from "../../utils";
 import { Notification, Pool, PoolClient } from 'pg';
 import * as sql from "./legacy-sql/sql" // Still used in several runtime paths (will migrate later)
 import * as cronSQL from "./legacy-sql/cronSql"
-import * as statsSQL from "./legacy-sql/stats"
-import * as durabilitySQL from './legacy-sql/durability/durabilitySql'
 import * as workflowSQL from "./legacy-sql/workflowSql"
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
@@ -61,7 +59,12 @@ import {
     ScheduleCronJobRunsJsonArgs,
     createTables, createFunctions, createEnums,
     fetchTask,
-    fetchTaskWithConcurrencyLimit
+    fetchTaskWithConcurrencyLimit,
+    createCronJobForSqlQuery,
+    CreateCronJobForSqlQueryArgs,
+    fillHistoricalTaskStatusCountsTableQuery,
+    setOrphanedTaskExecutionToLostAndRetryQuery,
+    setExecutorToLostIfNoHeartbeatQuery
 } from "./sqlc-sdk-client";
 
 type HyrexPostgresDispatcherConfig = {
@@ -204,26 +207,31 @@ export class PostgresDispatcher implements HyrexDispatcher {
             await createFunctions(client); // Create PL/pgSQL helper functions
         });
 
-        // Register built-in cron maintenance jobs (unchanged / still using legacy SQL until migrated)
-        await this.registerCronSQLQuery({
-            cronJobName: "FillHistoryTaskCountsTable",
-            cronExpr: "* * * * *",
-            cronSqlQuery: statsSQL.FILL_HISTORICAL_TASK_STATUS_COUNTS_TABLE,
-            shouldBackfill: false
-        });
+        // Register built-in cron maintenance jobs using SDK methods
+        await this.queryWithRetry(async (client) => {
+            const fillHistoryArgs: CreateCronJobForSqlQueryArgs = {
+                jobname: "FillHistoryTaskCountsTable",
+                schedule: "* * * * *",
+                command: fillHistoricalTaskStatusCountsTableQuery,
+                shouldBackfill: false
+            };
+            await createCronJobForSqlQuery(client, fillHistoryArgs);
 
-        await this.registerCronSQLQuery({
-            cronJobName: "SetOrphanedRunningTaskToLost",
-            cronExpr: "* * * * *",
-            cronSqlQuery: durabilitySQL.SET_ORPHANED_TASK_EXECUTION_TO_LOST_AND_RETRY,
-            shouldBackfill: false
-        });
+            const orphanedTaskArgs: CreateCronJobForSqlQueryArgs = {
+                jobname: "SetOrphanedRunningTaskToLost",
+                schedule: "* * * * *",
+                command: setOrphanedTaskExecutionToLostAndRetryQuery,
+                shouldBackfill: false
+            };
+            await createCronJobForSqlQuery(client, orphanedTaskArgs);
 
-        await this.registerCronSQLQuery({
-            cronJobName: "SetExecutorToLostIfNoHeartbeat",
-            cronExpr: "* * * * *",
-            cronSqlQuery: durabilitySQL.SET_EXECUTOR_TO_LOST_IF_NO_HEARTBEAT,
-            shouldBackfill: false
+            const executorHeartbeatArgs: CreateCronJobForSqlQueryArgs = {
+                jobname: "SetExecutorToLostIfNoHeartbeat",
+                schedule: "* * * * *",
+                command: setExecutorToLostIfNoHeartbeatQuery,
+                shouldBackfill: false
+            };
+            await createCronJobForSqlQuery(client, executorHeartbeatArgs);
         });
 
         hyrexLogger.info("postgres", "initPostgresDB finished successfully.", "magenta")
@@ -741,16 +749,6 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
     }
 
-    async registerCronSQLQuery({ cronJobName, cronSqlQuery, cronExpr, shouldBackfill }: {
-        cronJobName: string;
-        cronSqlQuery: string;
-        cronExpr: string,
-        shouldBackfill: boolean
-    }): Promise<void> {
-        return this.queryWithRetry(async (client) => {
-            await client.query(cronSQL.CREATE_CRON_JOB_FOR_SQL_QUERY, [cronExpr, cronSqlQuery, cronJobName, shouldBackfill])
-        })
-    }
 
     async setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void> {
         await this.queryWithRetry(async (client) => {

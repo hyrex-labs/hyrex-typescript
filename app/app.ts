@@ -165,12 +165,11 @@ const rootLevelTask = hy.task({
         config: {
             // cron: "* * * * *"
         },
-        func: async () => {
+        func: async (input: { numChildren: number }) => {
             const ctx = getHyrexContext()
             console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
-            // Generate random number between 1 and 20
-            // const numTasks = Math.floor(Math.random() * 3000) + 1
-            const numTasks = 500
+            // Use provided numChildren
+            const numTasks = input.numChildren
             await sleep(3000)
 
             for (let i = 0; i < numTasks; i++) {
@@ -200,9 +199,8 @@ const choices: sendTaskArgs[] = [
 
 if (process.argv.includes('--submit')) {
     // onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
-    for (const i of range(100)) {
-        levelThreeTask.send()
-    }
+    // Example: Send rootLevelTask with 100 children
+    rootLevelTask.send({ numChildren: 100 })
     console.log("submitted!")
 }
 

@@ -91,6 +91,7 @@ export const TaskRegistrationSchema = z.object({ taskFunc: HyrexTaskFunctionSche
 export type TaskRegistration = {
     taskFunc: HyrexTaskFunction,
     taskConfig: HyrexTaskConfig,
+    argSchema?: z.ZodType
 }
 
 export const InternalTaskRegistrySchema = z.record(z.string(), TaskRegistrationSchema)

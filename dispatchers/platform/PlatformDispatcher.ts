@@ -6,6 +6,7 @@ import {
 } from "../HyrexDispatcher";
 import * as grpc from '@grpc/grpc-js';
 import { UUID, JsonType, HyrexTaskConfig } from "../../utils";
+import { z } from 'zod';
 import { AdminMessage, TaskHeartbeatResultMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
@@ -555,10 +556,11 @@ export class PlatformDispatcher implements HyrexDispatcher {
         }
     }
 
-    async registerTask({ taskName, taskConfig, sourceCode }: {
+    async registerTask({ taskName, taskConfig, sourceCode, argSchema }: {
         taskName: string,
         taskConfig?: HyrexTaskConfig,
-        sourceCode?: string
+        sourceCode?: string,
+        argSchema?: z.ZodType
     }): Promise<void> {
         const request = new requests_pb.RegisterTaskDefRequest();
         const taskDef = new task_pb.TaskDef();
@@ -566,6 +568,19 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
         if (sourceCode) {
             taskDef.setSourceCode(sourceCode);
+        }
+
+        // Convert argSchema to proto format if provided
+        if (argSchema) {
+            const argSchemaStruct = new google_protobuf_struct_pb.Struct();
+            const fieldsMap = argSchemaStruct.getFieldsMap();
+            
+            // Store the schema definition as a JSON string
+            const val = new google_protobuf_struct_pb.Value();
+            val.setStringValue(JSON.stringify(argSchema._def));
+            fieldsMap.set('schema', val);
+            
+            taskDef.setArgSchema(argSchemaStruct);
         }
 
         // Convert taskConfig to proto format if provided

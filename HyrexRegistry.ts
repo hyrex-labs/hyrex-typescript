@@ -23,6 +23,7 @@ import { PlatformDispatcher } from "./dispatchers/platform/PlatformDispatcher";
 type HyrexTaskProps = {
     name: string;
     config?: HyrexTaskConfigInput
+    argSchema?: z.ZodType;
     func: HyrexTaskFunction;
 }
 
@@ -91,25 +92,25 @@ export class HyrexRegistry {
     // }
 
 
-    task<U extends JsonType>({ name, config, func }: HyrexTaskProps): TaskWrapper<U> {
+    task<U extends JsonType>({ name, config, argSchema, func }: HyrexTaskProps): TaskWrapper<U> {
         if (!config) {
             config = {}
         }
         const validatedTaskConfig = HyrexTaskConfigSchema.parse(config)
-        this.addFunctionToRegistry(name, func as HyrexTaskFunction, validatedTaskConfig);
-        return new TaskWrapper<U>(this.dispatcher, name, func, validatedTaskConfig);
+        this.addFunctionToRegistry(name, func as HyrexTaskFunction, validatedTaskConfig, argSchema);
+        return new TaskWrapper<U>(this.dispatcher, name, func, validatedTaskConfig, argSchema);
     }
 
-    private addFunctionToRegistry(name: string, taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+    private addFunctionToRegistry(name: string, taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig, argSchema?: z.ZodType) {
         const stringValidation = z.string().safeParse(name)
         if (!stringValidation) {
             throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
         }
 
-        this.addFunction(name, taskFunction, taskConfig)
+        this.addFunction(name, taskFunction, taskConfig, argSchema)
     }
 
-    private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+    private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig, argSchema?: z.ZodType) {
         if (process.env[COMMANDS.INIT_DB]) {
             return // Skip registration during database initialization
         }
@@ -117,7 +118,8 @@ export class HyrexRegistry {
         this.dispatcher.registerTask({
             taskName,
             taskConfig: taskConfig,
-            sourceCode: taskFunc.toString()
+            sourceCode: taskFunc.toString(),
+            argSchema: argSchema
         })
     }
 
@@ -140,10 +142,11 @@ export class HyrexRegistry {
         this.internalQueueRegistry[queue.name] = queue;
     }
 
-    addFunction(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+    addFunction(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig, argSchema?: z.ZodType) {
         const taskRegistration = {
             taskFunc,
             taskConfig,
+            argSchema
         }
 
         if (this.internalTaskRegistry[taskName]) {
@@ -164,7 +167,7 @@ export class HyrexRegistry {
         }
 
         this.internalTaskRegistry[taskName] = taskRegistration
-        this.registerTaskWithServer(taskName, taskFunc, taskConfig)
+        this.registerTaskWithServer(taskName, taskFunc, taskConfig, argSchema)
     }
 
     getFunction(key: string): HyrexTaskFunction {

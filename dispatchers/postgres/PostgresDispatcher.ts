@@ -641,16 +641,18 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     }
 
-    async registerTask({ taskName, taskConfig, sourceCode }: {
+    async registerTask({ taskName, taskConfig, sourceCode, argSchema }: {
         taskName: string,
         taskConfig?: HyrexTaskConfig,
-        sourceCode?: string
+        sourceCode?: string,
+        argSchema?: z.ZodType
     }) {
         return this.queryWithRetry(async (client) => {
             await registerTaskDef(client, {
                 taskName: taskName,
                 cronExpr: taskConfig?.cron || null,
-                sourceCode: sourceCode || null
+                sourceCode: sourceCode || null,
+                argSchema: argSchema ? JSON.stringify(argSchema._def) : null
             })
             const cronJobName = `ScheduledTask-${taskName}`
             if (taskConfig?.cron) {

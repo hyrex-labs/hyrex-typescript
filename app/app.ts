@@ -165,7 +165,10 @@ const rootLevelTask = hy.task({
         config: {
             // cron: "* * * * *"
         },
-        func: async (input: { numChildren: number }) => {
+        argSchema: z.object({
+            numChildren: z.number()
+        }),
+        func: async (input) => {
             const ctx = getHyrexContext()
             console.log(`Executing root level task... ${JSON.stringify(ctx)}`)
             // Use provided numChildren

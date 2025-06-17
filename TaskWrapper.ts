@@ -25,24 +25,31 @@ export class TaskWrapper<U extends JsonType> extends WorkflowTask {
     private dispatcher: HyrexDispatcher
     private taskConfig: HyrexTaskConfig
     private taskName: string;
+    private argSchema?: z.ZodType;
 
-    constructor(dispatcher: HyrexDispatcher, taskName: string, taskFunction: HyrexTaskFunction, defaultTaskConfig: HyrexTaskConfig) {
+    constructor(dispatcher: HyrexDispatcher, taskName: string, taskFunction: HyrexTaskFunction, defaultTaskConfig: HyrexTaskConfig, argSchema?: z.ZodType) {
         super(taskName);
 
         this.dispatcher = dispatcher
         this.taskFunction = taskFunction as HyrexTaskFunction
         this.taskConfig = HyrexTaskConfigSchema.parse(defaultTaskConfig)
         this.taskName = taskName
+        this.argSchema = argSchema
     }
 
     withConfig(taskConfig: SendableHyrexTaskConfig): TaskWrapper<U> {
         const newTaskConfig = { ...this.taskConfig, ...taskConfig }
-        return new TaskWrapper(this.dispatcher, this.taskName, this.taskFunction, newTaskConfig)
+        return new TaskWrapper(this.dispatcher, this.taskName, this.taskFunction, newTaskConfig, this.argSchema)
     }
 
     async send(context?: U | {}): Promise<UUID> {
         if (!context) {
             context = {}
+        }
+
+        // Validate against argSchema if provided
+        if (this.argSchema && context) {
+            this.argSchema.parse(context)
         }
 
         let hyrexContext = null;

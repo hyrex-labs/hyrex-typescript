@@ -21,6 +21,9 @@ interface IGatewayServiceService extends grpc.ServiceDefinition<grpc.UntypedServ
   getDurableTaskRuns: grpc.MethodDefinition<requests_pb.GetDurableTaskRunsRequest, requests_pb.GetDurableTaskRunsResponse>;
   retryTaskRun: grpc.MethodDefinition<requests_pb.RetryTaskRunRequest, google_protobuf_empty_pb.Empty>;
   taskRunHeartbeat: grpc.MethodDefinition<requests_pb.TaskRunHeartbeatRequest, google_protobuf_empty_pb.Empty>;
+  tryToCancelDurableRun: grpc.MethodDefinition<requests_pb.TryToCancelDurableRunRequest, google_protobuf_empty_pb.Empty>;
+  getTaskRunsUpForCancel: grpc.MethodDefinition<google_protobuf_empty_pb.Empty, requests_pb.GetTaskRunsUpForCancelResponse>;
+  markCanceled: grpc.MethodDefinition<requests_pb.MarkCanceledRequest, google_protobuf_empty_pb.Empty>;
   registerTaskDef: grpc.MethodDefinition<requests_pb.RegisterTaskDefRequest, google_protobuf_empty_pb.Empty>;
   getTaskDef: grpc.MethodDefinition<requests_pb.GetTaskDefRequest, requests_pb.GetTaskDefResponse>;
   getAllTaskDefs: grpc.MethodDefinition<requests_pb.GetAllTaskDefsRequest, requests_pb.GetAllTaskDefsResponse>;
@@ -54,6 +57,9 @@ export interface IGatewayServiceServer extends grpc.UntypedServiceImplementation
   getDurableTaskRuns: grpc.handleUnaryCall<requests_pb.GetDurableTaskRunsRequest, requests_pb.GetDurableTaskRunsResponse>;
   retryTaskRun: grpc.handleUnaryCall<requests_pb.RetryTaskRunRequest, google_protobuf_empty_pb.Empty>;
   taskRunHeartbeat: grpc.handleUnaryCall<requests_pb.TaskRunHeartbeatRequest, google_protobuf_empty_pb.Empty>;
+  tryToCancelDurableRun: grpc.handleUnaryCall<requests_pb.TryToCancelDurableRunRequest, google_protobuf_empty_pb.Empty>;
+  getTaskRunsUpForCancel: grpc.handleUnaryCall<google_protobuf_empty_pb.Empty, requests_pb.GetTaskRunsUpForCancelResponse>;
+  markCanceled: grpc.handleUnaryCall<requests_pb.MarkCanceledRequest, google_protobuf_empty_pb.Empty>;
   registerTaskDef: grpc.handleUnaryCall<requests_pb.RegisterTaskDefRequest, google_protobuf_empty_pb.Empty>;
   getTaskDef: grpc.handleUnaryCall<requests_pb.GetTaskDefRequest, requests_pb.GetTaskDefResponse>;
   getAllTaskDefs: grpc.handleUnaryCall<requests_pb.GetAllTaskDefsRequest, requests_pb.GetAllTaskDefsResponse>;
@@ -110,6 +116,15 @@ export class GatewayServiceClient extends grpc.Client {
   taskRunHeartbeat(argument: requests_pb.TaskRunHeartbeatRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   taskRunHeartbeat(argument: requests_pb.TaskRunHeartbeatRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   taskRunHeartbeat(argument: requests_pb.TaskRunHeartbeatRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  tryToCancelDurableRun(argument: requests_pb.TryToCancelDurableRunRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  tryToCancelDurableRun(argument: requests_pb.TryToCancelDurableRunRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  tryToCancelDurableRun(argument: requests_pb.TryToCancelDurableRunRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  getTaskRunsUpForCancel(argument: google_protobuf_empty_pb.Empty, callback: grpc.requestCallback<requests_pb.GetTaskRunsUpForCancelResponse>): grpc.ClientUnaryCall;
+  getTaskRunsUpForCancel(argument: google_protobuf_empty_pb.Empty, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.GetTaskRunsUpForCancelResponse>): grpc.ClientUnaryCall;
+  getTaskRunsUpForCancel(argument: google_protobuf_empty_pb.Empty, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.GetTaskRunsUpForCancelResponse>): grpc.ClientUnaryCall;
+  markCanceled(argument: requests_pb.MarkCanceledRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  markCanceled(argument: requests_pb.MarkCanceledRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  markCanceled(argument: requests_pb.MarkCanceledRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   registerTaskDef(argument: requests_pb.RegisterTaskDefRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   registerTaskDef(argument: requests_pb.RegisterTaskDefRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   registerTaskDef(argument: requests_pb.RegisterTaskDefRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;

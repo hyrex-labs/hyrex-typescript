@@ -236,6 +236,17 @@ function deserialize_hyrex_performanceserver_GetTaskRunStatusResponse(buffer_arg
   return requests_pb.GetTaskRunStatusResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
+function serialize_hyrex_performanceserver_GetTaskRunsUpForCancelResponse(arg) {
+  if (!(arg instanceof requests_pb.GetTaskRunsUpForCancelResponse)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.GetTaskRunsUpForCancelResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_GetTaskRunsUpForCancelResponse(buffer_arg) {
+  return requests_pb.GetTaskRunsUpForCancelResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_hyrex_performanceserver_GetWorkflowDurableRunsRequest(arg) {
   if (!(arg instanceof requests_pb.GetWorkflowDurableRunsRequest)) {
     throw new Error('Expected argument of type hyrex.performanceserver.GetWorkflowDurableRunsRequest');
@@ -278,6 +289,17 @@ function serialize_hyrex_performanceserver_GetWorkflowRunArgsResponse(arg) {
 
 function deserialize_hyrex_performanceserver_GetWorkflowRunArgsResponse(buffer_arg) {
   return requests_pb.GetWorkflowRunArgsResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_MarkCanceledRequest(arg) {
+  if (!(arg instanceof requests_pb.MarkCanceledRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.MarkCanceledRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_MarkCanceledRequest(buffer_arg) {
+  return requests_pb.MarkCanceledRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_MarkFailedRequest(arg) {
@@ -388,6 +410,17 @@ function serialize_hyrex_performanceserver_TaskRunHeartbeatRequest(arg) {
 
 function deserialize_hyrex_performanceserver_TaskRunHeartbeatRequest(buffer_arg) {
   return requests_pb.TaskRunHeartbeatRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_TryToCancelDurableRunRequest(arg) {
+  if (!(arg instanceof requests_pb.TryToCancelDurableRunRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.TryToCancelDurableRunRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_TryToCancelDurableRunRequest(buffer_arg) {
+  return requests_pb.TryToCancelDurableRunRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_UpdateExecutorQueuesRequest(arg) {
@@ -556,6 +589,39 @@ enqueue: {
     responseType: google_protobuf_empty_pb.Empty,
     requestSerialize: serialize_hyrex_performanceserver_TaskRunHeartbeatRequest,
     requestDeserialize: deserialize_hyrex_performanceserver_TaskRunHeartbeatRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  tryToCancelDurableRun: {
+    path: '/hyrex.performanceserver.GatewayService/TryToCancelDurableRun',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.TryToCancelDurableRunRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_TryToCancelDurableRunRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_TryToCancelDurableRunRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  getTaskRunsUpForCancel: {
+    path: '/hyrex.performanceserver.GatewayService/GetTaskRunsUpForCancel',
+    requestStream: false,
+    responseStream: false,
+    requestType: google_protobuf_empty_pb.Empty,
+    responseType: requests_pb.GetTaskRunsUpForCancelResponse,
+    requestSerialize: serialize_google_protobuf_Empty,
+    requestDeserialize: deserialize_google_protobuf_Empty,
+    responseSerialize: serialize_hyrex_performanceserver_GetTaskRunsUpForCancelResponse,
+    responseDeserialize: deserialize_hyrex_performanceserver_GetTaskRunsUpForCancelResponse,
+  },
+  markCanceled: {
+    path: '/hyrex.performanceserver.GatewayService/MarkCanceled',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.MarkCanceledRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_MarkCanceledRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_MarkCanceledRequest,
     responseSerialize: serialize_google_protobuf_Empty,
     responseDeserialize: deserialize_google_protobuf_Empty,
   },

@@ -808,6 +808,11 @@ export class RegisterWorkflowRequest extends jspb.Message {
   getDefaultConfig(): google_protobuf_struct_pb.Struct | undefined;
   setDefaultConfig(value?: google_protobuf_struct_pb.Struct): void;
 
+  hasCron(): boolean;
+  clearCron(): void;
+  getCron(): string;
+  setCron(value: string): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): RegisterWorkflowRequest.AsObject;
   static toObject(includeInstance: boolean, msg: RegisterWorkflowRequest): RegisterWorkflowRequest.AsObject;
@@ -825,6 +830,7 @@ export namespace RegisterWorkflowRequest {
     workflowDagJson: string,
     workflowArgSchema?: google_protobuf_struct_pb.Struct.AsObject,
     defaultConfig?: google_protobuf_struct_pb.Struct.AsObject,
+    cron: string,
   }
 }
 
@@ -957,10 +963,10 @@ export namespace GetWorkflowDurableRunsRequest {
 }
 
 export class GetWorkflowDurableRunsResponse extends jspb.Message {
-  clearDurableRunIdsList(): void;
-  getDurableRunIdsList(): Array<string>;
-  setDurableRunIdsList(value: Array<string>): void;
-  addDurableRunIds(value: string, index?: number): string;
+  clearDurableIdsList(): void;
+  getDurableIdsList(): Array<string>;
+  setDurableIdsList(value: Array<string>): void;
+  addDurableIds(value: string, index?: number): string;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetWorkflowDurableRunsResponse.AsObject;
@@ -974,7 +980,139 @@ export class GetWorkflowDurableRunsResponse extends jspb.Message {
 
 export namespace GetWorkflowDurableRunsResponse {
   export type AsObject = {
-    durableRunIdsList: Array<string>,
+    durableIdsList: Array<string>,
+  }
+}
+
+export class TryToCancelDurableRunRequest extends jspb.Message {
+  getDurableId(): string;
+  setDurableId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): TryToCancelDurableRunRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: TryToCancelDurableRunRequest): TryToCancelDurableRunRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: TryToCancelDurableRunRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): TryToCancelDurableRunRequest;
+  static deserializeBinaryFromReader(message: TryToCancelDurableRunRequest, reader: jspb.BinaryReader): TryToCancelDurableRunRequest;
+}
+
+export namespace TryToCancelDurableRunRequest {
+  export type AsObject = {
+    durableId: string,
+  }
+}
+
+export class GetTaskRunsUpForCancelResponse extends jspb.Message {
+  clearTaskRunIdsList(): void;
+  getTaskRunIdsList(): Array<string>;
+  setTaskRunIdsList(value: Array<string>): void;
+  addTaskRunIds(value: string, index?: number): string;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetTaskRunsUpForCancelResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetTaskRunsUpForCancelResponse): GetTaskRunsUpForCancelResponse.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: GetTaskRunsUpForCancelResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetTaskRunsUpForCancelResponse;
+  static deserializeBinaryFromReader(message: GetTaskRunsUpForCancelResponse, reader: jspb.BinaryReader): GetTaskRunsUpForCancelResponse;
+}
+
+export namespace GetTaskRunsUpForCancelResponse {
+  export type AsObject = {
+    taskRunIdsList: Array<string>,
+  }
+}
+
+export class MarkCanceledRequest extends jspb.Message {
+  getTaskRunId(): string;
+  setTaskRunId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): MarkCanceledRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: MarkCanceledRequest): MarkCanceledRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: MarkCanceledRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): MarkCanceledRequest;
+  static deserializeBinaryFromReader(message: MarkCanceledRequest, reader: jspb.BinaryReader): MarkCanceledRequest;
+}
+
+export namespace MarkCanceledRequest {
+  export type AsObject = {
+    taskRunId: string,
+  }
+}
+
+export class KVStoreSetRequest extends jspb.Message {
+  getKey(): string;
+  setKey(value: string): void;
+
+  getValue(): string;
+  setValue(value: string): void;
+
+  hasOverwrite(): boolean;
+  clearOverwrite(): void;
+  getOverwrite(): boolean;
+  setOverwrite(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): KVStoreSetRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: KVStoreSetRequest): KVStoreSetRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: KVStoreSetRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): KVStoreSetRequest;
+  static deserializeBinaryFromReader(message: KVStoreSetRequest, reader: jspb.BinaryReader): KVStoreSetRequest;
+}
+
+export namespace KVStoreSetRequest {
+  export type AsObject = {
+    key: string,
+    value: string,
+    overwrite: boolean,
+  }
+}
+
+export class KVStoreGetRequest extends jspb.Message {
+  getKey(): string;
+  setKey(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): KVStoreGetRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: KVStoreGetRequest): KVStoreGetRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: KVStoreGetRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): KVStoreGetRequest;
+  static deserializeBinaryFromReader(message: KVStoreGetRequest, reader: jspb.BinaryReader): KVStoreGetRequest;
+}
+
+export namespace KVStoreGetRequest {
+  export type AsObject = {
+    key: string,
+  }
+}
+
+export class KVStoreGetResponse extends jspb.Message {
+  getValue(): string;
+  setValue(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): KVStoreGetResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: KVStoreGetResponse): KVStoreGetResponse.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: KVStoreGetResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): KVStoreGetResponse;
+  static deserializeBinaryFromReader(message: KVStoreGetResponse, reader: jspb.BinaryReader): KVStoreGetResponse;
+}
+
+export namespace KVStoreGetResponse {
+  export type AsObject = {
+    value: string,
   }
 }
 

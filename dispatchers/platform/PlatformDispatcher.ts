@@ -1026,10 +1026,45 @@ export class PlatformDispatcher implements HyrexDispatcher {
     }
 
     async kvGetValue(key: string): Promise<string> {
-        return "TODO"
+        const request = new requests_pb.KVStoreGetRequest();
+        request.setKey(key);
+
+        try {
+            const response = await new Promise<requests_pb.KVStoreGetResponse | undefined>((resolve, reject) => {
+                this.serviceClient.kVStoreGet(request, this.metadata, (err: Error | null, response?: requests_pb.KVStoreGetResponse) => {
+                    if (err) reject(err);
+                    else resolve(response);
+                });
+            });
+
+            if (!response) {
+                throw new Error(`Key not found: ${key}`);
+            }
+
+            return response.getValue();
+        } catch (error) {
+            console.error('Error getting KV value:', error);
+            throw error;
+        }
     }
 
     async kvSetValue(key: string, value: string): Promise<void> {
+        const request = new requests_pb.KVStoreSetRequest();
+        request.setKey(key);
+        request.setValue(value);
+        request.setOverwrite(true); // Default to overwrite
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serviceClient.kVStoreSet(request, this.metadata, (err: Error | null, response?: google_protobuf_empty_pb.Empty) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        } catch (error) {
+            console.error('Error setting KV value:', error);
+            throw error;
+        }
     }
 
     // Close the client connection

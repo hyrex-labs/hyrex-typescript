@@ -718,52 +718,6 @@ export namespace RegisterAppRequest {
   }
 }
 
-export class AcquireSchedulerLockRequest extends jspb.Message {
-  getWorkerName(): string;
-  setWorkerName(value: string): void;
-
-  getDuration(): string;
-  setDuration(value: string): void;
-
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): AcquireSchedulerLockRequest.AsObject;
-  static toObject(includeInstance: boolean, msg: AcquireSchedulerLockRequest): AcquireSchedulerLockRequest.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: AcquireSchedulerLockRequest, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): AcquireSchedulerLockRequest;
-  static deserializeBinaryFromReader(message: AcquireSchedulerLockRequest, reader: jspb.BinaryReader): AcquireSchedulerLockRequest;
-}
-
-export namespace AcquireSchedulerLockRequest {
-  export type AsObject = {
-    workerName: string,
-    duration: string,
-  }
-}
-
-export class AcquireSchedulerLockResponse extends jspb.Message {
-  hasLockId(): boolean;
-  clearLockId(): void;
-  getLockId(): number;
-  setLockId(value: number): void;
-
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): AcquireSchedulerLockResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: AcquireSchedulerLockResponse): AcquireSchedulerLockResponse.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: AcquireSchedulerLockResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): AcquireSchedulerLockResponse;
-  static deserializeBinaryFromReader(message: AcquireSchedulerLockResponse, reader: jspb.BinaryReader): AcquireSchedulerLockResponse;
-}
-
-export namespace AcquireSchedulerLockResponse {
-  export type AsObject = {
-    lockId: number,
-  }
-}
-
 export class WriteLogsRequest extends jspb.Message {
   getTaskRunId(): string;
   setTaskRunId(value: string): void;

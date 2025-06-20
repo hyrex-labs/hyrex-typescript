@@ -185,15 +185,17 @@ export const Priority: PriorityMap;
 
 export interface TaskStatusMap {
   UNSPECIFIED: 0;
-  QUEUED: 1;
-  WAITING: 2;
+  SUCCESS: 1;
+  FAILED: 2;
   RUNNING: 3;
-  SUCCESS: 4;
-  FAILED: 5;
-  UP_FOR_CANCEL: 6;
-  CANCELED: 7;
-  LOST: 8;
+  QUEUED: 4;
+  UP_FOR_CANCEL: 5;
+  CANCELED: 6;
+  LOST: 7;
+  STOPPED: 8;
   SKIPPED: 9;
+  AWAIT_DEPS: 10;
+  AWAIT_START_TIME: 11;
 }
 
 export const TaskStatus: TaskStatusMap;

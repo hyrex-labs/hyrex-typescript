@@ -24,6 +24,8 @@ interface IGatewayServiceService extends grpc.ServiceDefinition<grpc.UntypedServ
   tryToCancelDurableRun: grpc.MethodDefinition<requests_pb.TryToCancelDurableRunRequest, google_protobuf_empty_pb.Empty>;
   getTaskRunsUpForCancel: grpc.MethodDefinition<google_protobuf_empty_pb.Empty, requests_pb.GetTaskRunsUpForCancelResponse>;
   markCanceled: grpc.MethodDefinition<requests_pb.MarkCanceledRequest, google_protobuf_empty_pb.Empty>;
+  kVStoreSet: grpc.MethodDefinition<requests_pb.KVStoreSetRequest, google_protobuf_empty_pb.Empty>;
+  kVStoreGet: grpc.MethodDefinition<requests_pb.KVStoreGetRequest, requests_pb.KVStoreGetResponse>;
   registerTaskDef: grpc.MethodDefinition<requests_pb.RegisterTaskDefRequest, google_protobuf_empty_pb.Empty>;
   getTaskDef: grpc.MethodDefinition<requests_pb.GetTaskDefRequest, requests_pb.GetTaskDefResponse>;
   getAllTaskDefs: grpc.MethodDefinition<requests_pb.GetAllTaskDefsRequest, requests_pb.GetAllTaskDefsResponse>;
@@ -34,7 +36,6 @@ interface IGatewayServiceService extends grpc.ServiceDefinition<grpc.UntypedServ
   disconnectExecutor: grpc.MethodDefinition<requests_pb.DisconnectExecutorRequest, google_protobuf_empty_pb.Empty>;
   registerApp: grpc.MethodDefinition<requests_pb.RegisterAppRequest, google_protobuf_empty_pb.Empty>;
   setLogLink: grpc.MethodDefinition<requests_pb.SetLogLinkRequest, google_protobuf_empty_pb.Empty>;
-  acquireSchedulerLock: grpc.MethodDefinition<requests_pb.AcquireSchedulerLockRequest, requests_pb.AcquireSchedulerLockResponse>;
   registerWorkflow: grpc.MethodDefinition<requests_pb.RegisterWorkflowRequest, google_protobuf_empty_pb.Empty>;
   sendWorkflowRun: grpc.MethodDefinition<requests_pb.SendWorkflowRunRequest, google_protobuf_empty_pb.Empty>;
   getWorkflowRunArgs: grpc.MethodDefinition<requests_pb.GetWorkflowRunArgsRequest, requests_pb.GetWorkflowRunArgsResponse>;
@@ -60,6 +61,8 @@ export interface IGatewayServiceServer extends grpc.UntypedServiceImplementation
   tryToCancelDurableRun: grpc.handleUnaryCall<requests_pb.TryToCancelDurableRunRequest, google_protobuf_empty_pb.Empty>;
   getTaskRunsUpForCancel: grpc.handleUnaryCall<google_protobuf_empty_pb.Empty, requests_pb.GetTaskRunsUpForCancelResponse>;
   markCanceled: grpc.handleUnaryCall<requests_pb.MarkCanceledRequest, google_protobuf_empty_pb.Empty>;
+  kVStoreSet: grpc.handleUnaryCall<requests_pb.KVStoreSetRequest, google_protobuf_empty_pb.Empty>;
+  kVStoreGet: grpc.handleUnaryCall<requests_pb.KVStoreGetRequest, requests_pb.KVStoreGetResponse>;
   registerTaskDef: grpc.handleUnaryCall<requests_pb.RegisterTaskDefRequest, google_protobuf_empty_pb.Empty>;
   getTaskDef: grpc.handleUnaryCall<requests_pb.GetTaskDefRequest, requests_pb.GetTaskDefResponse>;
   getAllTaskDefs: grpc.handleUnaryCall<requests_pb.GetAllTaskDefsRequest, requests_pb.GetAllTaskDefsResponse>;
@@ -70,7 +73,6 @@ export interface IGatewayServiceServer extends grpc.UntypedServiceImplementation
   disconnectExecutor: grpc.handleUnaryCall<requests_pb.DisconnectExecutorRequest, google_protobuf_empty_pb.Empty>;
   registerApp: grpc.handleUnaryCall<requests_pb.RegisterAppRequest, google_protobuf_empty_pb.Empty>;
   setLogLink: grpc.handleUnaryCall<requests_pb.SetLogLinkRequest, google_protobuf_empty_pb.Empty>;
-  acquireSchedulerLock: grpc.handleUnaryCall<requests_pb.AcquireSchedulerLockRequest, requests_pb.AcquireSchedulerLockResponse>;
   registerWorkflow: grpc.handleUnaryCall<requests_pb.RegisterWorkflowRequest, google_protobuf_empty_pb.Empty>;
   sendWorkflowRun: grpc.handleUnaryCall<requests_pb.SendWorkflowRunRequest, google_protobuf_empty_pb.Empty>;
   getWorkflowRunArgs: grpc.handleUnaryCall<requests_pb.GetWorkflowRunArgsRequest, requests_pb.GetWorkflowRunArgsResponse>;
@@ -125,6 +127,12 @@ export class GatewayServiceClient extends grpc.Client {
   markCanceled(argument: requests_pb.MarkCanceledRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   markCanceled(argument: requests_pb.MarkCanceledRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   markCanceled(argument: requests_pb.MarkCanceledRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  kVStoreSet(argument: requests_pb.KVStoreSetRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  kVStoreSet(argument: requests_pb.KVStoreSetRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  kVStoreSet(argument: requests_pb.KVStoreSetRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
+  kVStoreGet(argument: requests_pb.KVStoreGetRequest, callback: grpc.requestCallback<requests_pb.KVStoreGetResponse>): grpc.ClientUnaryCall;
+  kVStoreGet(argument: requests_pb.KVStoreGetRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.KVStoreGetResponse>): grpc.ClientUnaryCall;
+  kVStoreGet(argument: requests_pb.KVStoreGetRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.KVStoreGetResponse>): grpc.ClientUnaryCall;
   registerTaskDef(argument: requests_pb.RegisterTaskDefRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   registerTaskDef(argument: requests_pb.RegisterTaskDefRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   registerTaskDef(argument: requests_pb.RegisterTaskDefRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
@@ -155,9 +163,6 @@ export class GatewayServiceClient extends grpc.Client {
   setLogLink(argument: requests_pb.SetLogLinkRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   setLogLink(argument: requests_pb.SetLogLinkRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   setLogLink(argument: requests_pb.SetLogLinkRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
-  acquireSchedulerLock(argument: requests_pb.AcquireSchedulerLockRequest, callback: grpc.requestCallback<requests_pb.AcquireSchedulerLockResponse>): grpc.ClientUnaryCall;
-  acquireSchedulerLock(argument: requests_pb.AcquireSchedulerLockRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.AcquireSchedulerLockResponse>): grpc.ClientUnaryCall;
-  acquireSchedulerLock(argument: requests_pb.AcquireSchedulerLockRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<requests_pb.AcquireSchedulerLockResponse>): grpc.ClientUnaryCall;
   registerWorkflow(argument: requests_pb.RegisterWorkflowRequest, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   registerWorkflow(argument: requests_pb.RegisterWorkflowRequest, metadataOrOptions: grpc.Metadata | grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;
   registerWorkflow(argument: requests_pb.RegisterWorkflowRequest, metadata: grpc.Metadata | null, options: grpc.CallOptions | null, callback: grpc.requestCallback<google_protobuf_empty_pb.Empty>): grpc.ClientUnaryCall;

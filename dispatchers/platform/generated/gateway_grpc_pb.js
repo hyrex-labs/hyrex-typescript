@@ -16,28 +16,6 @@ function deserialize_google_protobuf_Empty(buffer_arg) {
   return google_protobuf_empty_pb.Empty.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_hyrex_performanceserver_AcquireSchedulerLockRequest(arg) {
-  if (!(arg instanceof requests_pb.AcquireSchedulerLockRequest)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.AcquireSchedulerLockRequest');
-  }
-  return Buffer.from(arg.serializeBinary());
-}
-
-function deserialize_hyrex_performanceserver_AcquireSchedulerLockRequest(buffer_arg) {
-  return requests_pb.AcquireSchedulerLockRequest.deserializeBinary(new Uint8Array(buffer_arg));
-}
-
-function serialize_hyrex_performanceserver_AcquireSchedulerLockResponse(arg) {
-  if (!(arg instanceof requests_pb.AcquireSchedulerLockResponse)) {
-    throw new Error('Expected argument of type hyrex.performanceserver.AcquireSchedulerLockResponse');
-  }
-  return Buffer.from(arg.serializeBinary());
-}
-
-function deserialize_hyrex_performanceserver_AcquireSchedulerLockResponse(buffer_arg) {
-  return requests_pb.AcquireSchedulerLockResponse.deserializeBinary(new Uint8Array(buffer_arg));
-}
-
 function serialize_hyrex_performanceserver_AdvanceWorkflowRunRequest(arg) {
   if (!(arg instanceof requests_pb.AdvanceWorkflowRunRequest)) {
     throw new Error('Expected argument of type hyrex.performanceserver.AdvanceWorkflowRunRequest');
@@ -289,6 +267,39 @@ function serialize_hyrex_performanceserver_GetWorkflowRunArgsResponse(arg) {
 
 function deserialize_hyrex_performanceserver_GetWorkflowRunArgsResponse(buffer_arg) {
   return requests_pb.GetWorkflowRunArgsResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_KVStoreGetRequest(arg) {
+  if (!(arg instanceof requests_pb.KVStoreGetRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.KVStoreGetRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_KVStoreGetRequest(buffer_arg) {
+  return requests_pb.KVStoreGetRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_KVStoreGetResponse(arg) {
+  if (!(arg instanceof requests_pb.KVStoreGetResponse)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.KVStoreGetResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_KVStoreGetResponse(buffer_arg) {
+  return requests_pb.KVStoreGetResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_hyrex_performanceserver_KVStoreSetRequest(arg) {
+  if (!(arg instanceof requests_pb.KVStoreSetRequest)) {
+    throw new Error('Expected argument of type hyrex.performanceserver.KVStoreSetRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_hyrex_performanceserver_KVStoreSetRequest(buffer_arg) {
+  return requests_pb.KVStoreSetRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 function serialize_hyrex_performanceserver_MarkCanceledRequest(arg) {
@@ -625,6 +636,28 @@ enqueue: {
     responseSerialize: serialize_google_protobuf_Empty,
     responseDeserialize: deserialize_google_protobuf_Empty,
   },
+  kVStoreSet: {
+    path: '/hyrex.performanceserver.GatewayService/KVStoreSet',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.KVStoreSetRequest,
+    responseType: google_protobuf_empty_pb.Empty,
+    requestSerialize: serialize_hyrex_performanceserver_KVStoreSetRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_KVStoreSetRequest,
+    responseSerialize: serialize_google_protobuf_Empty,
+    responseDeserialize: deserialize_google_protobuf_Empty,
+  },
+  kVStoreGet: {
+    path: '/hyrex.performanceserver.GatewayService/KVStoreGet',
+    requestStream: false,
+    responseStream: false,
+    requestType: requests_pb.KVStoreGetRequest,
+    responseType: requests_pb.KVStoreGetResponse,
+    requestSerialize: serialize_hyrex_performanceserver_KVStoreGetRequest,
+    requestDeserialize: deserialize_hyrex_performanceserver_KVStoreGetRequest,
+    responseSerialize: serialize_hyrex_performanceserver_KVStoreGetResponse,
+    responseDeserialize: deserialize_hyrex_performanceserver_KVStoreGetResponse,
+  },
   // ---- Postgres requests ----
 registerTaskDef: {
     path: '/hyrex.performanceserver.GatewayService/RegisterTaskDef',
@@ -735,17 +768,6 @@ registerTaskDef: {
     requestDeserialize: deserialize_hyrex_performanceserver_SetLogLinkRequest,
     responseSerialize: serialize_google_protobuf_Empty,
     responseDeserialize: deserialize_google_protobuf_Empty,
-  },
-  acquireSchedulerLock: {
-    path: '/hyrex.performanceserver.GatewayService/AcquireSchedulerLock',
-    requestStream: false,
-    responseStream: false,
-    requestType: requests_pb.AcquireSchedulerLockRequest,
-    responseType: requests_pb.AcquireSchedulerLockResponse,
-    requestSerialize: serialize_hyrex_performanceserver_AcquireSchedulerLockRequest,
-    requestDeserialize: deserialize_hyrex_performanceserver_AcquireSchedulerLockRequest,
-    responseSerialize: serialize_hyrex_performanceserver_AcquireSchedulerLockResponse,
-    responseDeserialize: deserialize_hyrex_performanceserver_AcquireSchedulerLockResponse,
   },
   registerWorkflow: {
     path: '/hyrex.performanceserver.GatewayService/RegisterWorkflow',

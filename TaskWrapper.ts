@@ -42,14 +42,14 @@ export class TaskWrapper<U extends JsonType> extends WorkflowTask {
         return new TaskWrapper(this.dispatcher, this.taskName, this.taskFunction, newTaskConfig, this.argSchema)
     }
 
-    async send(context?: U | {}): Promise<UUID> {
-        if (!context) {
-            context = {}
+    async send(args?: U | {}): Promise<UUID> {
+        if (!args) {
+            args = {}
         }
 
         // Validate against argSchema if provided
-        if (this.argSchema && context) {
-            this.argSchema.parse(context)
+        if (this.argSchema && args) {
+            this.argSchema.parse(args)
         }
 
         let hyrexContext = null;
@@ -60,7 +60,7 @@ export class TaskWrapper<U extends JsonType> extends WorkflowTask {
             // This is normal and expected behavior
         }
 
-        JsonSerializable.parse(context)
+        JsonSerializable.parse(args)
 
         const currentId = uuidv7()
         const serializedTaskRequest: SerializedTaskRequest = {
@@ -73,7 +73,7 @@ export class TaskWrapper<U extends JsonType> extends WorkflowTask {
             queue: typeof this.taskConfig.queue === 'string' ? this.taskConfig.queue : this.taskConfig.queue.name,
             status: 'queued',
             task_name: this.taskName,
-            args: context,
+            args: args,
             max_retries: this.taskConfig.maxRetries,
             priority: this.taskConfig.priority,
             timeout_seconds: this.taskConfig.timeoutSeconds || null,

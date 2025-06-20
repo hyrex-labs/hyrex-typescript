@@ -51,10 +51,6 @@ export class HyrexRegistry {
 
     }
 
-    print() {
-        console.log("Task Registry:", Object.entries(this.internalTaskRegistry));
-    }
-
     workflow({ name, config, workflowArgSchema, body }: {
         name: string,
         config: HyrexTaskConfigInput,
@@ -84,12 +80,6 @@ export class HyrexRegistry {
             dispatcher: this.dispatcher
         })
     }
-
-
-    // listener({ name, func }: { name: string; func: () => void }): void {
-    //     HyrexListenerRegistrationSchema.parse({ name, func })
-    //     this.registerListenerWithServer({ name, func })
-    // }
 
 
     task<U extends JsonType>({ name, config, argSchema, func }: HyrexTaskProps): TaskWrapper<U> {
@@ -122,17 +112,6 @@ export class HyrexRegistry {
             argSchema: argSchema
         })
     }
-
-    // private registerListenerWithServer({ name, func }: { name: string, func: () => void }) {
-    //     if (process.env[COMMANDS.INIT_DB]) {
-    //         return // Skip registration during database initialization
-    //     }
-    //
-    //     this.dispatcher.registerHyrexListener({
-    //         listenerName: name,
-    //         sourceCode: func.toString()
-    //     })
-    // }
 
     addQueue(queue: HyrexQueue) {
         if (this.internalQueueRegistry[queue.name] && !this.internalQueueRegistry[queue.name].equals(queue)) {

@@ -401,37 +401,34 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 return [task];
 
             } else {
-                // For non-concurrency limited case, we need to loop through task names
-                // since fetchTask expects a single task name
-                for (const taskName of taskNames) {
-                    const args = {
-                        queue: queueName,
-                        taskName: taskName,
-                        executorId: executorId
-                    }
-                    const row = await fetchTask(client, args)
+                // For non-concurrency limited case, pass all task names at once
+                const args = {
+                    queue: queueName,
+                    taskNames: taskNames,
+                    executorId: executorId
+                }
+                const row = await fetchTask(client, args)
 
-                    if (row) {
-                        // Map the row to SerializedTask format
-                        const task: SerializedTask = {
-                            id: row.id,
-                            durable_id: row.durableId,
-                            root_id: row.rootId,
-                            attempt_number: row.attemptNumber,
-                            max_retries: row.maxRetries,
-                            workflow_run_id: row.workflowRunId,
-                            parent_id: row.parentId,
-                            task_name: row.taskName,
-                            args: row.args,
-                            queue: row.queue,
-                            priority: row.priority.toString(),
-                            timeout_seconds: row.timeoutSeconds,
-                            scheduled_start: row.scheduledStart?.toISOString() || null,
-                            queued: row.queued?.toISOString() || null,
-                            started: row.started?.toISOString() || null
-                        };
-                        return [task];
-                    }
+                if (row) {
+                    // Map the row to SerializedTask format
+                    const task: SerializedTask = {
+                        id: row.id,
+                        durable_id: row.durableId,
+                        root_id: row.rootId,
+                        attempt_number: row.attemptNumber,
+                        max_retries: row.maxRetries,
+                        workflow_run_id: row.workflowRunId,
+                        parent_id: row.parentId,
+                        task_name: row.taskName,
+                        args: row.args,
+                        queue: row.queue,
+                        priority: row.priority.toString(),
+                        timeout_seconds: row.timeoutSeconds,
+                        scheduled_start: row.scheduledStart?.toISOString() || null,
+                        queued: row.queued?.toISOString() || null,
+                        started: row.started?.toISOString() || null
+                    };
+                    return [task];
                 }
                 return [];
             }
@@ -631,7 +628,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         return this.queryWithRetry(async (client) => {
             const sqlPattern = globToSqlLike(queuePattern);
 
-            const rows: FetchActiveQueueNamesRow[] = await fetchActiveQueueNamesQuery(client, { queue: sqlPattern });
+            const rows: FetchActiveQueueNamesRow[] = await fetchActiveQueueNamesQuery(client, { queuePattern: sqlPattern });
 
             return rows.map(r => r.queue);
         });
@@ -716,7 +713,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         return this.queryWithRetry(async (client) => {
             const rows = await pullActiveCronExpressionsQuery(client);
             // Map the sqlc-generated rows to CronJob interface
-            return rows.map(row => ({
+            return rows.map((row) => ({
                 jobid: Number(row.jobid),
                 schedule: row.schedule || '',
                 command: row.command,

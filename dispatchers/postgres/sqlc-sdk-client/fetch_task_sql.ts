@@ -7,16 +7,16 @@ interface Client {
 export const fetchTaskQuery = `-- name: FetchTask :one
 WITH next_task AS (SELECT id
                    FROM hyrex_task_run
-                   WHERE hyrex_task_run.queue = $1
+                   WHERE hyrex_task_run.queue = $2
                      AND hyrex_task_run.status = 'QUEUED'::task_run_status
-                     AND hyrex_task_run.task_name IN ($2)
+                     AND hyrex_task_run.task_name = ANY($3::VARCHAR[])
                    ORDER BY priority ASC, queued
                        FOR UPDATE SKIP LOCKED
                    LIMIT 1)
 UPDATE hyrex_task_run AS ht
 SET status      = 'RUNNING'::task_run_status,
     started     = CURRENT_TIMESTAMP,
-    executor_id = $3
+    executor_id = $1
 FROM next_task
 WHERE ht.id = next_task.id
 RETURNING ht.id
@@ -36,9 +36,9 @@ RETURNING ht.id
     , ht.started`;
 
 export interface FetchTaskArgs {
-    queue: string;
-    taskName: string;
     executorId: string | null;
+    queue: string;
+    taskNames: string[];
 }
 
 export interface FetchTaskRow {
@@ -62,7 +62,7 @@ export interface FetchTaskRow {
 export async function fetchTask(client: Client, args: FetchTaskArgs): Promise<FetchTaskRow | null> {
     const result = await client.query({
         text: fetchTaskQuery,
-        values: [args.queue, args.taskName, args.executorId],
+        values: [args.executorId, args.queue, args.taskNames],
         rowMode: "array"
     });
     if (result.rows.length !== 1) {

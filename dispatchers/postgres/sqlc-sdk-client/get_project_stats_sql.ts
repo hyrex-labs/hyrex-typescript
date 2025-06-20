@@ -19,8 +19,12 @@ SELECT
     failed_delta,
     lost_delta
 FROM hyrex_stats_task_status_counts
-WHERE timepoint >= NOW() - INTERVAL '24 hours'
+WHERE timepoint >= NOW() - make_interval(mins => $1::int)
 ORDER BY timepoint DESC`;
+
+export interface GetProjectStatsArgs {
+    minutes: number;
+}
 
 export interface GetProjectStatsRow {
     timepoint: Date;
@@ -37,10 +41,10 @@ export interface GetProjectStatsRow {
     lostDelta: number | null;
 }
 
-export async function getProjectStats(client: Client): Promise<GetProjectStatsRow[]> {
+export async function getProjectStats(client: Client, args: GetProjectStatsArgs): Promise<GetProjectStatsRow[]> {
     const result = await client.query({
         text: getProjectStatsQuery,
-        values: [],
+        values: [args.minutes],
         rowMode: "array"
     });
     return result.rows.map(row => {

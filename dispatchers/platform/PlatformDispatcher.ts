@@ -955,7 +955,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
                 });
             });
 
-            return response ? response.getDurableRunIdsList() : [];
+            return response ? response.getDurableIdsList() : [];
         } catch (error) {
             console.error('Error getting workflow durable runs:', error);
             return [];

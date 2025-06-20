@@ -8,7 +8,7 @@ export const fetchActiveQueueNamesQuery = `-- name: FetchActiveQueueNames :many
 WITH distinct_queues AS (SELECT DISTINCT queue
                          FROM hyrex_task_run
                          WHERE status = 'QUEUED'
-                           AND queue LIKE $1),
+                           AND queue SIMILAR TO $1),
      queue_count AS (SELECT COUNT(*) AS cnt
                      FROM distinct_queues)
 SELECT queue
@@ -31,7 +31,7 @@ FROM (
          WHERE rn <= 100000) final_result`;
 
 export interface FetchActiveQueueNamesArgs {
-    queue: string;
+    queuePattern: string;
 }
 
 export interface FetchActiveQueueNamesRow {
@@ -41,7 +41,7 @@ export interface FetchActiveQueueNamesRow {
 export async function fetchActiveQueueNames(client: Client, args: FetchActiveQueueNamesArgs): Promise<FetchActiveQueueNamesRow[]> {
     const result = await client.query({
         text: fetchActiveQueueNamesQuery,
-        values: [args.queue],
+        values: [args.queuePattern],
         rowMode: "array"
     });
     return result.rows.map(row => {

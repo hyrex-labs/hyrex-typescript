@@ -31,7 +31,7 @@ BEGIN
 
             dep_status AS (
                 /* For every dependency edge, pull the latest status of that dependency.
-                   If a dependency durable_id doesn’t exist in 'latest', dep_status will be NULL. */
+                   If a dependency durable_id doesn’t exist in "latest", dep_status will be NULL. */
                 SELECT d.task_id,
                        bool_and(ld.status = 'SUCCESS')          AS all_success,
                        bool_and(ld.status IS NOT NULL)          AS all_present

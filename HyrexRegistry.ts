@@ -20,6 +20,25 @@ import { WorkflowTask } from "./workflow/HyrexWorkflowBuilder";
 import { HyrexWorkflow, HyrexWorkflowSchema } from "./workflow/HyrexWorkflow";
 import { PlatformDispatcher } from "./dispatchers/platform/PlatformDispatcher";
 
+let sharedDispatcher: HyrexDispatcher | null = null;
+
+function getSharedDispatcher(): HyrexDispatcher {
+    if (!sharedDispatcher) {
+        const databaseUrl = envVariables.getDatabaseUrl()
+        const apiKey = envVariables.getApiKey()
+        if (apiKey) {
+            hyrexLogger.info("platform", `Created Shared PlatformDispatcher. pid=${process.pid}`, 'brown')
+            sharedDispatcher = new PlatformDispatcher({ apiKey })
+        } else if (databaseUrl) {
+            hyrexLogger.info("postgres", `Created Shared PostgresDispatcher. pid=${process.pid}`, 'magenta')
+            sharedDispatcher = new PostgresDispatcher({ conn: databaseUrl })
+        } else {
+            throw new Error("Both HYREX_DATABASE_URL and HYREX_API_KEY are missing.")
+        }
+    }
+    return sharedDispatcher
+}
+
 type HyrexTaskProps = {
     name: string;
     config?: HyrexTaskConfigInput
@@ -36,19 +55,7 @@ export class HyrexRegistry {
     constructor() {
         this.internalTaskRegistry = {}
         this.internalQueueRegistry = {}
-
-        const databaseUrl = envVariables.getDatabaseUrl()
-        const apiKey = envVariables.getApiKey()
-        if (apiKey) {
-            hyrexLogger.info("platform", `Created New PlatformDispatcher in registry. pid=${process.pid}`, 'brown')
-            this.dispatcher = new PlatformDispatcher({ apiKey })
-        } else if (databaseUrl) {
-            hyrexLogger.info("postgres", `Created New PostgresDispatcher in registry. pid=${process.pid}`, 'magenta')
-            this.dispatcher = new PostgresDispatcher({ conn: databaseUrl })
-        } else {
-            throw new Error("Both HYREX_DATABASE_URL and HYREX_API_KEY are missing.")
-        }
-
+        this.dispatcher = getSharedDispatcher()
     }
 
     workflow({ name, config, workflowArgSchema, body }: {

@@ -6,7 +6,7 @@ import {
 } from "../HyrexDispatcher";
 import * as grpc from '@grpc/grpc-js';
 import { UUID, JsonType, HyrexTaskConfig } from "../../utils";
-import { z } from 'zod';
+import { string, z } from 'zod';
 import { AdminMessage, TaskHeartbeatResultMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
 import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
@@ -574,12 +574,12 @@ export class PlatformDispatcher implements HyrexDispatcher {
         if (argSchema) {
             const argSchemaStruct = new google_protobuf_struct_pb.Struct();
             const fieldsMap = argSchemaStruct.getFieldsMap();
-            
+
             // Store the schema definition as a JSON string
             const val = new google_protobuf_struct_pb.Value();
             val.setStringValue(JSON.stringify(argSchema._def));
             fieldsMap.set('schema', val);
-            
+
             taskDef.setArgSchema(argSchemaStruct);
         }
 
@@ -1023,6 +1023,14 @@ export class PlatformDispatcher implements HyrexDispatcher {
             console.error('Error testing connection:', error);
             return false;
         }
+    }
+
+    async kvGetValue(key: string): Promise<string> {
+        return "TODO"
+    }
+
+    async setSetValue(key: string, value: string): Promise<string> {
+        return "TODO"
     }
 
     // Close the client connection

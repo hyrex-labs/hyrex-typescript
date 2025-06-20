@@ -34,9 +34,9 @@ message DequeueRequest {
 }
 
 message DequeueResponse {
-  TaskRun task_run = 1;
-}
-
+    TaskRun task_run = 1;
+  }
+  
 message GetQueuesRequest {
   int32 max_num_queues = 1;
   string pattern = 2;
@@ -147,15 +147,6 @@ message DisconnectExecutorRequest {
 
 message RegisterAppRequest {
   google.protobuf.Struct app_info = 1;
-}
-
-message AcquireSchedulerLockRequest {
-  string worker_name = 1;
-  string duration = 2;
-}
-
-message AcquireSchedulerLockResponse {
-  optional int32 lock_id = 1;
 }
 
 message WriteLogsRequest {

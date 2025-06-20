@@ -913,4 +913,12 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
         })
     }
+
+    async kvGetValue(key: string): Promise<string> {
+        return "TODO"
+    }
+
+    async setSetValue(key: string, value: string): Promise<string> {
+        return "TODO"
+    }
 }

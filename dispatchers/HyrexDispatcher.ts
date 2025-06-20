@@ -133,4 +133,8 @@ export interface HyrexDispatcher {
     sendWorkflowRun({ serializedWorkflowRunRequest }: { serializedWorkflowRunRequest: SerializedWorkflowRunRequest }): Promise<string>
 
     advanceWorkflowRun({ workflowRunId }: { workflowRunId: UUID }): Promise<void>
+
+    kvGetValue(key: string): Promise<string>
+
+    setSetValue(key: string, value: string): Promise<string>
 }

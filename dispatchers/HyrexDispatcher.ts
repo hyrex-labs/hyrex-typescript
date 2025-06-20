@@ -136,5 +136,5 @@ export interface HyrexDispatcher {
 
     kvGetValue(key: string): Promise<string>
 
-    setSetValue(key: string, value: string): Promise<string>
+    kvSetValue(key: string, value: string): Promise<string>
 }

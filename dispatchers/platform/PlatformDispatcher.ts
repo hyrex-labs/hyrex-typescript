@@ -1029,7 +1029,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
         return "TODO"
     }
 
-    async setSetValue(key: string, value: string): Promise<string> {
+    async kvSetValue(key: string, value: string): Promise<string> {
         return "TODO"
     }
 

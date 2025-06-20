@@ -82,7 +82,11 @@ import {
     skipWaitingTaskForWorkflowRunId as skipWaitingTaskForWorkflowRunIdQuery,
     SkipWaitingTaskForWorkflowRunIdArgs,
     advanceWorkflowRunFunc,
-    AdvanceWorkflowRunFuncArgs
+    AdvanceWorkflowRunFuncArgs,
+    getValue as getValueQuery,
+    GetValueArgs,
+    setValue as setValueQuery,
+    SetValueArgs
 } from "./sqlc-sdk-client";
 
 type HyrexPostgresDispatcherConfig = {
@@ -915,10 +919,28 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async kvGetValue(key: string): Promise<string> {
-        return "TODO"
+        return this.queryWithRetry(async (client) => {
+            const args: GetValueArgs = {
+                key: key
+            };
+            const result = await getValueQuery(client, args);
+            
+            if (!result) {
+                throw new Error(`Key not found: ${key}`);
+            }
+            
+            return result.value;
+        });
     }
 
-    async setSetValue(key: string, value: string): Promise<string> {
-        return "TODO"
+    async kvSetValue(key: string, value: string): Promise<string> {
+        return this.queryWithRetry(async (client) => {
+            const args: SetValueArgs = {
+                key: key,
+                value: value
+            };
+            await setValueQuery(client, args);
+            return value;
+        });
     }
 }

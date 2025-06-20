@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-20T18:14:24.644Z
+// Generated on: 2025-06-20T20:10:29.831Z
 
 // Tables
 export * from './_01_create_executor_table_sql';
@@ -33,6 +33,7 @@ export * from './skip_waiting_task_for_workflow_run_id_sql';
 export * from './batch_update_heartbeat_log_sql';
 export * from './batch_update_heartbeat_on_executors_sql';
 export * from './disconnect_executor_sql';
+export * from './mark_lost_executors_sql';
 export * from './register_executor_sql';
 export * from './update_executor_stats_sql';
 export * from './update_queues_on_executor_sql';
@@ -74,15 +75,15 @@ export * from './create_job_source_type_enum_sql';
 export * from './create_task_run_status_enum_sql';
 export * from './create_workflow_run_status_enum_sql';
 
-// Kv
-export * from './delete_value_sql';
-export * from './flush_keys_sql';
-export * from './get_value_sql';
-export * from './list_keys_paginated_sql';
-export * from './set_value_sql';
-
 // Stats
 export * from './fill_historical_task_status_counts_table_sql';
+export * from './insert_single_task_status_counts_row_sql';
+export * from './trim_task_stats_sql';
+
+// Task Def
+export * from './get_all_task_defs_sql';
+export * from './get_task_def_sql';
+export * from './register_task_def_sql';
 
 // Dashboard
 export * from './get_app_name_sql';
@@ -103,14 +104,20 @@ export * from './get_workflow_run_task_runs_sql';
 export * from './get_workflow_runs_paginated_sql';
 export * from './get_workflows_paginated_sql';
 
+// Workflow
+export * from './insert_workflow_run_sql';
+export * from './register_workflow_sql';
+export * from './update_workflow_run_status_sql';
+
+// Kv
+export * from './kv_delete_value_sql';
+export * from './kv_flush_keys_sql';
+export * from './kv_get_value_sql';
+export * from './kv_list_keys_paginated_sql';
+export * from './kv_set_value_sql';
+
 // App
 export * from './register_app_info_sql';
-
-// Task Def
-export * from './register_task_def_sql';
-
-// Workflow
-export * from './register_workflow_sql';
 
 // Durability
 export * from './set_executor_to_lost_if_no_heartbeat_sql';

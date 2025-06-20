@@ -1029,8 +1029,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
         return "TODO"
     }
 
-    async kvSetValue(key: string, value: string): Promise<string> {
-        return "TODO"
+    async kvSetValue(key: string, value: string): Promise<void> {
     }
 
     // Close the client connection

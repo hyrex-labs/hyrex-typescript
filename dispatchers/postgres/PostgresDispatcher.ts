@@ -924,23 +924,22 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 key: key
             };
             const result = await getValueQuery(client, args);
-            
+
             if (!result) {
                 throw new Error(`Key not found: ${key}`);
             }
-            
+
             return result.value;
         });
     }
 
-    async kvSetValue(key: string, value: string): Promise<string> {
+    async kvSetValue(key: string, value: string): Promise<void> {
         return this.queryWithRetry(async (client) => {
             const args: SetValueArgs = {
                 key: key,
                 value: value
             };
             await setValueQuery(client, args);
-            return value;
         });
     }
 }

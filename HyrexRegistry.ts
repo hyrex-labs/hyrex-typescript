@@ -7,37 +7,16 @@ import {
     HyrexTaskConfigInput, InternalQueueRegistry, HyrexListenerRegistrationSchema, HyrexQueuePatternArgsSchema
 } from "./utils"
 import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
-import { PostgresDispatcher } from "./dispatchers/postgres/PostgresDispatcher";
 import { TaskWrapper } from "./TaskWrapper";
 import { z } from "zod";
 import { HyrexQueue } from "./HyrexQueue";
 import { isValidCron } from 'cron-validator'
-import { envVariables } from "./EnvironmentVariables";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 import { COMMANDS } from "./commands";
 import { HyrexWorkflowBuilder } from "./workflow/HyrexWorkflowBuilder";
 import { WorkflowTask } from "./workflow/HyrexWorkflowBuilder";
 import { HyrexWorkflow, HyrexWorkflowSchema } from "./workflow/HyrexWorkflow";
-import { PlatformDispatcher } from "./dispatchers/platform/PlatformDispatcher";
-
-let sharedDispatcher: HyrexDispatcher | null = null;
-
-function getSharedDispatcher(): HyrexDispatcher {
-    if (!sharedDispatcher) {
-        const databaseUrl = envVariables.getDatabaseUrl()
-        const apiKey = envVariables.getApiKey()
-        if (apiKey) {
-            hyrexLogger.info("platform", `Created Shared PlatformDispatcher. pid=${process.pid}`, 'brown')
-            sharedDispatcher = new PlatformDispatcher({ apiKey })
-        } else if (databaseUrl) {
-            hyrexLogger.info("postgres", `Created Shared PostgresDispatcher. pid=${process.pid}`, 'magenta')
-            sharedDispatcher = new PostgresDispatcher({ conn: databaseUrl })
-        } else {
-            throw new Error("Both HYREX_DATABASE_URL and HYREX_API_KEY are missing.")
-        }
-    }
-    return sharedDispatcher
-}
+import { getSharedDispatcher } from "./SharedDispatcher";
 
 type HyrexTaskProps = {
     name: string;

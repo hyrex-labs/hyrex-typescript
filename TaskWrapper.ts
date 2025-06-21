@@ -12,7 +12,6 @@ import { v7 as uuidv7 } from 'uuid';
 import { string, z } from "zod";
 import { COMMANDS } from "./commands";
 import { getHyrexContext } from "./HyrexContext";
-import { WorkflowTask } from "./workflow/HyrexWorkflowBuilder";
 
 // Concurrency limit cannot be set at send time. This type removes concurrency limit at send time.
 type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
@@ -20,16 +19,14 @@ type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
 };
 
 
-export class TaskWrapper<U extends JsonType> extends WorkflowTask {
+export class TaskWrapper<U extends JsonType> {
     private taskFunction: HyrexTaskFunction
     private dispatcher: HyrexDispatcher
     private taskConfig: HyrexTaskConfig
-    private taskName: string;
+    public taskName: string;
     private argSchema?: z.ZodType;
 
     constructor(dispatcher: HyrexDispatcher, taskName: string, taskFunction: HyrexTaskFunction, defaultTaskConfig: HyrexTaskConfig, argSchema?: z.ZodType) {
-        super(taskName);
-
         this.dispatcher = dispatcher
         this.taskFunction = taskFunction as HyrexTaskFunction
         this.taskConfig = HyrexTaskConfigSchema.parse(defaultTaskConfig)

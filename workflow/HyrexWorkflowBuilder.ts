@@ -105,7 +105,14 @@ export function flattenTasks(input: IWorkflowTask | IWorkflowTask[]): WorkflowTa
         } else if (item instanceof WorkflowTask) {
             result.push(item);
         } else {
-            throw new Error("Invalid task type passed in.");
+            // Check if it's a TaskWrapper (duck typing since we can't import TaskWrapper here)
+            if ('taskName' in item && 'send' in item && typeof item.send === 'function') {
+                // Create a new WorkflowTask proxy for this TaskWrapper
+                const proxy = new WorkflowTask((item as any).taskName);
+                result.push(proxy);
+            } else {
+                throw new Error("Invalid task type passed in.");
+            }
         }
     };
 

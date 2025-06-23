@@ -105,9 +105,8 @@ export function flattenTasks(input: IWorkflowTask | IWorkflowTask[]): WorkflowTa
         } else if (item instanceof WorkflowTask) {
             result.push(item);
         } else {
-            // Check if it's a TaskWrapper (duck typing since we can't import TaskWrapper here)
-            if ('taskName' in item && 'send' in item && typeof item.send === 'function') {
-                // Create a new WorkflowTask proxy for this TaskWrapper
+            // For any other IWorkflowTask (like TaskWrapper), create a new WorkflowTask node
+            if ('taskName' in item && typeof (item as any).taskName === 'string') {
                 const proxy = new WorkflowTask((item as any).taskName);
                 result.push(proxy);
             } else {

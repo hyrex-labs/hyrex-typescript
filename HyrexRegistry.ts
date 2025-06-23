@@ -91,7 +91,7 @@ export class HyrexRegistry {
             return // Skip registration during database initialization
         }
 
-        this.dispatcher.registerTask({
+        this.dispatcher.registerTaskDef({
             taskName,
             taskConfig: taskConfig,
             sourceCode: taskFunc.toString(),

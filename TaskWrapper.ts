@@ -12,6 +12,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { string, z } from "zod";
 import { COMMANDS } from "./commands";
 import { getHyrexContext } from "./HyrexContext";
+import { IWorkflowTask, WorkflowTask } from "./workflow/HyrexWorkflowBuilder";
 
 // Concurrency limit cannot be set at send time. This type removes concurrency limit at send time.
 type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
@@ -19,7 +20,7 @@ type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
 };
 
 
-export class TaskWrapper<U extends JsonType> {
+export class TaskWrapper<U extends JsonType> implements IWorkflowTask {
     private taskFunction: HyrexTaskFunction
     private dispatcher: HyrexDispatcher
     private taskConfig: HyrexTaskConfig
@@ -32,6 +33,14 @@ export class TaskWrapper<U extends JsonType> {
         this.taskConfig = HyrexTaskConfigSchema.parse(defaultTaskConfig)
         this.taskName = taskName
         this.argSchema = argSchema
+    }
+
+    // Implement IWorkflowTask interface
+    next(nextTask: IWorkflowTask | IWorkflowTask[]): IWorkflowTask {
+        // Create a new workflow node for this task
+        const thisNode = new WorkflowTask(this.taskName);
+        // Call next on the new node, which handles the DAG building
+        return thisNode.next(nextTask);
     }
 
     withConfig(taskConfig: SendableHyrexTaskConfig): TaskWrapper<U> {

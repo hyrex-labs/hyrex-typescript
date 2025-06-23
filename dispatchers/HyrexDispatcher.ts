@@ -93,7 +93,7 @@ export interface HyrexDispatcher {
     updateExecutorHeartbeats({ executorIds }: { executorIds: string[] }): Promise<void>
 
     // Tasks
-    registerTask({ taskName, taskConfig, sourceCode, argSchema }: {
+    registerTaskDef({ taskName, taskConfig, sourceCode, argSchema }: {
         taskName: string,
         taskConfig?: HyrexTaskConfig,
         sourceCode?: string,

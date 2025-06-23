@@ -93,7 +93,7 @@ export class HyrexApp {
     }
 
     private registerTaskWithServer(taskName: string, taskFunc: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
-        this.dispatcher.registerTask({
+        this.dispatcher.registerTaskDef({
             taskName,
             taskConfig,
             sourceCode: taskFunc.toString()

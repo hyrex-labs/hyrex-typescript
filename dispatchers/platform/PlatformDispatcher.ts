@@ -556,7 +556,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
         }
     }
 
-    async registerTask({ taskName, taskConfig, sourceCode, argSchema }: {
+    async registerTaskDef({ taskName, taskConfig, sourceCode, argSchema }: {
         taskName: string,
         taskConfig?: HyrexTaskConfig,
         sourceCode?: string,

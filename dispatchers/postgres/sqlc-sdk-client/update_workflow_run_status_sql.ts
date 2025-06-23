@@ -6,19 +6,19 @@ interface Client {
 
 export const updateWorkflowRunStatusQuery = `-- name: UpdateWorkflowRunStatus :exec
 UPDATE hyrex_workflow_run
-SET status = $2::workflow_run_status,
+SET status = $1::workflow_run_status,
     last_heartbeat = now()
-WHERE id = $1`;
+WHERE id = $2`;
 
 export interface UpdateWorkflowRunStatusArgs {
+    status: string;
     id: string;
-    : string;
 }
 
 export async function updateWorkflowRunStatus(client: Client, args: UpdateWorkflowRunStatusArgs): Promise<void> {
     await client.query({
         text: updateWorkflowRunStatusQuery,
-        values: [args.id, args.],
+        values: [args.status, args.id],
         rowMode: "array"
     });
 }

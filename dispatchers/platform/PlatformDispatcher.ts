@@ -61,7 +61,7 @@ export class PlatformDispatcher implements HyrexDispatcher {
             case 'queued':
                 return task_pb.TaskStatus.QUEUED;
             case 'waiting':
-                return task_pb.TaskStatus.WAITING;
+                return task_pb.TaskStatus.AWAIT_DEPS;
             case 'running':
                 return task_pb.TaskStatus.RUNNING;
             case 'success':
@@ -86,7 +86,9 @@ export class PlatformDispatcher implements HyrexDispatcher {
         switch (status) {
             case task_pb.TaskStatus.QUEUED:
                 return 'queued';
-            case task_pb.TaskStatus.WAITING:
+            case task_pb.TaskStatus.AWAIT_DEPS:
+                return 'waiting';
+            case task_pb.TaskStatus.AWAIT_START_TIME:
                 return 'waiting';
             case task_pb.TaskStatus.RUNNING:
                 return 'running';
@@ -638,23 +640,8 @@ export class PlatformDispatcher implements HyrexDispatcher {
         workerId: string,
         workerName: string
     }): Promise<number | null> {
-        const request = new requests_pb.AcquireSchedulerLockRequest();
-        request.setWorkerName(workerName);
-        request.setDuration("5m"); // Assuming a 5-minute lock duration
-
-        try {
-            const response = await new Promise<requests_pb.AcquireSchedulerLockResponse | undefined>((resolve, reject) => {
-                this.serviceClient.acquireSchedulerLock(request, this.metadata, (err: Error | null, response?: requests_pb.AcquireSchedulerLockResponse) => {
-                    if (err) reject(err);
-                    else resolve(response);
-                });
-            });
-
-            return response && response.hasLockId() ? response.getLockId() : null;
-        } catch (error) {
-            console.error('Error acquiring scheduler lock:', error);
-            return null;
-        }
+        // No-op implementation for platform dispatcher
+        return null;
     }
 
     async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {

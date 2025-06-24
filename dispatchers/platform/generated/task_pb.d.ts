@@ -126,11 +126,6 @@ export class TaskDef extends jspb.Message {
   getArgSchema(): google_protobuf_struct_pb.Struct | undefined;
   setArgSchema(value?: google_protobuf_struct_pb.Struct): void;
 
-  hasDefaultConfig(): boolean;
-  clearDefaultConfig(): void;
-  getDefaultConfig(): google_protobuf_struct_pb.Struct | undefined;
-  setDefaultConfig(value?: google_protobuf_struct_pb.Struct): void;
-
   hasCron(): boolean;
   clearCron(): void;
   getCron(): string;
@@ -140,6 +135,20 @@ export class TaskDef extends jspb.Message {
   clearSourceCode(): void;
   getSourceCode(): string;
   setSourceCode(value: string): void;
+
+  getQueue(): string;
+  setQueue(value: string): void;
+
+  getPriority(): PriorityMap[keyof PriorityMap];
+  setPriority(value: PriorityMap[keyof PriorityMap]): void;
+
+  getMaxRetries(): number;
+  setMaxRetries(value: number): void;
+
+  hasTimeoutSeconds(): boolean;
+  clearTimeoutSeconds(): void;
+  getTimeoutSeconds(): number;
+  setTimeoutSeconds(value: number): void;
 
   hasLastUpdated(): boolean;
   clearLastUpdated(): void;
@@ -160,9 +169,12 @@ export namespace TaskDef {
   export type AsObject = {
     taskName: string,
     argSchema?: google_protobuf_struct_pb.Struct.AsObject,
-    defaultConfig?: google_protobuf_struct_pb.Struct.AsObject,
     cron: string,
     sourceCode: string,
+    queue: string,
+    priority: PriorityMap[keyof PriorityMap],
+    maxRetries: number,
+    timeoutSeconds: number,
     lastUpdated?: google_protobuf_timestamp_pb.Timestamp.AsObject,
   }
 }

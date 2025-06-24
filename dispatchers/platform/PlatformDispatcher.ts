@@ -585,36 +585,42 @@ export class PlatformDispatcher implements HyrexDispatcher {
             taskDef.setArgSchema(argSchemaStruct);
         }
 
-        // Convert taskConfig to proto format if provided
+        // Set taskConfig fields directly on TaskDef
         if (taskConfig) {
-            // TaskDef in proto only has defaultConfig as a Struct, not individual fields
-            // We'll need to convert the config to a Struct
-            const defaultConfig = new google_protobuf_struct_pb.Struct();
-            const fieldsMap = defaultConfig.getFieldsMap();
-
-            if (taskConfig.maxRetries !== undefined) {
-                const val = new google_protobuf_struct_pb.Value();
-                val.setNumberValue(taskConfig.maxRetries);
-                fieldsMap.set('maxRetries', val);
-            }
-            if (taskConfig.timeoutSeconds !== undefined) {
-                const val = new google_protobuf_struct_pb.Value();
-                val.setNumberValue(taskConfig.timeoutSeconds);
-                fieldsMap.set('timeoutSeconds', val);
-            }
             if (taskConfig.queue !== undefined) {
-                const val = new google_protobuf_struct_pb.Value();
                 const queueName = typeof taskConfig.queue === 'string' ? taskConfig.queue : taskConfig.queue.name;
-                val.setStringValue(queueName);
-                fieldsMap.set('queue', val);
+                taskDef.setQueue(queueName);
             }
             if (taskConfig.priority !== undefined) {
-                const val = new google_protobuf_struct_pb.Value();
-                val.setNumberValue(taskConfig.priority);
-                fieldsMap.set('priority', val);
+                // Map numeric priority (1-10) to proto Priority enum (P1-P10)
+                let protoPriority: task_pb.PriorityMap[keyof task_pb.PriorityMap];
+                switch (taskConfig.priority) {
+                    case 1: protoPriority = task_pb.Priority.P1; break;
+                    case 2: protoPriority = task_pb.Priority.P2; break;
+                    case 3: protoPriority = task_pb.Priority.P3; break;
+                    case 4: protoPriority = task_pb.Priority.P4; break;
+                    case 5: protoPriority = task_pb.Priority.P5; break;
+                    case 6: protoPriority = task_pb.Priority.P6; break;
+                    case 7: protoPriority = task_pb.Priority.P7; break;
+                    case 8: protoPriority = task_pb.Priority.P8; break;
+                    case 9: protoPriority = task_pb.Priority.P9; break;
+                    case 10: protoPriority = task_pb.Priority.P10; break;
+                    default: protoPriority = task_pb.Priority.P5; break;
+                }
+                taskDef.setPriority(protoPriority);
+            } else {
+                // Set default priority to P5 if not specified
+                taskDef.setPriority(task_pb.Priority.P5);
             }
-
-            taskDef.setDefaultConfig(defaultConfig);
+            if (taskConfig.maxRetries !== undefined) {
+                taskDef.setMaxRetries(taskConfig.maxRetries);
+            }
+            if (taskConfig.timeoutSeconds !== undefined) {
+                taskDef.setTimeoutSeconds(taskConfig.timeoutSeconds);
+            }
+        } else {
+            // Set default priority to P5 if no config provided
+            taskDef.setPriority(task_pb.Priority.P5);
         }
 
         request.setTaskDef(taskDef);

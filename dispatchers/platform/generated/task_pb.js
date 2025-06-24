@@ -975,9 +975,12 @@ proto.hyrex.performanceserver.TaskDef.toObject = function(includeInstance, msg) 
   var f, obj = {
     taskName: jspb.Message.getFieldWithDefault(msg, 1, ""),
     argSchema: (f = msg.getArgSchema()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-    defaultConfig: (f = msg.getDefaultConfig()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-    cron: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    sourceCode: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    cron: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    sourceCode: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    queue: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    priority: jspb.Message.getFieldWithDefault(msg, 6, 0),
+    maxRetries: jspb.Message.getFieldWithDefault(msg, 7, 0),
+    timeoutSeconds: jspb.Message.getFieldWithDefault(msg, 8, 0),
     lastUpdated: (f = msg.getLastUpdated()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
@@ -1025,19 +1028,30 @@ proto.hyrex.performanceserver.TaskDef.deserializeBinaryFromReader = function(msg
       msg.setArgSchema(value);
       break;
     case 3:
-      var value = new google_protobuf_struct_pb.Struct;
-      reader.readMessage(value,google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
-      msg.setDefaultConfig(value);
-      break;
-    case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setCron(value);
       break;
-    case 5:
+    case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setSourceCode(value);
       break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setQueue(value);
+      break;
     case 6:
+      var value = /** @type {!proto.hyrex.performanceserver.Priority} */ (reader.readEnum());
+      msg.setPriority(value);
+      break;
+    case 7:
+      var value = /** @type {number} */ (reader.readInt32());
+      msg.setMaxRetries(value);
+      break;
+    case 8:
+      var value = /** @type {number} */ (reader.readInt32());
+      msg.setTimeoutSeconds(value);
+      break;
+    case 9:
       var value = new google_protobuf_timestamp_pb.Timestamp;
       reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
       msg.setLastUpdated(value);
@@ -1086,12 +1100,11 @@ proto.hyrex.performanceserver.TaskDef.serializeBinaryToWriter = function(message
       google_protobuf_struct_pb.Struct.serializeBinaryToWriter
     );
   }
-  f = message.getDefaultConfig();
+  f = /** @type {string} */ (jspb.Message.getField(message, 3));
   if (f != null) {
-    writer.writeMessage(
+    writer.writeString(
       3,
-      f,
-      google_protobuf_struct_pb.Struct.serializeBinaryToWriter
+      f
     );
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 4));
@@ -1101,17 +1114,38 @@ proto.hyrex.performanceserver.TaskDef.serializeBinaryToWriter = function(message
       f
     );
   }
-  f = /** @type {string} */ (jspb.Message.getField(message, 5));
-  if (f != null) {
+  f = message.getQueue();
+  if (f.length > 0) {
     writer.writeString(
       5,
+      f
+    );
+  }
+  f = message.getPriority();
+  if (f !== 0.0) {
+    writer.writeEnum(
+      6,
+      f
+    );
+  }
+  f = message.getMaxRetries();
+  if (f !== 0) {
+    writer.writeInt32(
+      7,
+      f
+    );
+  }
+  f = /** @type {number} */ (jspb.Message.getField(message, 8));
+  if (f != null) {
+    writer.writeInt32(
+      8,
       f
     );
   }
   f = message.getLastUpdated();
   if (f != null) {
     writer.writeMessage(
-      6,
+      9,
       f,
       google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
     );
@@ -1175,48 +1209,11 @@ proto.hyrex.performanceserver.TaskDef.prototype.hasArgSchema = function() {
 
 
 /**
- * optional google.protobuf.Struct default_config = 3;
- * @return {?proto.google.protobuf.Struct}
- */
-proto.hyrex.performanceserver.TaskDef.prototype.getDefaultConfig = function() {
-  return /** @type{?proto.google.protobuf.Struct} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 3));
-};
-
-
-/**
- * @param {?proto.google.protobuf.Struct|undefined} value
- * @return {!proto.hyrex.performanceserver.TaskDef} returns this
-*/
-proto.hyrex.performanceserver.TaskDef.prototype.setDefaultConfig = function(value) {
-  return jspb.Message.setWrapperField(this, 3, value);
-};
-
-
-/**
- * Clears the message field making it undefined.
- * @return {!proto.hyrex.performanceserver.TaskDef} returns this
- */
-proto.hyrex.performanceserver.TaskDef.prototype.clearDefaultConfig = function() {
-  return this.setDefaultConfig(undefined);
-};
-
-
-/**
- * Returns whether this field is set.
- * @return {boolean}
- */
-proto.hyrex.performanceserver.TaskDef.prototype.hasDefaultConfig = function() {
-  return jspb.Message.getField(this, 3) != null;
-};
-
-
-/**
- * optional string cron = 4;
+ * optional string cron = 3;
  * @return {string}
  */
 proto.hyrex.performanceserver.TaskDef.prototype.getCron = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
 };
 
 
@@ -1225,7 +1222,7 @@ proto.hyrex.performanceserver.TaskDef.prototype.getCron = function() {
  * @return {!proto.hyrex.performanceserver.TaskDef} returns this
  */
 proto.hyrex.performanceserver.TaskDef.prototype.setCron = function(value) {
-  return jspb.Message.setField(this, 4, value);
+  return jspb.Message.setField(this, 3, value);
 };
 
 
@@ -1234,7 +1231,7 @@ proto.hyrex.performanceserver.TaskDef.prototype.setCron = function(value) {
  * @return {!proto.hyrex.performanceserver.TaskDef} returns this
  */
 proto.hyrex.performanceserver.TaskDef.prototype.clearCron = function() {
-  return jspb.Message.setField(this, 4, undefined);
+  return jspb.Message.setField(this, 3, undefined);
 };
 
 
@@ -1243,16 +1240,16 @@ proto.hyrex.performanceserver.TaskDef.prototype.clearCron = function() {
  * @return {boolean}
  */
 proto.hyrex.performanceserver.TaskDef.prototype.hasCron = function() {
-  return jspb.Message.getField(this, 4) != null;
+  return jspb.Message.getField(this, 3) != null;
 };
 
 
 /**
- * optional string source_code = 5;
+ * optional string source_code = 4;
  * @return {string}
  */
 proto.hyrex.performanceserver.TaskDef.prototype.getSourceCode = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
 };
 
 
@@ -1261,7 +1258,7 @@ proto.hyrex.performanceserver.TaskDef.prototype.getSourceCode = function() {
  * @return {!proto.hyrex.performanceserver.TaskDef} returns this
  */
 proto.hyrex.performanceserver.TaskDef.prototype.setSourceCode = function(value) {
-  return jspb.Message.setField(this, 5, value);
+  return jspb.Message.setField(this, 4, value);
 };
 
 
@@ -1270,7 +1267,7 @@ proto.hyrex.performanceserver.TaskDef.prototype.setSourceCode = function(value) 
  * @return {!proto.hyrex.performanceserver.TaskDef} returns this
  */
 proto.hyrex.performanceserver.TaskDef.prototype.clearSourceCode = function() {
-  return jspb.Message.setField(this, 5, undefined);
+  return jspb.Message.setField(this, 4, undefined);
 };
 
 
@@ -1279,17 +1276,107 @@ proto.hyrex.performanceserver.TaskDef.prototype.clearSourceCode = function() {
  * @return {boolean}
  */
 proto.hyrex.performanceserver.TaskDef.prototype.hasSourceCode = function() {
-  return jspb.Message.getField(this, 5) != null;
+  return jspb.Message.getField(this, 4) != null;
 };
 
 
 /**
- * optional google.protobuf.Timestamp last_updated = 6;
+ * optional string queue = 5;
+ * @return {string}
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.getQueue = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.hyrex.performanceserver.TaskDef} returns this
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.setQueue = function(value) {
+  return jspb.Message.setProto3StringField(this, 5, value);
+};
+
+
+/**
+ * optional Priority priority = 6;
+ * @return {!proto.hyrex.performanceserver.Priority}
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.getPriority = function() {
+  return /** @type {!proto.hyrex.performanceserver.Priority} */ (jspb.Message.getFieldWithDefault(this, 6, 0));
+};
+
+
+/**
+ * @param {!proto.hyrex.performanceserver.Priority} value
+ * @return {!proto.hyrex.performanceserver.TaskDef} returns this
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.setPriority = function(value) {
+  return jspb.Message.setProto3EnumField(this, 6, value);
+};
+
+
+/**
+ * optional int32 max_retries = 7;
+ * @return {number}
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.getMaxRetries = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 7, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.hyrex.performanceserver.TaskDef} returns this
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.setMaxRetries = function(value) {
+  return jspb.Message.setProto3IntField(this, 7, value);
+};
+
+
+/**
+ * optional int32 timeout_seconds = 8;
+ * @return {number}
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.getTimeoutSeconds = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 8, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.hyrex.performanceserver.TaskDef} returns this
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.setTimeoutSeconds = function(value) {
+  return jspb.Message.setField(this, 8, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.hyrex.performanceserver.TaskDef} returns this
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.clearTimeoutSeconds = function() {
+  return jspb.Message.setField(this, 8, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.hyrex.performanceserver.TaskDef.prototype.hasTimeoutSeconds = function() {
+  return jspb.Message.getField(this, 8) != null;
+};
+
+
+/**
+ * optional google.protobuf.Timestamp last_updated = 9;
  * @return {?proto.google.protobuf.Timestamp}
  */
 proto.hyrex.performanceserver.TaskDef.prototype.getLastUpdated = function() {
   return /** @type{?proto.google.protobuf.Timestamp} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 6));
+    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 9));
 };
 
 
@@ -1298,7 +1385,7 @@ proto.hyrex.performanceserver.TaskDef.prototype.getLastUpdated = function() {
  * @return {!proto.hyrex.performanceserver.TaskDef} returns this
 */
 proto.hyrex.performanceserver.TaskDef.prototype.setLastUpdated = function(value) {
-  return jspb.Message.setWrapperField(this, 6, value);
+  return jspb.Message.setWrapperField(this, 9, value);
 };
 
 
@@ -1316,7 +1403,7 @@ proto.hyrex.performanceserver.TaskDef.prototype.clearLastUpdated = function() {
  * @return {boolean}
  */
 proto.hyrex.performanceserver.TaskDef.prototype.hasLastUpdated = function() {
-  return jspb.Message.getField(this, 6) != null;
+  return jspb.Message.getField(this, 9) != null;
 };
 
 

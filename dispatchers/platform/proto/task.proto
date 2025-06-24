@@ -24,19 +24,19 @@ enum Priority {
 
 
 enum TaskStatus {
-    UNSPECIFIED = 0;
-    SUCCESS = 1;
-    FAILED = 2;
-    RUNNING = 3;
-    QUEUED = 4;
-    UP_FOR_CANCEL = 5;
-    CANCELED = 6;
-    LOST = 7;
-    STOPPED = 8;
-    SKIPPED = 9;
-    AWAIT_DEPS = 10;
-    AWAIT_START_TIME = 11;
-  }
+  UNSPECIFIED = 0;
+  SUCCESS = 1;
+  FAILED = 2;
+  RUNNING = 3;
+  QUEUED = 4;
+  UP_FOR_CANCEL = 5;
+  CANCELED = 6;
+  LOST = 7;
+  STOPPED = 8;
+  SKIPPED = 9;
+  AWAIT_DEPS = 10;
+  AWAIT_START_TIME = 11;
+}
 
 message TaskRun {
   string id = 1;
@@ -55,7 +55,7 @@ message TaskRun {
   google.protobuf.Timestamp queued = 12;
   google.protobuf.Timestamp started = 13;
   google.protobuf.Timestamp finished = 14;
-  
+
   optional string workflow_run_id = 15;
   repeated string workflow_dependencies = 16;
   int32 attempt_number = 17;
@@ -67,9 +67,12 @@ message TaskRun {
 
 message TaskDef {
   string task_name = 1;
-  google.protobuf.Struct arg_schema = 2;
-  google.protobuf.Struct default_config = 3;
-  optional string cron = 4;
-  optional string source_code = 5;
-  optional google.protobuf.Timestamp last_updated = 6;
+  optional google.protobuf.Struct arg_schema = 2;
+  optional string cron = 3;
+  optional string source_code = 4;
+  string queue = 5;
+  Priority priority = 6;
+  int32 max_retries = 7;
+  optional int32 timeout_seconds = 8;
+  optional google.protobuf.Timestamp last_updated = 9;
 }

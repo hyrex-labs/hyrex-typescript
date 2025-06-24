@@ -46,4 +46,4 @@ service GatewayService {
   rpc GetWorkflowRunArgs(GetWorkflowRunArgsRequest) returns (GetWorkflowRunArgsResponse);
   rpc AdvanceWorkflowRun(AdvanceWorkflowRunRequest) returns (google.protobuf.Empty);
   rpc GetWorkflowDurableRuns(GetWorkflowDurableRunsRequest) returns (GetWorkflowDurableRunsResponse);
-  }
+}

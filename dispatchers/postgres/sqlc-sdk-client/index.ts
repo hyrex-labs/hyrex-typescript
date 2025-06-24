@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-23T17:03:05.299Z
+// Generated on: 2025-06-23T18:26:49.119Z
 
 // Tables
 export * from './_01_create_executor_table_sql';

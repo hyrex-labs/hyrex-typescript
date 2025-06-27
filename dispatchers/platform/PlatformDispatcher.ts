@@ -618,6 +618,9 @@ export class PlatformDispatcher implements HyrexDispatcher {
             if (taskConfig.timeoutSeconds !== undefined) {
                 taskDef.setTimeoutSeconds(taskConfig.timeoutSeconds);
             }
+            if (taskConfig.cron !== undefined) {
+                taskDef.setCron(taskConfig.cron);
+            }
         } else {
             // Set default priority to P5 if no config provided
             taskDef.setPriority(task_pb.Priority.P5);

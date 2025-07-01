@@ -2,17 +2,27 @@ import { HyrexDispatcher } from "./dispatchers/HyrexDispatcher";
 import { getSharedDispatcher } from "./SharedDispatcher";
 
 export class HyrexKV {
+    private static instance: HyrexKV | null = null;
     private dispatcher: HyrexDispatcher;
 
-    constructor() {
+    private constructor() {
         this.dispatcher = getSharedDispatcher();
     }
 
-    async get(key: string): Promise<string> {
-        return this.dispatcher.kvGetValue(key);
+    private static getInstance(): HyrexKV {
+        if (!HyrexKV.instance) {
+            HyrexKV.instance = new HyrexKV();
+        }
+        return HyrexKV.instance;
     }
 
-    async set(key: string, value: string): Promise<void> {
+    static async get(key: string): Promise<string> {
+        const instance = HyrexKV.getInstance();
+        return instance.dispatcher.kvGetValue(key);
+    }
+
+    static async set(key: string, value: string): Promise<void> {
+        const instance = HyrexKV.getInstance();
         // PostgreSQL text type can handle up to 1GB, but for practical purposes
         // we'll limit to 1MB to prevent performance issues
         const MAX_VALUE_SIZE = 1024 * 1024; // 1MB in bytes
@@ -21,6 +31,6 @@ export class HyrexKV {
             throw new Error(`Value size exceeds maximum allowed size of ${MAX_VALUE_SIZE} bytes. Actual size: ${value.length} bytes`);
         }
         
-        return this.dispatcher.kvSetValue(key, value);
+        return instance.dispatcher.kvSetValue(key, value);
     }
 }

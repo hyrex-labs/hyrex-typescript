@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { HyrexTaskConfig } from "../utils";
 import { v4 as uuidv4 } from 'uuid';
 
-import { getHyrexContext } from "../index";
+import { getHyrexContext, HyrexKV } from "../index";
 import { HyrexWorkflowBuilder } from "../workflow/HyrexWorkflowBuilder";
 import { z } from "zod";
 
@@ -133,6 +133,38 @@ const onboardUser2 = hy.workflow({
 
         return workflowBuilder
     }
+})
+
+const createPDFTask = hy.task({
+    name: "CreatePDFTask",
+    func: async () => {
+        console.log("We created the PDF!")
+        const ctx = getHyrexContext()
+        console.log("Ctx", ctx)
+        const pdfPath = "userReport.pdf"
+        HyrexKV.set(`workflow-${ctx.workflowRunId}-pdf`, pdfPath)
+    }
+})
+
+const sendPdfToUser = hy.task({
+    name: "SendPDFTask",
+    func: async () => {
+        const ctx = getHyrexContext()
+        const pdfPath = HyrexKV.get(`workflow-${ctx.workflowRunId}-pdf`)
+        console.log(`Sending pdf... ${pdfPath}`)
+    }
+})
+
+const sendPDFWorkflow = hy.workflow({
+    name: "SendPDFWorkflow",
+    body: (workflowBuilder) => {
+        workflowBuilder
+            .start(createPDFTask)
+            .next(sendPdfToUser)
+
+        return workflowBuilder
+    },
+    config: {}
 })
 
 // onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })

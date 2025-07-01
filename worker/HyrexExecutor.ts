@@ -76,6 +76,7 @@ export class HyrexExecutor {
                 durableId: task.durable_id,
                 rootId: task.root_id,
                 parentId: task.parent_id,
+                workflowRunId: task.workflow_run_id,
                 taskName: task.task_name,
                 queue: task.queue,
                 attemptNumber: task.attempt_number,

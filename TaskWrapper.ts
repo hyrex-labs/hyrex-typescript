@@ -58,6 +58,10 @@ export class TaskWrapper<U extends JsonType> implements IWorkflowTask {
         // Extract base name (remove existing _copy_N suffix if present)
         const baseName = this.taskName.replace(/_copy_\d+$/, '');
         
+        // TODO: Make the DAG node name different from the task name
+        // Currently both the task name and DAG node name are the same (e.g., "validateIdentity_copy_1")
+        // Consider separating internal DAG node naming from the actual task name that gets executed
+        
         // Check if we're in a workflow building context
         if (HyrexWorkflowBuilder.currentBuilder) {
             // Use the workflow-scoped copy counter

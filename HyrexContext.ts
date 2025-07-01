@@ -15,6 +15,8 @@ export type HyrexContext = {
     rootId: string;
     /** Identifier of the parent task, null if this is a root task */
     parentId: string | null;
+    /** Identifier of the workflow run this task belongs to, null if not part of a workflow */
+    workflowRunId: string | null;
     /** Name of the task being executed */
     taskName: string;
     /** Queue name where the task is processed */

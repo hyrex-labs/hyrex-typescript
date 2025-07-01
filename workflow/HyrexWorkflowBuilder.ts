@@ -96,7 +96,7 @@ export interface IWorkflowTask {
  * A helper to “normalize” an IWorkflowTask input into an array of WorkflowTask nodes.
  * If the input is a WorkflowTaskGroup, we extract its underlying tasks.
  */
-export function flattenTasks(input: IWorkflowTask | IWorkflowTask[]): WorkflowTask[] {
+export function flattenTasks(input: IWorkflowTask | IWorkflowTask[], taskRegistry?: Map<string, WorkflowTask>): WorkflowTask[] {
     const result: WorkflowTask[] = [];
 
     const add = (item: IWorkflowTask) => {
@@ -105,9 +105,21 @@ export function flattenTasks(input: IWorkflowTask | IWorkflowTask[]): WorkflowTa
         } else if (item instanceof WorkflowTask) {
             result.push(item);
         } else {
-            // For any other IWorkflowTask (like TaskWrapper), create a new WorkflowTask node
+            // For any other IWorkflowTask (like TaskWrapper), reuse existing node or create new
             if ('taskName' in item && typeof (item as any).taskName === 'string') {
-                const proxy = new WorkflowTask((item as any).taskName);
+                const taskName = (item as any).taskName;
+                let proxy: WorkflowTask;
+                
+                // If registry provided, check for existing node
+                if (taskRegistry && taskRegistry.has(taskName)) {
+                    proxy = taskRegistry.get(taskName)!;
+                } else {
+                    proxy = new WorkflowTask(taskName);
+                    if (taskRegistry) {
+                        taskRegistry.set(taskName, proxy);
+                    }
+                }
+                
                 result.push(proxy);
             } else {
                 throw new Error("Invalid task type passed in.");
@@ -134,9 +146,9 @@ export class WorkflowTask extends DagNode implements IWorkflowTask {
         super(name)
     }
 
-    public next(nextInput: IWorkflowTask | IWorkflowTask[]): IWorkflowTask {
+    public next(nextInput: IWorkflowTask | IWorkflowTask[], taskRegistry?: Map<string, WorkflowTask>): IWorkflowTask {
         // Normalize the input so that we always work with an array of WorkflowTask.
-        const nextTasks = flattenTasks(nextInput);
+        const nextTasks = flattenTasks(nextInput, taskRegistry);
 
         // For each underlying task, add an edge from this node.
         for (const child of nextTasks) {
@@ -144,7 +156,7 @@ export class WorkflowTask extends DagNode implements IWorkflowTask {
         }
 
         // Return a group wrapping these tasks so that chaining continues.
-        return new WorkflowTaskGroup(nextTasks);
+        return new WorkflowTaskGroup(nextTasks, taskRegistry);
     }
 
     public wait({ hours, minutes, seconds }: {
@@ -164,9 +176,11 @@ export class WorkflowTask extends DagNode implements IWorkflowTask {
  */
 export class WorkflowTaskGroup implements IWorkflowTask {
     private tasks: WorkflowTask[];
+    private taskRegistry?: Map<string, WorkflowTask>;
 
-    constructor(tasks: WorkflowTask[]) {
+    constructor(tasks: WorkflowTask[], taskRegistry?: Map<string, WorkflowTask>) {
         this.tasks = tasks;
+        this.taskRegistry = taskRegistry;
     }
 
     // Allow external code (like flattenTasks) to extract the underlying tasks.
@@ -180,27 +194,47 @@ export class WorkflowTaskGroup implements IWorkflowTask {
 
         for (const task of this.tasks) {
             // Each task.next() returns an IWorkflowTask (which might be a group).
-            const result = task.next(nextInput);
+            const result = task.next(nextInput, this.taskRegistry);
             // Flatten the result into WorkflowTask nodes.
-            aggregatedNextTasks.push(...flattenTasks(result));
+            aggregatedNextTasks.push(...flattenTasks(result, this.taskRegistry));
         }
 
         // Return a new group wrapping all the resulting next tasks.
-        return new WorkflowTaskGroup(aggregatedNextTasks);
+        return new WorkflowTaskGroup(aggregatedNextTasks, this.taskRegistry);
     }
 }
 
 export class HyrexWorkflowBuilder {
     public rootTasks: IWorkflowTask[]
+    // Registry to track unique task nodes by name
+    private taskRegistry: Map<string, WorkflowTask>
+    // Static context for current workflow being built
+    public static currentBuilder: HyrexWorkflowBuilder | null = null
 
     constructor() {
         this.rootTasks = []
+        this.taskRegistry = new Map<string, WorkflowTask>()
+    }
+
+    // Get the task registry for use by TaskWrapper
+    public getTaskRegistry(): Map<string, WorkflowTask> {
+        return this.taskRegistry
+    }
+
+    // Get or create a workflow task node
+    public getOrCreateNode(taskName: string): WorkflowTask {
+        if (this.taskRegistry.has(taskName)) {
+            return this.taskRegistry.get(taskName)!;
+        }
+        const node = new WorkflowTask(taskName);
+        this.taskRegistry.set(taskName, node);
+        return node;
     }
 
     start(tasks: IWorkflowTask | IWorkflowTask[]): IWorkflowTask {
-        const normalized = flattenTasks(tasks);
+        const normalized = flattenTasks(tasks, this.taskRegistry);
         this.rootTasks.push(...normalized);
-        return new WorkflowTaskGroup(normalized);
+        return new WorkflowTaskGroup(normalized, this.taskRegistry);
     }
 
     /**

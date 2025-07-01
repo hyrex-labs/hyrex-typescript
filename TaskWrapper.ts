@@ -12,7 +12,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { string, z } from "zod";
 import { COMMANDS } from "./commands";
 import { getHyrexContext } from "./HyrexContext";
-import { IWorkflowTask, WorkflowTask } from "./workflow/HyrexWorkflowBuilder";
+import { IWorkflowTask, WorkflowTask, HyrexWorkflowBuilder } from "./workflow/HyrexWorkflowBuilder";
 
 // Concurrency limit cannot be set at send time. This type removes concurrency limit at send time.
 type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
@@ -26,6 +26,7 @@ export class TaskWrapper<U extends JsonType> implements IWorkflowTask {
     private taskConfig: HyrexTaskConfig
     public taskName: string;
     private argSchema?: z.ZodType;
+    private copyIndex: number = 0;
 
     constructor(dispatcher: HyrexDispatcher, taskName: string, taskFunction: HyrexTaskFunction, defaultTaskConfig: HyrexTaskConfig, argSchema?: z.ZodType) {
         this.dispatcher = dispatcher
@@ -37,10 +38,26 @@ export class TaskWrapper<U extends JsonType> implements IWorkflowTask {
 
     // Implement IWorkflowTask interface
     next(nextTask: IWorkflowTask | IWorkflowTask[]): IWorkflowTask {
-        // Create a new workflow node for this task
+        // Check if we're in a workflow building context
+        if (HyrexWorkflowBuilder.currentBuilder) {
+            // Use the builder's registry to get or create the node
+            const thisNode = HyrexWorkflowBuilder.currentBuilder.getOrCreateNode(this.taskName);
+            // Call next on the node with the registry context
+            return thisNode.next(nextTask, HyrexWorkflowBuilder.currentBuilder.getTaskRegistry());
+        }
+        
+        // Fallback for non-workflow usage
         const thisNode = new WorkflowTask(this.taskName);
-        // Call next on the new node, which handles the DAG building
         return thisNode.next(nextTask);
+    }
+
+    // Create a copy of this task with a unique name for the workflow
+    copy(): TaskWrapper<U> {
+        const copiedWrapper = new TaskWrapper(this.dispatcher, this.taskName, this.taskFunction, this.taskConfig, this.argSchema);
+        copiedWrapper.copyIndex = this.copyIndex + 1;
+        // Modify the taskName to make it unique in the workflow
+        copiedWrapper.taskName = `${this.taskName}_copy_${copiedWrapper.copyIndex}`;
+        return copiedWrapper;
     }
 
     withConfig(taskConfig: SendableHyrexTaskConfig): TaskWrapper<U> {

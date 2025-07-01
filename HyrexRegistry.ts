@@ -48,7 +48,17 @@ export class HyrexRegistry {
         HyrexWorkflowSchema.parse({ name, config: validatedTaskConfig, workflowArgSchema, body })
 
         const workflowBuilder = new HyrexWorkflowBuilder()
-        const completedWorkflowBuilder = body(workflowBuilder)
+        
+        // Set the current builder context
+        HyrexWorkflowBuilder.currentBuilder = workflowBuilder;
+        let completedWorkflowBuilder: HyrexWorkflowBuilder;
+        
+        try {
+            completedWorkflowBuilder = body(workflowBuilder);
+        } finally {
+            // Always clear the context, even if there's an error
+            HyrexWorkflowBuilder.currentBuilder = null;
+        }
 
         if (!process.env[COMMANDS.INIT_DB]) {
             this.dispatcher.registerWorkflow({

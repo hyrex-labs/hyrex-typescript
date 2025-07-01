@@ -27,6 +27,14 @@ const sleepTaskFunc = async () => {
     await sleep(5_000);
 }
 
+const sleepTask = hy.task({
+    name: "sleepTask",
+    func: sleepTaskFunc,
+    config: {
+        cron: "* * * * *"
+    }
+})
+
 const initiateOnboard = hy.task({
     name: "initiateOnboard",
     func: sleepTaskFunc
@@ -91,6 +99,31 @@ const onboardUser = hy.workflow({
             .start(initiateOnboard)
             .next([validatePayment, validateIdentity, validateOrg])
             .next(approveUser)
+
+        validateIdentity
+            .next(checkCredit)
+            .next(trainCreditMachineLearningModel)
+
+
+
+        return workflowBuilder
+    }
+})
+
+const onboardUser2 = hy.workflow({
+    name: "onboardUser2",
+    config: { queue: "onboard-user" },
+    workflowArgSchema: z.object({
+        "userEmail": z.string(),
+        "signUpTier": z.enum(["FREE", "PRO", "ENTERPRISE"])
+    }),
+    body: (workflowBuilder: HyrexWorkflowBuilder) => {
+        workflowBuilder
+            .start(initiateOnboard)
+            .next([validatePayment, validateIdentity, validateOrg])
+            .next(approveUser)
+            .next(validateIdentity.copy())
+            .next(validateIdentity.copy())
 
         validateIdentity
             .next(checkCredit)

@@ -142,7 +142,7 @@ const createPDFTask = hy.task({
         const ctx = getHyrexContext()
         console.log("Ctx", ctx)
         const pdfPath = "userReport.pdf"
-        HyrexKV.set(`workflow-${ctx.workflowRunId}-pdf`, pdfPath)
+        await HyrexKV.set(`workflow-${ctx.workflowRunId}-pdf`, pdfPath)
     }
 })
 
@@ -150,7 +150,7 @@ const sendPdfToUser = hy.task({
     name: "SendPDFTask",
     func: async () => {
         const ctx = getHyrexContext()
-        const pdfPath = HyrexKV.get(`workflow-${ctx.workflowRunId}-pdf`)
+        const pdfPath = await HyrexKV.get(`workflow-${ctx.workflowRunId}-pdf`)
         console.log(`Sending pdf... ${pdfPath}`)
     }
 })

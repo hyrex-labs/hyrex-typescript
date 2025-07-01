@@ -54,9 +54,21 @@ export class TaskWrapper<U extends JsonType> implements IWorkflowTask {
     // Create a copy of this task with a unique name for the workflow
     copy(): TaskWrapper<U> {
         const copiedWrapper = new TaskWrapper(this.dispatcher, this.taskName, this.taskFunction, this.taskConfig, this.argSchema);
-        copiedWrapper.copyIndex = this.copyIndex + 1;
-        // Modify the taskName to make it unique in the workflow
-        copiedWrapper.taskName = `${this.taskName}_copy_${copiedWrapper.copyIndex}`;
+        
+        // Extract base name (remove existing _copy_N suffix if present)
+        const baseName = this.taskName.replace(/_copy_\d+$/, '');
+        
+        // Check if we're in a workflow building context
+        if (HyrexWorkflowBuilder.currentBuilder) {
+            // Use the workflow-scoped copy counter
+            const copyNum = HyrexWorkflowBuilder.currentBuilder.getNextCopyNumber(baseName);
+            copiedWrapper.taskName = `${baseName}_copy_${copyNum}`;
+        } else {
+            // Fallback for non-workflow usage
+            copiedWrapper.copyIndex = this.copyIndex + 1;
+            copiedWrapper.taskName = `${baseName}_copy_${copiedWrapper.copyIndex}`;
+        }
+        
         return copiedWrapper;
     }
 

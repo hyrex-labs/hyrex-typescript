@@ -210,10 +210,13 @@ export class HyrexWorkflowBuilder {
     private taskRegistry: Map<string, WorkflowTask>
     // Static context for current workflow being built
     public static currentBuilder: HyrexWorkflowBuilder | null = null
+    // Track copy counts for each task within this workflow
+    private copyCounts: Map<string, number>
 
     constructor() {
         this.rootTasks = []
         this.taskRegistry = new Map<string, WorkflowTask>()
+        this.copyCounts = new Map<string, number>()
     }
 
     // Get the task registry for use by TaskWrapper
@@ -229,6 +232,14 @@ export class HyrexWorkflowBuilder {
         const node = new WorkflowTask(taskName);
         this.taskRegistry.set(taskName, node);
         return node;
+    }
+
+    // Get the next copy number for a task
+    public getNextCopyNumber(baseName: string): number {
+        const current = this.copyCounts.get(baseName) || 0;
+        const next = current + 1;
+        this.copyCounts.set(baseName, next);
+        return next;
     }
 
     start(tasks: IWorkflowTask | IWorkflowTask[]): IWorkflowTask {

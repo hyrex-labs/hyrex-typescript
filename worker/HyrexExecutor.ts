@@ -282,7 +282,9 @@ export class HyrexExecutor {
                     await this.dispatcher.markTaskFailed(task.id)
                     hyrexLogger.error('task-processing', `Failed processing. taskId=${task.id}`, 'red')
                     this.updateTaskId(null)
-                    await this.dispatcher.attemptRetry(task.id)
+                    if (task.attempt_number < task.max_retries) {
+                        await this.dispatcher.attemptRetry(task.id)
+                    }
                 } else {
                     throw error;
                 }
@@ -318,12 +320,12 @@ export class HyrexExecutor {
         }
 
         await this.dispatcher.disconnectExecutor({ executorId: this.executorId, stats })
-        
+
         // Clean up dispatcher connections
         if (this.dispatcher && typeof (this.dispatcher as any).close === 'function') {
             (this.dispatcher as any).close();
         }
-        
+
         hyrexLogger.info('task-processing', `Executor ${this.name} stopped.`, 'green')
     }
 }

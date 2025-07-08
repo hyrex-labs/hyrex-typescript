@@ -13,6 +13,7 @@ import { string, z } from "zod";
 import { COMMANDS } from "./commands";
 import { getHyrexContext } from "./HyrexContext";
 import { IWorkflowTask, WorkflowTask, HyrexWorkflowBuilder } from "./workflow/HyrexWorkflowBuilder";
+import { HyrexExecutor } from "./worker/HyrexExecutor";
 
 // Concurrency limit cannot be set at send time. This type removes concurrency limit at send time.
 type SendableHyrexTaskConfig = Omit<HyrexTaskConfigInput, 'queue'> & {
@@ -119,7 +120,17 @@ export class TaskWrapper<U extends JsonType> implements IWorkflowTask {
             idempotency_key: this.taskConfig.idempotencyKey || null
         }
 
-        return (await this.dispatcher.enqueue([serializedTaskRequest]))[0]
+        const promise = this.dispatcher.enqueue([serializedTaskRequest]).then(ids => ids[0]);
+        
+        // Track the promise if we're running within a task execution context
+        const sendPromiseSet = HyrexExecutor.getCurrentSendPromises();
+        if (sendPromiseSet) {
+            sendPromiseSet.add(promise);
+            // Clean up the promise from the set once it settles
+            promise.finally(() => sendPromiseSet.delete(promise));
+        }
+        
+        return promise;
     }
 
 

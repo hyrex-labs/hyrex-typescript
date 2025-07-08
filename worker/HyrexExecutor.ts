@@ -11,6 +11,7 @@ import { S3Logger } from "../S3Logger";
 import { COMMANDS } from "../commands";
 import { hyrexLogger } from "../logging/FrameworkLogger";
 import { TimeSeriesAverager } from "./TimeSeriesAverager";
+import { AsyncLocalStorage } from "async_hooks";
 
 type HyrexExecutorConfig = {
     workerName: string
@@ -21,6 +22,9 @@ type HyrexExecutorConfig = {
 }
 
 export class HyrexExecutor {
+    // Static storage for tracking send() promises across async boundaries
+    private static sendPromiseStore = new AsyncLocalStorage<Set<Promise<UUID>>>();
+
     private dispatcher: HyrexDispatcher
     private taskRegistry: HyrexRegistry
     private name: string
@@ -66,54 +70,61 @@ export class HyrexExecutor {
         this.numDistinctQueuesAvgr = new TimeSeriesAverager()
     }
 
+    // Static method to access the current send promises from TaskWrapper
+    static getCurrentSendPromises(): Set<Promise<UUID>> | undefined {
+        return HyrexExecutor.sendPromiseStore.getStore();
+    }
+
     private async processTask(task: SerializedTask): Promise<JsonType | undefined> {
-        hyrexLogger.info('task-processing', `▶ Starting task: task_name=${task.task_name}, task_id=${task.id}`, 'green')
-        const { task_name, args } = task
-        const func: HyrexTaskFunction = this.taskRegistry.getFunction(task_name)
-        try {
-            setHyrexContext({
-                taskId: task.id,
-                durableId: task.durable_id,
-                rootId: task.root_id,
-                parentId: task.parent_id,
-                workflowRunId: task.workflow_run_id,
-                taskName: task.task_name,
-                queue: task.queue,
-                attemptNumber: task.attempt_number,
-                maxRetries: task.max_retries,
-                priority: task.priority,
-                timeoutSeconds: task.timeout_seconds,
-                scheduledStart: task.scheduled_start,
-                queued: task.queued,
-                started: task.started,
-                executorId: this.executorId,
-            });
+        // Run the task within an AsyncLocalStorage context to track send() promises
+        return HyrexExecutor.sendPromiseStore.run(new Set<Promise<UUID>>(), async () => {
+            hyrexLogger.info('task-processing', `▶ Starting task: task_name=${task.task_name}, task_id=${task.id}`, 'green')
+            const { task_name, args } = task
+            const func: HyrexTaskFunction = this.taskRegistry.getFunction(task_name)
+            try {
+                setHyrexContext({
+                    taskId: task.id,
+                    durableId: task.durable_id,
+                    rootId: task.root_id,
+                    parentId: task.parent_id,
+                    workflowRunId: task.workflow_run_id,
+                    taskName: task.task_name,
+                    queue: task.queue,
+                    attemptNumber: task.attempt_number,
+                    maxRetries: task.max_retries,
+                    priority: task.priority,
+                    timeoutSeconds: task.timeout_seconds,
+                    scheduledStart: task.scheduled_start,
+                    queued: task.queued,
+                    started: task.started,
+                    executorId: this.executorId,
+                });
 
-            let funcToExecute: () => Promise<any>;
+                let funcToExecute: () => Promise<any>;
 
-            if (args) {
-                const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
-                funcToExecute = async () => withArgsFunc(args)
-            } else {
-                const noArgsFunc = func as (() => JsonType | undefined)
-                funcToExecute = async () => noArgsFunc()
+                if (args) {
+                    const withArgsFunc = func as ((arg: JsonType) => JsonType | undefined)
+                    funcToExecute = async () => withArgsFunc(args)
+                } else {
+                    const noArgsFunc = func as (() => JsonType | undefined)
+                    funcToExecute = async () => noArgsFunc()
+                }
+
+                if (task.timeout_seconds) {
+                    funcToExecute = timeoutWrapper(funcToExecute, task.timeout_seconds * 1000)
+                }
+
+                const result = await funcToExecute()
+
+                hyrexLogger.info('task-processing', `Returning Task Function. result=${JSON.stringify(result)}`, 'green')
+                return result
+
+
+            } finally {
+                hyrexLogger.info('task-processing', `⏹ Ending task: task_name=${task.task_name}, task_id=${task.id}`, 'dim')
+                clearHyrexContext()
             }
-
-            if (task.timeout_seconds) {
-                funcToExecute = timeoutWrapper(funcToExecute, task.timeout_seconds * 1000)
-            }
-
-            const result = await funcToExecute()
-
-            hyrexLogger.info('task-processing', `Returning Task Function. result=${JSON.stringify(result)}`, 'green')
-            return result
-
-
-        } finally {
-            hyrexLogger.info('task-processing', `⏹ Ending task: task_name=${task.task_name}, task_id=${task.id}`, 'dim')
-            clearHyrexContext()
-        }
-
+        });
     }
 
     private updateTaskId(taskId: string | null) {
@@ -270,9 +281,18 @@ export class HyrexExecutor {
                 this.updateTaskId(task.id)
                 s3Logger.startCapture(task.id)
                 const result = await this.processTask(task)
+
                 if (result) {
                     await this.dispatcher.saveResult(task.id, result)
                 }
+
+                // Wait for all send() promises that were created during task execution
+                const pendingSendPromises = HyrexExecutor.sendPromiseStore.getStore();
+                if (pendingSendPromises && pendingSendPromises.size > 0) {
+                    hyrexLogger.info('task-processing', `Waiting for ${pendingSendPromises.size} pending send() promises`, 'blue');
+                    await Promise.allSettled(pendingSendPromises);
+                }
+
                 await this.dispatcher.markTaskSuccess(task.id)
                 this.updateTaskId(null)
             } catch (error: unknown) {

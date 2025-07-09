@@ -11,7 +11,7 @@ export class HyrexAdmin {
     private dispatcher: HyrexDispatcher
     private heartbeatInterval: NodeJS.Timeout | null = null
     private readonly DEFAULT_HEARTBEAT_INTERVAL = 10000 // 10 seconds in milliseconds
-    private mode:  "postgres" | "platform"
+    private mode: "postgres" | "platform"
 
     constructor({ dispatcher, mode }: hyrexWorkerAdminConfig) {
         this.dispatcher = dispatcher
@@ -32,12 +32,7 @@ export class HyrexAdmin {
         } else if (message.messageType === "EXECUTOR_HEARTBEAT") {
             this.dispatcher.updateExecutorHeartbeat(message)
         } else if (message.messageType === "BATCH_HEARTBEAT") {
-            if (this.mode === "postgres") {
-                await this.dispatcher.updateExecutorHeartbeats({executorIds: message.body.executorIds})
-            } else {
-                hyrexLogger.info("misc", "In Platform Mode. Skipping heartbeat", "yellow")
-            }
-
+            await this.dispatcher.updateExecutorHeartbeats({ executorIds: message.body.executorIds })
         }
 
     }

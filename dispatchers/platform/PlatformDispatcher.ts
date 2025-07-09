@@ -657,6 +657,15 @@ export class PlatformDispatcher implements HyrexDispatcher {
         hyrexLogger.info("cron-scheduling", "Scheduler lock automatically managed by platform", "dim");
     }
 
+    async getTaskRunsUpForCancel(): Promise<Array<{
+        id: string,
+        executorId: string | null,
+        taskName: string
+    }>> {
+        // TODO: Implement when platform API supports this
+        return [];
+    }
+
     async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {
         hyrexLogger.info("cron-scheduling", "Scheduler lock automatically managed by platform", "dim");
     }

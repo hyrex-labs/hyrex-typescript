@@ -86,7 +86,9 @@ import {
     getValue as getValueQuery,
     GetValueArgs,
     setValue as setValueQuery,
-    SetValueArgs
+    SetValueArgs,
+    getTaskRunsByStatusPaginated as getTaskRunsByStatusPaginatedQuery,
+    GetTaskRunsByStatusPaginatedArgs
 } from "./sqlc-sdk-client";
 
 type HyrexPostgresDispatcherConfig = {
@@ -640,6 +642,26 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
 
+    }
+
+    async getTaskRunsUpForCancel(): Promise<Array<{
+        id: string,
+        executorId: string | null,
+        taskName: string
+    }>> {
+        return this.queryWithRetry(async (client) => {
+            const args: GetTaskRunsByStatusPaginatedArgs = {
+                status: 'UP_FOR_CANCEL',
+                limit: '1000',
+                offset: '0'
+            };
+            const rows = await getTaskRunsByStatusPaginatedQuery(client, args);
+            return rows.map(row => ({
+                id: row.id,
+                executorId: row.executorId,
+                taskName: row.taskName
+            }));
+        });
     }
 
     async registerTaskDef({ taskName, taskConfig, sourceCode, argSchema }: {

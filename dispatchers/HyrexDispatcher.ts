@@ -118,6 +118,13 @@ export interface HyrexDispatcher {
 
     updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void>
 
+    // Task cancellation
+    getTaskRunsUpForCancel(): Promise<Array<{
+        id: string,
+        executorId: string | null,
+        taskName: string
+    }>>
+
     // Remote Logs
     setLogLink({ taskId, logLink }: { taskId: string, logLink: string }): Promise<void>
     writeS3Logs(taskId: string, logs: string[]): Promise<void>

@@ -13,6 +13,7 @@ export type ExecutorMessage = ExecutorUpdateTaskIdMessage | ExecutorSetIdMessage
 export type AdminMessage = {
     messageType: AdminMessageType
     taskId: UUID
+    executorId?: UUID
 }
 
 export type TaskHeartbeatResultMessage = {

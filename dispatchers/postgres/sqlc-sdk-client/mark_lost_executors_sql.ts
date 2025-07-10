@@ -11,7 +11,7 @@ UPDATE hyrex_executor
 SET status = 'LOST',
     stopped = last_heartbeat
 WHERE status = 'RUNNING'
-AND last_heartbeat < CURRENT_TIMESTAMP - $1::INTERVAL
+AND last_heartbeat < (CURRENT_TIMESTAMP - $1::INTERVAL)
 AND stopped IS NULL
 RETURNING id`;
 

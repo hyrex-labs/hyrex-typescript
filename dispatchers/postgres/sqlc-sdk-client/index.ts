@@ -1,6 +1,6 @@
 // Auto-generated file by generate-exports.ts
 // This file exports all SQLC generated query functions plus convenience helpers
-// Generated on: 2025-06-23T18:26:49.119Z
+// Generated on: 2025-07-09T20:56:41.051Z
 
 // Tables
 export * from './_01_create_executor_table_sql';
@@ -18,6 +18,8 @@ export * from './_12_create_hyrex_task_run_table_sql';
 export * from './_13_create_hyrex_task_run_table_indexes_sql';
 export * from './_14_create_results_table_sql';
 export * from './_15_create_hyrex_kv_table_sql';
+export * from './_16_create_hype_cron_job_table_sql';
+export * from './_17_create_hype_cron_job_run_details_table_sql';
 
 // Scheduler
 export * from './acquire_scheduler_lock_sql';
@@ -26,10 +28,13 @@ export * from './release_scheduler_lock_sql';
 // Workflow Run
 export * from './advance_workflow_run_func_sql';
 export * from './create_workflow_run_sql';
+export * from './insert_workflow_run_sql';
 export * from './set_workflow_run_status_based_on_task_runs_sql';
 export * from './skip_waiting_task_for_workflow_run_id_sql';
+export * from './update_workflow_run_status_sql';
 
 // Executor
+export * from './aggregate_dequeue_latency_by_minute_sql';
 export * from './batch_update_heartbeat_log_sql';
 export * from './batch_update_heartbeat_on_executors_sql';
 export * from './disconnect_executor_sql';
@@ -37,6 +42,16 @@ export * from './mark_lost_executors_sql';
 export * from './register_executor_sql';
 export * from './update_executor_stats_sql';
 export * from './update_queues_on_executor_sql';
+
+// Hype
+export * from './claim_queued_hype_cron_job_runs_sql';
+export * from './count_queued_hype_cron_job_runs_sql';
+export * from './create_hype_cron_job_run_details_sql';
+export * from './get_active_hype_cron_jobs_sql';
+export * from './get_hype_cron_job_by_name_sql';
+export * from './register_hype_cron_job_sql';
+export * from './update_hype_cron_job_confirmed_until_sql';
+export * from './update_hype_cron_job_run_status_sql';
 
 // Task Run
 export * from './conditionally_retry_task_sql';
@@ -71,6 +86,8 @@ export * from './update_cron_job_confirmation_ts_sql';
 // Enums
 export * from './create_cron_job_status_enum_sql';
 export * from './create_executor_status_enum_sql';
+export * from './create_hype_command_type_enum_sql';
+export * from './create_hype_cron_job_status_enum_sql';
 export * from './create_job_source_type_enum_sql';
 export * from './create_task_run_status_enum_sql';
 export * from './create_workflow_run_status_enum_sql';
@@ -104,11 +121,6 @@ export * from './get_workflow_run_task_runs_sql';
 export * from './get_workflow_runs_paginated_sql';
 export * from './get_workflows_paginated_sql';
 
-// Workflow
-export * from './insert_workflow_run_sql';
-export * from './register_workflow_sql';
-export * from './update_workflow_run_status_sql';
-
 // Kv
 export * from './kv_delete_value_sql';
 export * from './kv_flush_keys_sql';
@@ -118,6 +130,9 @@ export * from './kv_set_value_sql';
 
 // App
 export * from './register_app_info_sql';
+
+// Workflow
+export * from './register_workflow_sql';
 
 // Durability
 export * from './set_executor_to_lost_if_no_heartbeat_sql';
@@ -152,10 +167,14 @@ import { createConditionallyRetryTaskFunc } from './create_conditionally_retry_t
 import { createExecuteQueuedCronJobFunction } from './create_execute_queued_cron_job_func_sql';
 import { createScheduleCronJobRunsFunc } from './create_schedule_cron_job_runs_func_sql';
 import { createSetWorkflowRunStatusBasedOnTaskRunsFunction } from './create_set_workflow_run_status_based_on_task_runs_func_sql';
-import { createTaskRun, createTaskRunFunction } from './create_task_run_sql';
+import { createTaskRunFunction } from './create_task_run_sql';
 import { createTransitionTaskRunStateFunc } from './create_transition_task_run_state_func_sql';
 import { createUuid7Function } from './create_uuid7_func_sql';
 import { createWorkflowTrigger } from './create_workflow_trigger_func_sql';
+import { createHypeCommandTypeEnum } from './create_hype_command_type_enum_sql';
+import { createHypeCronJobStatusEnum } from './create_hype_cron_job_status_enum_sql';
+import { createHypeCronJobTable } from './_16_create_hype_cron_job_table_sql';
+import { createHypeCronJobRunDetailsTable } from './_17_create_hype_cron_job_run_details_table_sql';
 
 export async function createEnums(client: DatabaseClient): Promise<void> {
   await createCronJobStatusEnum(client);
@@ -193,5 +212,15 @@ export async function createFunctions(client: DatabaseClient): Promise<void> {
   await createTransitionTaskRunStateFunc(client);
   await createUuid7Function(client);
   await createWorkflowTrigger(client);
+}
+
+export async function createHypeEnums(client: DatabaseClient): Promise<void> {
+  await createHypeCommandTypeEnum(client);
+  await createHypeCronJobStatusEnum(client);
+}
+
+export async function createHypeTables(client: DatabaseClient): Promise<void> {
+  await createHypeCronJobTable(client);
+  await createHypeCronJobRunDetailsTable(client);
 }
 

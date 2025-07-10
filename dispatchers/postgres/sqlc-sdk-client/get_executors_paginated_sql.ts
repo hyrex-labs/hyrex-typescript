@@ -16,12 +16,7 @@ SELECT
     stopped,
     last_heartbeat,
     stats,
-    CASE
-        WHEN stopped IS NOT NULL THEN 'SHUTDOWN'
-        WHEN last_heartbeat < NOW() - INTERVAL '1 minute' THEN 'LOST'
-        WHEN last_heartbeat >= NOW() - INTERVAL '1 minute' THEN 'RUNNING'
-        ELSE 'UNKNOWN'
-    END as status
+    status
 FROM hyrex_executor
 ORDER BY started DESC NULLS LAST
 LIMIT $1 OFFSET $2`;

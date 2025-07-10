@@ -14,6 +14,7 @@ import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { envVariables } from "../../EnvironmentVariables";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 // ──────────────────────────────────────────────────────────────
 // sqlc-generated helpers (new, typed queries)
@@ -675,7 +676,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 taskName: taskName,
                 cronExpr: taskConfig?.cron || null,
                 sourceCode: sourceCode || null,
-                argSchema: argSchema ? JSON.stringify(argSchema._def) : null,
+                argSchema: argSchema ? JSON.stringify(zodToJsonSchema(argSchema)) : null,
                 queue: taskConfig?.queue ? (typeof taskConfig.queue === 'string' ? taskConfig.queue : taskConfig.queue.name) : null,
                 priority: taskConfig?.priority || null,
                 maxRetries: taskConfig?.maxRetries || null,

@@ -14,10 +14,11 @@ INSERT INTO hyrex_workflow_run (
     timeout_seconds,
     status,
     queued,
+    started,
     last_heartbeat,
     idempotency_key
 )
-VALUES ($1, NULL, $2, $3, $4, $5, 'RUNNING'::workflow_run_status, now(), now(), $6)
+VALUES ($1, NULL, $2, $3, $4, $5, 'RUNNING'::workflow_run_status, now(), now(), now(), $6)
 RETURNING id`;
 
 export interface InsertWorkflowRunArgs {

@@ -1,6 +1,6 @@
 {
   "name": "@hyrex/hyrex",
-  "version": "0.1.25",
+  "version": "0.1.29",
   "description": "The COLD Task Framework.",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -41,7 +41,8 @@
     "uuid": "^10.0.0",
     "winston": "^3.17.0",
     "yargs": "^17.7.2",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "@grpc/proto-loader": "^0.7.15",

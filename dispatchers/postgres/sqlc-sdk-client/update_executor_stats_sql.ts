@@ -13,7 +13,7 @@ WITH updated AS (
             AND hyrex_executor.status = 'RUNNING'::executor_status
         RETURNING id, status, last_heartbeat, stats),
      executor_state AS (SELECT CASE WHEN u.id IS NOT NULL THEN 'ACCEPTED' ELSE 'REJECTED' END AS result,
-                               COALESCE(u.status, e.status)                                   AS status,
+                               COALESCE(u.status, e.status)::text                             AS status,
                                COALESCE(u.last_heartbeat, e.last_heartbeat)                   AS last_heartbeat,
                                COALESCE(u.stats, e.stats)                                     AS stats
                         FROM hyrex_executor e

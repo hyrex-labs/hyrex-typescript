@@ -7,7 +7,11 @@ interface Client {
 export const updateWorkflowRunStatusQuery = `-- name: UpdateWorkflowRunStatus :exec
 UPDATE hyrex_workflow_run
 SET status = $1::workflow_run_status,
-    last_heartbeat = now()
+    last_heartbeat = now(),
+    finished = CASE 
+        WHEN $1::workflow_run_status IN ('SUCCESS', 'FAILED', 'CANCELED') THEN now()
+        ELSE finished
+    END
 WHERE id = $2`;
 
 export interface UpdateWorkflowRunStatusArgs {

@@ -96,7 +96,8 @@ export class HyrexApp {
         this.dispatcher.registerTaskDef({
             taskName,
             taskConfig,
-            sourceCode: taskFunc.toString()
+            sourceCode: taskFunc.toString(),
+            // argSchema: {}
         })
     }
 
@@ -184,15 +185,15 @@ export class HyrexApp {
         }
     }
 
-    public addFunctionToRegistry(taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
-        const stringValidation = stringSchema.safeParse(taskFunction.name)
-        if (!stringValidation) {
-            throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
-        }
-
-        this.appRegistry.addFunction(taskFunction.name, taskFunction, taskConfig)
-        this.registerTaskWithServer(taskFunction.name, taskFunction, taskConfig)
-    }
+    // public addFunctionToRegistry(taskFunction: HyrexTaskFunction, taskConfig: HyrexTaskConfig) {
+    //     const stringValidation = stringSchema.safeParse(taskFunction.name)
+    //     if (!stringValidation) {
+    //         throw new Error(`TaskFunction name must be a string. Instead got ${typeof taskFunction.name}`)
+    //     }
+    //
+    //     this.appRegistry.addFunction(taskFunction.name, taskFunction, taskConfig)
+    //     this.registerTaskWithServer(taskFunction.name, taskFunction, taskConfig)
+    // }
 
 }
 

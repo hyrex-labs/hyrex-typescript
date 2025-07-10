@@ -503,8 +503,15 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage,
 
 function handleAdminMessage(adminProcess: ChildProcess, message: AdminMessage) {
     if (message && message.messageType === "TASK_CANCEL") {
-        console.log("Killing task...", message.taskId)
-        killTask(message.taskId)
+        console.log("Killing task...", message.taskId, "executorId:", message.executorId)
+        
+        // Try to kill by executorId first if provided, otherwise fall back to taskId
+        if (message.executorId) {
+            killExecutor(message.executorId);
+        } else {
+            killTask(message.taskId);
+        }
+        
         adminProcess.send({
             messageType: "TASK_CANCEL",
             body: {
@@ -534,6 +541,27 @@ function handleAdminMessage(adminProcess: ChildProcess, message: AdminMessage) {
         adminProcess.send(heartbeatMsg)
     } else {
         console.error("Received unrecognized message...", message);
+    }
+}
+
+// Function to kill an executor by executorId
+function killExecutor(executorId: string) {
+    const executor = executorIdToProcess.get(executorId);
+    if (executor) {
+        console.log(`Killing executor PID ${executor.pid} with Executor ID ${executorId}`);
+        executor.kill('SIGKILL');
+        
+        // Remove mappings for this executor
+        executorIdToProcess.delete(executorId);
+        
+        // Also remove any task mappings for this executor
+        for (const [taskId, process] of taskIdToProcess.entries()) {
+            if (process === executor) {
+                taskIdToProcess.delete(taskId);
+            }
+        }
+    } else {
+        console.log(`No executor found for Executor ID ${executorId}`);
     }
 }
 

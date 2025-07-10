@@ -12,6 +12,7 @@ import { HyrexQueue, HyrexQueuePattern } from "../../HyrexQueue";
 import { CronJob, CronJobRun } from "../../cron/HyrexCronScheduler";
 import { SerializedWorkflowRunRequest } from "../../workflow/HyrexWorkflow";
 import { WorkflowDagJson } from "../../workflow/HyrexWorkflowBuilder";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 // Import generated clients
 import { GatewayServiceClient } from './generated/gateway_grpc_pb';
@@ -577,9 +578,10 @@ export class PlatformDispatcher implements HyrexDispatcher {
             const argSchemaStruct = new google_protobuf_struct_pb.Struct();
             const fieldsMap = argSchemaStruct.getFieldsMap();
 
-            // Store the schema definition as a JSON string
+            // Convert Zod schema to JSON Schema format
+            const jsonSchema = zodToJsonSchema(argSchema);
             const val = new google_protobuf_struct_pb.Value();
-            val.setStringValue(JSON.stringify(argSchema._def));
+            val.setStringValue(JSON.stringify(jsonSchema));
             fieldsMap.set('schema', val);
 
             taskDef.setArgSchema(argSchemaStruct);
@@ -655,6 +657,15 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
     async updateLockHeartbeat({ lockId }: { lockId: number }): Promise<void> {
         hyrexLogger.info("cron-scheduling", "Scheduler lock automatically managed by platform", "dim");
+    }
+
+    async getTaskRunsUpForCancel(): Promise<Array<{
+        id: string,
+        executorId: string | null,
+        taskName: string
+    }>> {
+        // TODO: Implement when platform API supports this
+        return [];
     }
 
     async releaseSchedulerLock({ workerName }: { workerName: string }): Promise<void> {

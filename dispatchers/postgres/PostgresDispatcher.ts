@@ -667,9 +667,9 @@ export class PostgresDispatcher implements HyrexDispatcher {
 
     async registerTaskDef({ taskName, taskConfig, sourceCode, argSchema }: {
         taskName: string,
-        taskConfig?: HyrexTaskConfig,
-        sourceCode?: string,
-        argSchema?: z.ZodType
+        taskConfig: HyrexTaskConfig | null,
+        sourceCode: string | null,
+        argSchema: z.ZodType | null
     }) {
         return this.queryWithRetry(async (client) => {
             await registerTaskDef(client, {

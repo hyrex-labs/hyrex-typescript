@@ -97,14 +97,14 @@ export class HyrexApp {
             taskName,
             taskConfig,
             sourceCode: taskFunc.toString(),
-            // argSchema: {}
+            argSchema: null
         })
     }
 
     addRegistry(taskRegistry: HyrexRegistry) {
         for (const key of Object.keys(taskRegistry.internalTaskRegistry)) {
-            const { taskFunc, taskConfig } = taskRegistry.internalTaskRegistry[key]
-            this.appRegistry.addFunction(key, taskFunc, taskConfig)
+            const { taskFunc, taskConfig, argSchema } = taskRegistry.internalTaskRegistry[key]
+            this.appRegistry.addFunction(key, taskFunc, taskConfig, argSchema)
         }
 
         for (const key of Object.keys(taskRegistry.internalQueueRegistry)) {

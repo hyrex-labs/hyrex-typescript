@@ -561,9 +561,9 @@ export class PlatformDispatcher implements HyrexDispatcher {
 
     async registerTaskDef({ taskName, taskConfig, sourceCode, argSchema }: {
         taskName: string,
-        taskConfig?: HyrexTaskConfig,
-        sourceCode?: string,
-        argSchema?: z.ZodType
+        taskConfig: HyrexTaskConfig | null,
+        sourceCode: string | null,
+        argSchema: z.ZodType | null
     }): Promise<void> {
         const request = new requests_pb.RegisterTaskDefRequest();
         const taskDef = new task_pb.TaskDef();

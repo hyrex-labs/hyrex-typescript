@@ -95,9 +95,9 @@ export interface HyrexDispatcher {
     // Tasks
     registerTaskDef({ taskName, taskConfig, sourceCode, argSchema }: {
         taskName: string,
-        taskConfig?: HyrexTaskConfig,
-        sourceCode?: string,
-        argSchema?: z.ZodType
+        taskConfig: HyrexTaskConfig | null,
+        sourceCode: string | null,
+        argSchema: z.ZodType | null,
     }): Promise<void>
 
     // Listening

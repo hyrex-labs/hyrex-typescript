@@ -105,7 +105,7 @@ export class HyrexRegistry {
             taskName,
             taskConfig: taskConfig,
             sourceCode: taskFunc.toString(),
-            argSchema: argSchema
+            argSchema: argSchema || null
         })
     }
 

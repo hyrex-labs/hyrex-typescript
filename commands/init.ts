@@ -147,58 +147,41 @@ const generateTsConfigTemplate = () => `{
 }
 `;
 
-const generateReadmeTemplate = (appName: string, mode: 'cloud' | 'postgres') => `# ${appName}
-
-A Hyrex distributed task execution application.
-
-## Setup
-
-1. Install dependencies:
-   \`\`\`bash
-   npm install
-   \`\`\`
-
-2. Configure environment:
-   - Copy \`.env.example\` to \`.env\`
-   - Update the configuration values
-
-${mode === 'postgres' ? `3. Initialize the database:
-   \`\`\`bash
-   npm run init-db
-   \`\`\`
-
-4. Run workers:` : '3. Run workers:'}
-   \`\`\`bash
-   npm run worker      # Single worker
-   npm run worker:multi # 4 workers
-   \`\`\`
-
-${mode === 'postgres' ? '5' : '4'}. Submit a test task:
-   \`\`\`bash
-   npm run submit
-   \`\`\`
-
-## Configuration
-
-- **Mode**: ${mode === 'cloud' ? 'Cloud (using Hyrex platform)' : 'PostgreSQL (self-hosted)'}
-${mode === 'cloud' ? '- **API Key**: Set in HYREX_API_KEY environment variable' : '- **Database**: PostgreSQL connection via HYREX_DATABASE_URL'}
-${mode === 'postgres' ? '- **Logging**: Optional S3 bucket via HYREX_S3_LOG_BUCKET' : ''}
-
-## Tasks
-
-- **helloWorld**: A simple greeting task that accepts a name parameter
-- **heartbeat**: A cron task that runs every minute for monitoring
-
-## Learn More
-
-Visit [https://hyrex.dev](https://hyrex.dev) for documentation and tutorials.
+const generateHyrexTsConfigTemplate = () => `{
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "declaration": true
+  }
+}
 `;
+
 
 export async function handleInit(appName: string, directory: string) {
     try {
         console.log(colorize('\n🚀 Welcome to Hyrex Init!\n', 'brightCyan'));
         
-        // Ask configuration questions using inquirer
+        // Ask about app type first
+        const appTypeAnswer = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'appType',
+                message: 'What would you like to do?',
+                choices: [
+                    { name: 'Create brand new app (includes all config files)', value: 'new' },
+                    { name: 'Install Hyrex in existing app (only core files)', value: 'existing' }
+                ]
+            }
+        ]);
+        
+        const isNewApp = appTypeAnswer.appType === 'new';
+        
+        // Ask configuration questions for all installs
         const modeAnswer = await inquirer.prompt([
             {
                 type: 'list',
@@ -256,52 +239,121 @@ export async function handleInit(appName: string, directory: string) {
             }
         }
         
-        // Create directory structure
-        const targetDir = path.resolve(process.cwd(), directory);
-        const appDir = directory === '.' ? targetDir : path.join(targetDir, appName);
+        // Directory selection with retry loop (after configuration is complete)
+        let targetAppName: string;
+        let appDir: string;
         
-        if (directory !== '.' && !fs.existsSync(appDir)) {
+        while (true) {
+            // Ask for directory name
+            const dirAnswer = await inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'directoryName',
+                    message: 'Enter the name for the new directory:',
+                    default: 'hyrex',
+                    validate: (input) => {
+                        if (!input.trim()) {
+                            return 'Directory name cannot be empty';
+                        }
+                        return true;
+                    }
+                }
+            ]);
+            
+            targetAppName = dirAnswer.directoryName.trim();
+            
+            // Create directory structure and check for conflicts
+            const targetDir = path.resolve(process.cwd(), directory);
+            appDir = path.join(targetDir, targetAppName);
+            
+            // Check if directory already exists and has content
+            if (fs.existsSync(appDir)) {
+                const dirContents = fs.readdirSync(appDir);
+                if (dirContents.length > 0) {
+                    console.log(colorize(`\n❌ Directory ${targetAppName} already exists and is not empty.`, 'red'));
+                    console.log(colorize('Please choose a different directory name.\n', 'yellow'));
+                    continue;
+                }
+            }
+            
+            // Check for existing files that would conflict
+            const coreFiles = ['app.ts', 'hyrex-app.ts', 'tsconfig.hyrex.json'];
+            const configFiles = ['.env', '.env.example', 'package.json', 'tsconfig.json', '.gitignore'];
+            const files = isNewApp ? [...coreFiles, ...configFiles] : coreFiles;
+            
+            const existingFiles = [];
+            for (const fileName of files) {
+                const filePath = path.join(appDir, fileName);
+                if (fs.existsSync(filePath)) {
+                    existingFiles.push(fileName);
+                }
+            }
+            
+            if (existingFiles.length > 0) {
+                console.log(colorize(`\n❌ Cannot initialize files in ${targetAppName} because the following files already exist:`, 'red'));
+                existingFiles.forEach(name => console.log(colorize(`    ${name}`, 'red')));
+                console.log(colorize('\nPlease choose a different directory.\n', 'yellow'));
+                continue; // Go back to directory selection
+            }
+            
+            // No conflicts, proceed
+            break;
+        }
+        
+        // Create the directory if it doesn't exist
+        if (!fs.existsSync(appDir)) {
             await mkdir(appDir, { recursive: true });
         }
         
         console.log(colorize(`\n📁 Creating Hyrex app in ${appDir}...\n`, 'brightGreen'));
         
         // Write files
-        const files = [
-            { name: 'app.ts', content: generateAppTemplate(appName) },
-            { name: 'hyrex-app.ts', content: generateHyrexAppTemplate(appName) },
+        const coreFilesToCreate = [
+            { name: 'app.ts', content: generateAppTemplate(targetAppName) },
+            { name: 'hyrex-app.ts', content: generateHyrexAppTemplate(targetAppName) },
+            { name: 'tsconfig.hyrex.json', content: generateHyrexTsConfigTemplate() }
+        ];
+        
+        const configFilesToCreate = [
             { name: '.env', content: generateEnvTemplate({ mode, apiKey, databaseUrl, s3Bucket }) },
             { name: '.env.example', content: generateEnvTemplate({ mode }) },
-            { name: 'package.json', content: generatePackageJsonTemplate(appName) },
+            { name: 'package.json', content: generatePackageJsonTemplate(targetAppName) },
             { name: 'tsconfig.json', content: generateTsConfigTemplate() },
-            { name: 'README.md', content: generateReadmeTemplate(appName, mode) },
             { name: '.gitignore', content: 'node_modules/\ndist/\n.env\n*.log\n' }
         ];
         
+        const files = isNewApp ? [...coreFilesToCreate, ...configFilesToCreate] : coreFilesToCreate;
+        
+        // Write files (no conflicts at this point)
         for (const file of files) {
             const filePath = path.join(appDir, file.name);
             await writeFile(filePath, file.content);
             console.log(colorize(`  ✓ Created ${file.name}`, 'green'));
         }
         
-        console.log(colorize('\n✨ Success! Your Hyrex app is ready.\n', 'brightGreen'));
+        console.log(colorize(`\n✨ Success! Your Hyrex ${isNewApp ? 'app' : 'integration'} is ready.\n`, 'brightGreen'));
         console.log('Next steps:');
         
-        if (directory !== '.') {
-            console.log(`  1. cd ${appName}`);
-            console.log('  2. npm install');
+        let stepNumber = 1;
+        
+        // Add environment variable export step
+        if (mode === 'cloud') {
+            console.log(`  ${stepNumber}. export HYREX_API_KEY="${apiKey || 'your-api-key-here'}"`);
+            stepNumber++;
         } else {
-            console.log('  1. npm install');
+            console.log(`  ${stepNumber}. export HYREX_DATABASE_URL="${databaseUrl || 'postgresql://localhost:5432/hyrex'}"`);
+            stepNumber++;
         }
         
         if (mode === 'postgres') {
-            console.log(`  ${directory !== '.' ? '3' : '2'}. npm run init-db`);
-            console.log(`  ${directory !== '.' ? '4' : '3'}. npm run worker`);
-        } else {
-            console.log(`  ${directory !== '.' ? '3' : '2'}. npm run worker`);
+            console.log(`  ${stepNumber}. npx hyrex init-db ${targetAppName}/hyrex-app.ts`);
+            stepNumber++;
         }
         
-        console.log(colorize('\n🎉 Happy coding!\n', 'brightYellow'));
+        console.log(`  ${stepNumber}. npx hyrex run-worker ${targetAppName}/hyrex-app.ts`);
+        
+        console.log(colorize('\n📚 Documentation: https://hyrex.io/docs', 'brightCyan'));
+        console.log(colorize('🎉 Happy coding!\n', 'brightYellow'));
         
     } catch (error) {
         console.error(colorize('\n❌ Error creating Hyrex app:', 'red'), error);

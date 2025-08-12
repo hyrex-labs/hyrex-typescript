@@ -39,7 +39,7 @@ export function createInsertTaskCronExpression(serializedTaskRequest: Serialized
                                   ${tr.max_retries},
                                   ${tr.priority},
                                   ${tr.timeout_seconds},
-                                  'queued'::task_run_status,
+                                  'QUEUED'::task_run_status,
                                   0,
                                   CURRENT_TIMESTAMP,
                                   ${tr.idempotency_key === null ? 'NULL' : `'${tr.idempotency_key}'`}

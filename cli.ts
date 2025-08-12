@@ -3,6 +3,7 @@
 // src/cli.ts
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { COMMANDS } from "./commands";
@@ -29,6 +30,20 @@ const executorIdToProcess = new Map<string, ChildProcess>();
 const childProcesses: ChildProcess[] = [];
 const adminProcesses: ChildProcess[] = [];
 const cronSchedulerProcesses: ChildProcess[] = [];
+
+/**
+ * Gets the TypeScript command args, checking for tsconfig.hyrex.json in the same directory as the script
+ */
+function getTypescriptCommand(scriptPath: string): string[] {
+    const scriptDir = path.dirname(scriptPath);
+    const hyrexTsConfig = path.join(scriptDir, 'tsconfig.hyrex.json');
+    
+    if (fs.existsSync(hyrexTsConfig)) {
+        return ['ts-node', '--project', hyrexTsConfig, scriptPath];
+    }
+    
+    return ['ts-node', scriptPath];
+}
 
 const argv = yargs(hideBin(process.argv))
     .command(
@@ -195,7 +210,8 @@ const argv = yargs(hideBin(process.argv))
         },
         async (args) => {
             const scriptPath = path.resolve(process.cwd(), args.script as string);
-            const worker: ChildProcess = spawn('ts-node', [scriptPath, '--initDB'], {
+            const tsCommand = getTypescriptCommand(scriptPath);
+            const worker: ChildProcess = spawn(tsCommand[0], [...tsCommand.slice(1), '--initDB'], {
                 env: {
                     ...process.env,
                     [COMMANDS.INIT_DB]: "1",
@@ -297,7 +313,8 @@ function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, qu
         [COMMANDS.QUEUE_PATTERN]: queuePattern,
     }
 
-    const executor: ChildProcess = spawn('ts-node', [scriptPath], {
+    const tsCommand = getTypescriptCommand(scriptPath);
+    const executor: ChildProcess = spawn(tsCommand[0], tsCommand.slice(1), {
         env: workerEnv,
         stdio: ['ignore', 'inherit', 'inherit', "ipc"],
     });
@@ -354,7 +371,8 @@ function spawnExectuor({ workerName, scriptPath, exitOnSleep, executorNumber, qu
 }
 
 function spawnCronScheduler(workerName: string, scriptPath: string) {
-    const schedulerProcess: ChildProcess = spawn('ts-node', [scriptPath], {
+    const tsCommand = getTypescriptCommand(scriptPath);
+    const schedulerProcess: ChildProcess = spawn(tsCommand[0], tsCommand.slice(1), {
         env: {
             ...process.env,
             [COMMANDS.RUN_CRON_SCHEDULER]: "1",
@@ -408,7 +426,8 @@ function spawnAdmin(scriptPath: string) {
     //     throw new Error("Spawning a new admin process")
     // }
 
-    const adminProcess: ChildProcess = spawn('ts-node', [scriptPath], {
+    const tsCommand = getTypescriptCommand(scriptPath);
+    const adminProcess: ChildProcess = spawn(tsCommand[0], tsCommand.slice(1), {
         env: {
             ...process.env,
             [COMMANDS.RUN_ADMIN]: "1",

@@ -5,7 +5,17 @@ interface Client {
 }
 
 export const getHypeCronJobByNameQuery = `-- name: GetHypeCronJobByName :one
-SELECT jobid, schedule, command_type, command_params, active, jobname, activated_at, scheduled_jobs_confirmed_until, should_backfill FROM hype_cron_job
+SELECT
+    jobid,
+    schedule,
+    command_type::text as command_type,  -- Cast enum to text
+    command_params,
+    active,
+    jobname,
+    activated_at,
+    scheduled_jobs_confirmed_until,
+    should_backfill
+FROM hype_cron_job
 WHERE jobname = $1`;
 
 export interface GetHypeCronJobByNameArgs {

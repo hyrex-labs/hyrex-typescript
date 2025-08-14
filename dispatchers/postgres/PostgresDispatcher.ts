@@ -1,6 +1,5 @@
 import { HyrexDispatcher, SerializedTask, SerializedTaskRequest } from "../HyrexDispatcher";
 import { HyrexTaskConfig, JsonType, UUID, uuidSchema } from "../../utils";
-import { Notification, Pool, PoolClient } from 'pg';
 import { string } from "zod";
 import { DispatcherListenerCallbacks } from "../HyrexDispatcher";
 import { TaskHeartbeatResultMessage, AdminMessage, ExecutorHeartbeatResultMessage, HyrexAppInfo } from "../../types";
@@ -13,7 +12,6 @@ import { HyrexWorkflowBuilder, WorkflowDagJson } from "../../workflow/HyrexWorkf
 import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
 import { envVariables } from "../../EnvironmentVariables";
-import { zodToJsonSchema } from "zod-to-json-schema";
 
 // ──────────────────────────────────────────────────────────────
 // sqlc-generated helpers (new, typed queries)
@@ -185,23 +183,22 @@ export function globToSqlLike(glob: string): string {
 type S3Client = import('@aws-sdk/client-s3').S3Client;
 type PutObjectCommand = import('@aws-sdk/client-s3').PutObjectCommand;
 
+// Lazy-loaded pg types
+type Pool = import('pg').Pool;
+type PoolClient = import('pg').PoolClient;
+type Notification = import('pg').Notification;
+
 export class PostgresDispatcher implements HyrexDispatcher {
-    private pool: Pool
+    private pool: Pool | null = null
+    private poolPromise: Promise<Pool> | null = null
     private s3Client: S3Client | null = null
     private bucket: string | null = null
     private s3ClientPromise: Promise<S3Client | null> | null = null
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
-        this.pool = new Pool({
-            connectionString: config.conn,
-            max: 20,
-            idleTimeoutMillis: 30000,
-            maxUses: 7500,
-            allowExitOnIdle: true
-        })
-
+        // Don't create pool immediately - will be created on first use
         const dbName = new URL(config.conn).pathname.substring(1)
-        hyrexLogger.info('postgres', `Created Postgres Pool. dbName="${dbName}" pid=${process.pid}`, 'magenta')
+        hyrexLogger.info('postgres', `PostgresDispatcher created. dbName="${dbName}" pid=${process.pid} (pool will be initialized on first use)`, 'magenta')
 
         // Store bucket name if configured, but don't initialize S3 client yet
         const s3LogBucket = envVariables.getS3LogBucket()
@@ -209,6 +206,47 @@ export class PostgresDispatcher implements HyrexDispatcher {
             this.bucket = s3LogBucket
             hyrexLogger.info('postgres', `S3 bucket configured: ${s3LogBucket} (client will be initialized on first use)`, 'magenta')
         }
+    }
+
+    private async getPool(): Promise<Pool> {
+        // Return existing pool if already initialized
+        if (this.pool) {
+            return this.pool;
+        }
+
+        // Return existing promise if initialization is in progress
+        if (this.poolPromise) {
+            return this.poolPromise;
+        }
+
+        // Start lazy initialization
+        this.poolPromise = (async () => {
+            try {
+                hyrexLogger.info('postgres', `Lazy-loading pg module and creating connection pool`, 'magenta')
+                const { Pool } = await import('pg');
+                this.pool = new Pool({
+                    connectionString: this.config.conn,
+                    max: 20,
+                    idleTimeoutMillis: 30000,
+                    maxUses: 7500,
+                    allowExitOnIdle: true
+                });
+                const dbName = new URL(this.config.conn).pathname.substring(1)
+                hyrexLogger.info('postgres', `PostgreSQL pool successfully created. dbName="${dbName}"`, 'green')
+                return this.pool;
+            } catch (err) {
+                hyrexLogger.error('postgres', `Failed to initialize PostgreSQL pool: ${err}`, 'red')
+                this.poolPromise = null; // Reset so we can retry later
+                throw err;
+            }
+        })();
+
+        return this.poolPromise;
+    }
+
+    private async convertZodToJsonSchema(schema: any): Promise<any> {
+        const { zodToJsonSchema } = await import('zod-to-json-schema');
+        return zodToJsonSchema(schema);
     }
 
     private async getS3Client(): Promise<S3Client | null> {
@@ -315,7 +353,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
                     await new Promise(resolve => setTimeout(resolve, backoffMs));
                 }
 
-                client = await this.pool.connect();
+                const pool = await this.getPool();
+                client = await pool.connect();
                 return await queryFn(client);
 
             } catch (error: unknown) {
@@ -598,7 +637,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
         const TASK_HEARTBEAT = "TASK_HEARTBEAT"
         const TASK_CANCEL = "TASK_CANCEL"
         // For the listener, we need a dedicated client connection that stays open
-        const client = await this.pool.connect()
+        const pool = await this.getPool();
+        const client = await pool.connect()
         try {
             await client.query(`LISTEN "${TASK_HEARTBEAT}"`);
             await client.query(`LISTEN "${TASK_CANCEL}"`);
@@ -708,7 +748,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
                 taskName: taskName,
                 cronExpr: taskConfig?.cron || null,
                 sourceCode: sourceCode || null,
-                argSchema: argSchema ? JSON.stringify(zodToJsonSchema(argSchema)) : null,
+                argSchema: argSchema ? JSON.stringify(await this.convertZodToJsonSchema(argSchema)) : null,
                 queue: taskConfig?.queue ? (typeof taskConfig.queue === 'string' ? taskConfig.queue : taskConfig.queue.name) : null,
                 priority: taskConfig?.priority || null,
                 maxRetries: taskConfig?.maxRetries || null,

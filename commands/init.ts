@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
-import inquirer from 'inquirer';
 import { COLOR_MAP } from '../logging/ColorMap';
 
 const mkdir = promisify(fs.mkdir);
@@ -166,8 +165,11 @@ export async function handleInit(appName: string, directory: string) {
     try {
         console.log(colorize('\n🚀 Welcome to Hyrex Init!\n', 'brightCyan'));
         
+        // Lazy-load inquirer
+        const inquirer = await import('inquirer');
+        
         // Ask about app type first
-        const appTypeAnswer = await inquirer.prompt([
+        const appTypeAnswer = await inquirer.default.prompt([
             {
                 type: 'list',
                 name: 'appType',
@@ -182,7 +184,7 @@ export async function handleInit(appName: string, directory: string) {
         const isNewApp = appTypeAnswer.appType === 'new';
         
         // Ask configuration questions for all installs
-        const modeAnswer = await inquirer.prompt([
+        const modeAnswer = await inquirer.default.prompt([
             {
                 type: 'list',
                 name: 'mode',
@@ -200,7 +202,7 @@ export async function handleInit(appName: string, directory: string) {
         let s3Bucket: string | undefined;
         
         if (mode === 'cloud') {
-            const cloudAnswers = await inquirer.prompt([
+            const cloudAnswers = await inquirer.default.prompt([
                 {
                     type: 'input',
                     name: 'apiKey',
@@ -210,7 +212,7 @@ export async function handleInit(appName: string, directory: string) {
             ]);
             apiKey = cloudAnswers.apiKey === 'your-api-key-here' ? undefined : cloudAnswers.apiKey;
         } else {
-            const pgAnswers = await inquirer.prompt([
+            const pgAnswers = await inquirer.default.prompt([
                 {
                     type: 'input',
                     name: 'databaseUrl',
@@ -228,7 +230,7 @@ export async function handleInit(appName: string, directory: string) {
             databaseUrl = pgAnswers.databaseUrl;
             
             if (pgAnswers.useS3) {
-                const s3Answer = await inquirer.prompt([
+                const s3Answer = await inquirer.default.prompt([
                     {
                         type: 'input',
                         name: 's3Bucket',
@@ -245,7 +247,7 @@ export async function handleInit(appName: string, directory: string) {
         
         while (true) {
             // Ask for directory name
-            const dirAnswer = await inquirer.prompt([
+            const dirAnswer = await inquirer.default.prompt([
                 {
                     type: 'input',
                     name: 'directoryName',

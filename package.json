@@ -35,9 +35,6 @@
     "morgan": "^1.10.0",
     "pg": "^8.13.1",
     "proper-lockfile": "^4.1.2",
-    "redis": "^4.7.0",
-    "sqlite3": "^5.1.7",
-    "tsx": "^4.19.2",
     "uuid": "^10.0.0",
     "winston": "^3.17.0",
     "yargs": "^17.7.2",
@@ -45,6 +42,7 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "@grpc/proto-loader": "^0.7.15",
     "@types/cors": "^2.8.18",

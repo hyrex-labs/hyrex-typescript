@@ -1,6 +1,6 @@
 {
   "name": "@hyrex/hyrex",
-  "version": "0.1.41",
+  "version": "0.1.42-canary.0",
   "description": "The COLD Task Framework.",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -13,6 +13,7 @@
     "build": "tsc && cp -r dispatchers/platform/generated dist/dispatchers/platform/",
     "release": "npm run build && npm publish --access private",
     "release-public": "npm run build && npm publish --access public",
+    "release-canary": "npm run build && npm version prerelease --preid=canary && npm publish --tag canary --access public",
     "worker": "ts-node cli.ts run-worker",
     "workerjs": "node dist/cli.js run-worker",
     "init-db": "node dist/cli.js init-db",

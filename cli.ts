@@ -257,8 +257,9 @@ const argv = yargs(hideBin(process.argv))
             // Set environment variable for studio server to check
             process.env.STUDIO_VERBOSE = verbose.toString();
             
-            // Run the studio server directly
-            require('./studio/studio-server');
+            // Import and run the studio server
+            const { startStudioServer } = require('./studio/studio-server');
+            await startStudioServer();
         }
     )
     .command(

@@ -1,4 +1,7 @@
 import { hyrexLogger } from "./logging/FrameworkLogger";
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 class EnvVariables {
     getDatabaseUrl() {

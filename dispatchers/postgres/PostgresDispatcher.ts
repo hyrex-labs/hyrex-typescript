@@ -12,7 +12,6 @@ import { createInsertTaskCronExpression } from "./utils";
 import { HyrexWorkflowBuilder, WorkflowDagJson } from "../../workflow/HyrexWorkflowBuilder";
 import { z } from "zod";
 import { SerializedWorkflowRunRequest, WorkflowRunStatus } from "../../workflow/HyrexWorkflow";
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { envVariables } from "../../EnvironmentVariables";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
@@ -182,10 +181,15 @@ export function globToSqlLike(glob: string): string {
 }
 
 
+// Lazy-loaded AWS SDK types
+type S3Client = import('@aws-sdk/client-s3').S3Client;
+type PutObjectCommand = import('@aws-sdk/client-s3').PutObjectCommand;
+
 export class PostgresDispatcher implements HyrexDispatcher {
     private pool: Pool
     private s3Client: S3Client | null = null
     private bucket: string | null = null
+    private s3ClientPromise: Promise<S3Client | null> | null = null
 
     constructor(private config: HyrexPostgresDispatcherConfig) {
         this.pool = new Pool({
@@ -199,18 +203,46 @@ export class PostgresDispatcher implements HyrexDispatcher {
         const dbName = new URL(config.conn).pathname.substring(1)
         hyrexLogger.info('postgres', `Created Postgres Pool. dbName="${dbName}" pid=${process.pid}`, 'magenta')
 
-        // Initialize S3 client if bucket is configured
+        // Store bucket name if configured, but don't initialize S3 client yet
         const s3LogBucket = envVariables.getS3LogBucket()
         if (s3LogBucket) {
             this.bucket = s3LogBucket
+            hyrexLogger.info('postgres', `S3 bucket configured: ${s3LogBucket} (client will be initialized on first use)`, 'magenta')
+        }
+    }
+
+    private async getS3Client(): Promise<S3Client | null> {
+        // Return null if no bucket is configured
+        if (!this.bucket) {
+            return null;
+        }
+
+        // Return existing client if already initialized
+        if (this.s3Client) {
+            return this.s3Client;
+        }
+
+        // Return existing promise if initialization is in progress
+        if (this.s3ClientPromise) {
+            return this.s3ClientPromise;
+        }
+
+        // Start lazy initialization
+        this.s3ClientPromise = (async () => {
             try {
-                this.s3Client = new S3Client({})
-                hyrexLogger.info('postgres', `S3 client initialized for bucket: ${s3LogBucket}`, 'magenta')
+                hyrexLogger.info('postgres', `Lazy-loading AWS SDK and initializing S3 client for bucket: ${this.bucket}`, 'magenta')
+                const { S3Client } = await import('@aws-sdk/client-s3');
+                this.s3Client = new S3Client({});
+                hyrexLogger.info('postgres', `S3 client successfully initialized`, 'green')
+                return this.s3Client;
             } catch (err) {
                 hyrexLogger.error('postgres', `Failed to initialize S3 client: ${err}`, 'red')
-                this.s3Client = null
+                this.s3ClientPromise = null; // Reset so we can retry later
+                return null;
             }
-        }
+        })();
+
+        return this.s3ClientPromise;
     }
 
     async registerHyrexApp(hyrexAppInfo: HyrexAppInfo): Promise<void> {
@@ -832,8 +864,8 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }
 
     async writeS3Logs(taskId: string, logs: string[]): Promise<void> {
-        if (!this.bucket || !this.s3Client) {
-            hyrexLogger.warn('postgres', 'S3 client not initialized, skipping log upload', 'yellow')
+        if (!this.bucket) {
+            hyrexLogger.warn('postgres', 'S3 bucket not configured, skipping log upload', 'yellow')
             return
         }
 
@@ -841,8 +873,18 @@ export class PostgresDispatcher implements HyrexDispatcher {
             throw new Error('No taskId provided for writeS3Logs')
         }
 
+        // Lazy-load S3 client
+        const s3Client = await this.getS3Client();
+        if (!s3Client) {
+            hyrexLogger.warn('postgres', 'Failed to initialize S3 client, skipping log upload', 'yellow')
+            return
+        }
+
         const objectKey = `hyrex-logs/${taskId}.log`
-        const putObjectCommand: PutObjectCommand = new PutObjectCommand({
+        
+        // Dynamically import PutObjectCommand
+        const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const putObjectCommand = new PutObjectCommand({
             Bucket: this.bucket,
             Key: objectKey,
             Body: logs.join(''),
@@ -850,7 +892,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         })
 
         try {
-            await this.s3Client.send(putObjectCommand)
+            await s3Client.send(putObjectCommand)
 
             // Construct the S3 link and update it in the database
             const logLink = `s3://${this.bucket}/${objectKey}`

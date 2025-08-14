@@ -1,4 +1,3 @@
-import winston from 'winston';
 import { COLOR_MAP } from "./ColorMap";
 
 export type LogFeature =
@@ -41,40 +40,12 @@ function formatValue(value: any): string {
 
 
 class FrameworkLogger {
-    private logger: winston.Logger;
     private enabledFeatures: Set<LogFeature>
     private supportsColor: boolean
 
     constructor(config: LoggerConfig) {
         this.enabledFeatures = new Set(config.features);
         this.supportsColor = this.detectColorSupport();
-
-        this.logger = winston.createLogger({
-            format: winston.format.combine(
-                winston.format.json(),
-                winston.format.printf((info) => {
-                    const feature = info.feature as string;
-                    const color = info.color as string | undefined;
-                    const featureTag = `[${feature}]`.padEnd(22)
-
-                    let result = `${info.message}`;
-
-                    if (feature !== 'system') {
-                        result = `${featureTag} ${result}`
-                    }
-
-                    if (color && this.supportsColor) {
-                        const colorCode = COLOR_MAP[color as LogColor];
-                        result = `\x1b[${colorCode}m${result}\x1b[0m`;
-                    }
-
-                    return result
-                })
-            ),
-            transports: [
-                new winston.transports.Console()
-            ],
-        });
     }
 
     private detectColorSupport(): boolean {
@@ -124,12 +95,21 @@ class FrameworkLogger {
         color?: LogColor
     ) {
         if (this.isFeatureEnabled(feature)) {
-            this.logger.log({
-                level,
-                feature,
-                message,
-                color
-            });
+            // Format the message with feature tag and color
+            let formattedMessage = message || '';
+            
+            if (feature !== 'system') {
+                const featureTag = `[${feature}]`.padEnd(22);
+                formattedMessage = `${featureTag} ${formattedMessage}`;
+            }
+            
+            if (color && this.supportsColor) {
+                const colorCode = COLOR_MAP[color as LogColor];
+                formattedMessage = `\x1b[${colorCode}m${formattedMessage}\x1b[0m`;
+            }
+            
+            // Write directly to stdout for our custom formatting
+            process.stdout.write(formattedMessage + '\n');
         }
     }
 

@@ -19,6 +19,8 @@ import {
 import { generateWorkerName } from "./WorkerContext";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 import { asciiHyrexLogo } from "./constants";
+import { createHealthServer } from "./health-server";
+import { Server } from 'net';
 
 // Settings
 const SHUTDOWN_TIMEOUT = 25_000
@@ -77,6 +79,12 @@ const argv = yargs(hideBin(process.argv))
                     alias: 'q',
                     default: '*'
                 })
+                .option('health-server', {
+                    describe: 'Enable health check HTTP server on port 8080',
+                    type: 'boolean',
+                    alias: 'hs',
+                    default: false
+                })
         },
         async (args) => {
             const scriptPath = path.resolve(process.cwd(), args.script as string);
@@ -84,10 +92,21 @@ const argv = yargs(hideBin(process.argv))
             const lifespan = args.lifespan as number | undefined;
             const exitOnSleep = args.exitOnSleep as boolean;
             const queuePattern = args.queue as string
+            const enableHealthServer = args.healthServer as boolean;
+            
+            let healthServer: Server | undefined;
 
             const workerName = generateWorkerName()
 
             hyrexLogger.info('system', asciiHyrexLogo, 'green')
+            
+            if (enableHealthServer) {
+                healthServer = createHealthServer(8080, () => ({
+                    executors: executorIdToProcess.size,
+                    tasks: taskIdToProcess.size
+                }));
+                hyrexLogger.info("process-management", "Health check server started on port 8080", 'green');
+            }
 
             hyrexLogger.info("process-management", `Kicking off with workers. workerCount=${count} scriptPath=${scriptPath}`, 'magenta')
             for (let i = 0; i < count; i++) {

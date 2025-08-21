@@ -1,0 +1,21 @@
+# Development and testing
+app/
+examples/
+docs/
+AGENTS.md
+CLAUDE.md
+
+# Source files (only distribute compiled)
+*.ts
+!*.d.ts
+
+# Config files
+tsconfig.json
+tsconfig.*.json
+.gitignore
+.npmignore
+
+# Development artifacts
+node_modules/
+*.log
+.DS_Store

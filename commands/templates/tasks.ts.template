@@ -27,12 +27,12 @@ const sendNTestTasks = hy.task({
         queue: 'default',
         timeoutSeconds: 30,
     },
-    func: async (input: { n: number }) => {
+    func: async ({ n }: { n: number }) => {
         // Enqueue n test_task instances
-        for (let i = 0; i < input.n; i++) {
+        for (let i = 0; i < n; i++) {
             await testTask.send();
         }
-        return `Enqueued ${input.n} test tasks`;
+        return { message: `Enqueued ${n} test tasks` };
     }
 });
 

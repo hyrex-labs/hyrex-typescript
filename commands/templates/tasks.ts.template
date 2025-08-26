@@ -1,0 +1,109 @@
+import { HyrexRegistry } from '@hyrex/hyrex';
+import { getHyrexContext } from '@hyrex/hyrex';
+
+export const hy = new HyrexRegistry();
+
+// A simple test task that sleeps for a random duration
+const testTask = hy.task({
+    name: 'testTask',
+    config: {
+        queue: 'default',
+        timeoutSeconds: 30,
+    },
+    func: async () => {
+        const ctx = getHyrexContext();
+        // Sleep for a random duration between 0 and 2 seconds
+        const sleepDuration = Math.random() * 2;
+        console.log(`Task ${ctx.taskId}: Sleeping for ${sleepDuration.toFixed(2)}s`);
+        await new Promise(resolve => setTimeout(resolve, sleepDuration * 1000));
+        return { sleptFor: sleepDuration };
+    }
+});
+
+// Enqueue n test_task instances
+const sendNTestTasks = hy.task({
+    name: 'sendNTestTasks', 
+    config: {
+        queue: 'default',
+        timeoutSeconds: 30,
+    },
+    func: async (input: { n: number }) => {
+        // Enqueue n test_task instances
+        for (let i = 0; i < input.n; i++) {
+            await testTask.send();
+        }
+        return `Enqueued ${input.n} test tasks`;
+    }
+});
+
+// Simple ETL Workflow Example
+
+// Extract data from source
+const extractData = hy.task({
+    name: 'extractData',
+    config: {
+        queue: 'etl',
+        timeoutSeconds: 30,
+    },
+    func: async () => {
+        console.log("📊 Extracting data from source...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("✓ Extract complete");
+        return { status: 'extracted' };
+    }
+});
+
+// Transform the extracted data
+const transformData = hy.task({
+    name: 'transformData',
+    config: {
+        queue: 'etl',
+        timeoutSeconds: 30,
+    },
+    func: async () => {
+        console.log("🔄 Transforming data...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("✓ Transform complete");
+        return { status: 'transformed' };
+    }
+});
+
+// Load data to destination
+const loadData = hy.task({
+    name: 'loadData',
+    config: {
+        queue: 'etl',
+        timeoutSeconds: 30,
+    },
+    func: async () => {
+        console.log("💾 Loading data to destination...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("✓ Load complete");
+        return { status: 'loaded' };
+    }
+});
+
+// A simple ETL workflow that chains extract, transform, and load tasks
+const simpleETLWorkflow = hy.workflow({
+    name: 'simpleETLWorkflow',
+    config: {
+        queue: 'etl'
+    },
+    body: (workflowBuilder) => {
+        workflowBuilder
+            .start(extractData)
+            .next(transformData)
+            .next(loadData);
+        
+        return workflowBuilder;
+    }
+});
+
+// Export tasks for easy access
+export { testTask, sendNTestTasks, extractData, transformData, loadData, simpleETLWorkflow };
+
+// Example usage (uncomment to test):
+// if (process.argv.includes('--submit')) {
+//     sendNTestTasks.send({ n: 5 });
+//     console.log('Submitted task to enqueue 5 test tasks!');
+// }

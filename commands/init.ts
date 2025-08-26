@@ -6,6 +6,9 @@ import { COLOR_MAP } from '../logging/ColorMap';
 const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
 
+// Path to templates directory
+const TEMPLATES_DIR = path.join(__dirname, 'templates');
+
 // Helper function to colorize text
 const colorize = (text: string, color: keyof typeof COLOR_MAP): string => {
     const supportsColor = process.stdout.isTTY && process.env.TERM !== 'dumb';
@@ -13,71 +16,23 @@ const colorize = (text: string, color: keyof typeof COLOR_MAP): string => {
     return `\x1b[${COLOR_MAP[color]}m${text}\x1b[${COLOR_MAP.reset}m`;
 };
 
+// Load template from file and replace placeholders
+const loadTemplate = (templateName: string, replacements: Record<string, string> = {}): string => {
+    const templatePath = path.join(TEMPLATES_DIR, templateName);
+    let content = fs.readFileSync(templatePath, 'utf-8');
+    
+    // Replace placeholders
+    Object.entries(replacements).forEach(([key, value]) => {
+        content = content.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    });
+    
+    return content;
+};
+
 // Template for the hello world app
-const generateAppTemplate = (appName: string) => `import { HyrexRegistry } from '@hyrex/hyrex';
-import { getHyrexContext } from '@hyrex/hyrex';
+const generateAppTemplate = (appName: string) => loadTemplate('tasks.ts.template');
 
-export const hy = new HyrexRegistry();
-
-// Define a simple hello world task
-const helloWorldTask = hy.task({
-    name: 'helloWorld',
-    config: {
-        queue: 'default',
-        timeoutSeconds: 30,
-    },
-    func: async (input: { name?: string }) => {
-        const ctx = getHyrexContext();
-        const name = input.name || 'World';
-        
-        console.log(\`Task ID: \${ctx.taskId}\`);
-        console.log(\`Hello, \${name}! Welcome to Hyrex!\`);
-        
-        // Simulate some work
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        return {
-            message: \`Successfully greeted \${name}\`,
-            timestamp: new Date().toISOString(),
-            taskId: ctx.taskId
-        };
-    }
-});
-
-// Define a cron task that runs every minute
-const heartbeatTask = hy.task({
-    name: 'heartbeat',
-    config: {
-        queue: 'monitoring',
-        cron: '* * * * *', // Every minute
-        timeoutSeconds: 10,
-    },
-    func: async () => {
-        console.log(\`Heartbeat at \${new Date().toISOString()}\`);
-        return { status: 'healthy' };
-    }
-});
-
-// Export tasks for easy access
-export { helloWorldTask, heartbeatTask };
-
-// Example usage (uncomment to test):
-// if (process.argv.includes('--submit')) {
-//     helloWorldTask.send({ name: '${appName}' });
-//     console.log('Task submitted!');
-// }
-`;
-
-const generateHyrexAppTemplate = (appName: string) => `import { HyrexApp } from '@hyrex/hyrex';
-import { hy as appRegistry } from './app';
-
-const hyrexApp = new HyrexApp({ 
-    name: "${appName}"
-});
-
-hyrexApp.addRegistry(appRegistry);
-hyrexApp.init();
-`;
+const generateHyrexAppTemplate = (appName: string) => loadTemplate('hyrex-app.ts.template', { APP_NAME: appName });
 
 const generateEnvTemplate = (config: { mode: 'cloud' | 'postgres', apiKey?: string, databaseUrl?: string, s3Bucket?: string }) => {
     const lines: string[] = [];
@@ -113,7 +68,7 @@ const generatePackageJsonTemplate = (appName: string) => `{
     "worker": "hyrex run-worker hyrex-app.ts",
     "worker:multi": "hyrex run-worker hyrex-app.ts 4",
     "init-db": "hyrex init-db hyrex-app.ts",
-    "submit": "ts-node app.ts --submit"
+    "submit": "ts-node tasks.ts --submit"
   },
   "dependencies": {
     "@hyrex/hyrex": "^0.1.19",
@@ -279,7 +234,7 @@ export async function handleInit(appName: string, directory: string) {
             }
             
             // Check for existing files that would conflict
-            const coreFiles = ['app.ts', 'hyrex-app.ts', 'tsconfig.hyrex.json'];
+            const coreFiles = ['tasks.ts', 'hyrex-app.ts', 'tsconfig.hyrex.json'];
             const configFiles = ['.env', '.env.example', 'package.json', 'tsconfig.json', '.gitignore'];
             const files = isNewApp ? [...coreFiles, ...configFiles] : coreFiles;
             
@@ -311,7 +266,7 @@ export async function handleInit(appName: string, directory: string) {
         
         // Write files
         const coreFilesToCreate = [
-            { name: 'app.ts', content: generateAppTemplate(targetAppName) },
+            { name: 'tasks.ts', content: generateAppTemplate(targetAppName) },
             { name: 'hyrex-app.ts', content: generateHyrexAppTemplate(targetAppName) },
             { name: 'tsconfig.hyrex.json', content: generateHyrexTsConfigTemplate() }
         ];

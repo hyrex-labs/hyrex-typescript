@@ -23,7 +23,7 @@ function generateWorkerName(): string {
 
     // Check for HYREX_PLATFORM environment variable
     if (process.env.HYREX_PLATFORM === '1') {
-        components.push('platform');
+        components.push('hyrex-platform');
 
         // Add unique identifier
         components.push(randomUUID().slice(0, 8));

@@ -1,6 +1,6 @@
 {
   "name": "@hyrex/hyrex",
-  "version": "0.1.45-canary.1",
+  "version": "0.1.47",
   "description": "The COLD Task Framework.",
   "main": "dist/index.js",
   "module": "dist/index.js",

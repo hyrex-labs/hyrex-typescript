@@ -39,11 +39,11 @@ const cronSchedulerProcesses: ChildProcess[] = [];
 function getTypescriptCommand(scriptPath: string): string[] {
     const scriptDir = path.dirname(scriptPath);
     const hyrexTsConfig = path.join(scriptDir, 'tsconfig.hyrex.json');
-    
+
     if (fs.existsSync(hyrexTsConfig)) {
         return ['ts-node', '--project', hyrexTsConfig, scriptPath];
     }
-    
+
     return ['ts-node', scriptPath];
 }
 
@@ -93,13 +93,19 @@ const argv = yargs(hideBin(process.argv))
             const exitOnSleep = args.exitOnSleep as boolean;
             const queuePattern = args.queue as string
             const enableHealthServer = args.healthServer as boolean;
-            
+
             let healthServer: Server | undefined;
 
             const workerName = generateWorkerName()
 
+            // Get version from package.json
+            const packageJson = require('./package.json');
+            const hyrexVersion = packageJson.version;
+
             hyrexLogger.info('system', asciiHyrexLogo, 'green')
-            
+            hyrexLogger.info('system', `Hyrex version: ${hyrexVersion}`, 'cyan')
+            hyrexLogger.info('system', `Worker name: ${workerName}`, 'cyan')
+
             if (enableHealthServer) {
                 healthServer = createHealthServer(8080, () => ({
                     executors: executorIdToProcess.size,
@@ -272,10 +278,10 @@ const argv = yargs(hideBin(process.argv))
         },
         async (args) => {
             const verbose = args.verbose as boolean;
-            
+
             // Set environment variable for studio server to check
             process.env.STUDIO_VERBOSE = verbose.toString();
-            
+
             // Import and run the studio server
             const { startStudioServer } = require('./studio/studio-server');
             await startStudioServer();
@@ -302,7 +308,7 @@ const argv = yargs(hideBin(process.argv))
         async (args) => {
             const appName = args.name as string;
             const directory = args.dir as string;
-            
+
             // Import init handler
             const { handleInit } = require('./commands/init');
             await handleInit(appName, directory);
@@ -543,14 +549,14 @@ function handleExecutorMessage(executor: ChildProcess, message: ExecutorMessage,
 function handleAdminMessage(adminProcess: ChildProcess, message: AdminMessage) {
     if (message && message.messageType === "TASK_CANCEL") {
         console.log("Killing task...", message.taskId, "executorId:", message.executorId)
-        
+
         // Try to kill by executorId first if provided, otherwise fall back to taskId
         if (message.executorId) {
             killExecutor(message.executorId);
         } else {
             killTask(message.taskId);
         }
-        
+
         adminProcess.send({
             messageType: "TASK_CANCEL",
             body: {
@@ -589,10 +595,10 @@ function killExecutor(executorId: string) {
     if (executor) {
         console.log(`Killing executor PID ${executor.pid} with Executor ID ${executorId}`);
         executor.kill('SIGKILL');
-        
+
         // Remove mappings for this executor
         executorIdToProcess.delete(executorId);
-        
+
         // Also remove any task mappings for this executor
         for (const [taskId, process] of taskIdToProcess.entries()) {
             if (process === executor) {

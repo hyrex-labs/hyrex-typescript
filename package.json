@@ -1,6 +1,6 @@
 {
   "name": "@hyrex/hyrex",
-  "version": "0.1.47",
+  "version": "0.1.49",
   "description": "The COLD Task Framework.",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -10,7 +10,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc && cp -r dispatchers/platform/generated dist/dispatchers/platform/",
+    "update-version": "ts-node scripts/update-version.ts",
+    "build": "npm run update-version && tsc && cp -r dispatchers/platform/generated dist/dispatchers/platform/",
     "release": "npm run build && npm publish --access private",
     "release-public": "npm run build && npm publish --access public",
     "release-canary": "npm run build && npm version prerelease --preid=canary && npm publish --tag canary --access public",

@@ -19,6 +19,7 @@ import {
 import { generateWorkerName } from "./WorkerContext";
 import { hyrexLogger } from "./logging/FrameworkLogger";
 import { asciiHyrexLogo } from "./constants";
+import { HYREX_VERSION } from "./version";
 import { createHealthServer } from "./health-server";
 import { Server } from 'net';
 
@@ -98,12 +99,8 @@ const argv = yargs(hideBin(process.argv))
 
             const workerName = generateWorkerName()
 
-            // Get version from package.json
-            const packageJson = require('./package.json');
-            const hyrexVersion = packageJson.version;
-
             hyrexLogger.info('system', asciiHyrexLogo, 'green')
-            hyrexLogger.info('system', `Hyrex version: ${hyrexVersion}`, 'cyan')
+            hyrexLogger.info('system', `Hyrex version: ${HYREX_VERSION}`, 'cyan')
             hyrexLogger.info('system', `Worker name: ${workerName}`, 'cyan')
 
             if (enableHealthServer) {

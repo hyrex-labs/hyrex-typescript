@@ -16,14 +16,10 @@ interface WorkerContext {
  * Generate a unique worker name using available environment information.
  * Guarantees uniqueness through UUID while maintaining readability.
  *
- * @param prefix - Prefix for the worker name
  * @returns A unique worker name combining available system information
  */
-function generateWorkerName(prefix: string = 'hyrex'): string {
+function generateWorkerName(): string {
     const components: string[] = [];
-
-    // Start with the prefix
-    components.push(prefix);
 
     // Check for HYREX_PLATFORM environment variable
     if (process.env.HYREX_PLATFORM === '1') {

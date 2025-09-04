@@ -83,10 +83,10 @@ export class HyrexWorkflow {
         const workflowRunId = await this.dispatcher.sendWorkflowRun({ serializedWorkflowRunRequest })
 
         // Serialize the workflow's DAG into an array of task requests.
-        const serializedTaskRequests: SerializedTaskRequest[] =
-            this.serializeWorkflowToTaskRequests(workflowRunId);
-
-        await this.dispatcher.enqueue(serializedTaskRequests)
+        // const serializedTaskRequests: SerializedTaskRequest[] =
+        //     this.serializeWorkflowToTaskRequests(workflowRunId);
+        //
+        // await this.dispatcher.enqueue(serializedTaskRequests)
     }
 
     /**

@@ -69,7 +69,6 @@ export class HyrexApp {
             this.dispatcher = new PostgresDispatcher({ conn: this.conn })
         } else {
             throw new Error("Could not find conn...")
-            // this.dispatcher = new Sqlite3Dispatcher("tasks.db")
         }
 
         this.appRegistry = new HyrexRegistry()

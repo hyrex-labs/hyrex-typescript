@@ -66,7 +66,7 @@ export class HyrexWorkflow {
      * @param workflowArgument Optional argument for the workflow run.
      * @returns The created workflow run ID.
      */
-    async send(workflowArgument?: any) {
+    async send(workflowArgument?: any): Promise<string> {
         if (workflowArgument && this.workflowArgSchema) {
             this.workflowArgSchema.parse(workflowArgument)
         }
@@ -80,7 +80,7 @@ export class HyrexWorkflow {
             idempotency_key: this.config.idempotencyKey || null
         }
 
-        await this.dispatcher.sendWorkflowRun({ serializedWorkflowRunRequest })
+        return this.dispatcher.sendWorkflowRun({ serializedWorkflowRunRequest })
     }
 
     /**

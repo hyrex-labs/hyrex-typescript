@@ -4,6 +4,7 @@ examples/
 docs/
 AGENTS.md
 CLAUDE.md
+*.sh
 
 # Source files (only distribute compiled)
 *.ts

@@ -265,9 +265,9 @@ const choices: sendTaskArgs[] = [
 ];
 
 if (process.argv.includes('--submit')) {
-    // onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
+    onboardUser.send({ "userEmail": "mark@hyrex.io", "signUpTier": "PRO" })
     // Example: Send rootLevelTask with 100 children
-    rootLevelTask.send({ numChildren: 100 })
+    // rootLevelTask.send({ numChildren: 100 })
     console.log("submitted!")
 }
 

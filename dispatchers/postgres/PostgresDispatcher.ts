@@ -921,7 +921,7 @@ export class PostgresDispatcher implements HyrexDispatcher {
         }
 
         const objectKey = `hyrex-logs/${taskId}.log`
-        
+
         // Dynamically import PutObjectCommand
         const { PutObjectCommand } = await import('@aws-sdk/client-s3');
         const putObjectCommand = new PutObjectCommand({
@@ -976,21 +976,69 @@ export class PostgresDispatcher implements HyrexDispatcher {
     }): Promise<string> {
         return this.queryWithRetry(async (client) => {
             const { id, workflow_name, args, queue, timeout_seconds, idempotency_key } = serializedWorkflowRunRequest
+            interface CreateWorkflowRunArgs {
+                workflowRunId: string;
+                workflowName: string;
+                args: any;
+                queue: string;
+                timeoutSeconds: number | null;
+                idempotencyKey: string;
+            }
+
             const triggerArgs: CreateWorkflowRunArgs = {
                 workflowRunId: id,
                 workflowName: workflow_name,
-                args: args,
+                args: args || {},
                 queue: queue,
-                timeoutSeconds: timeout_seconds || 0,
+                timeoutSeconds: timeout_seconds || null,
                 idempotencyKey: idempotency_key || ''
             };
-            const result = await createWorkflowRunQuery(client, triggerArgs);
 
-            if (!result || !result.result) {
-                throw new Error("Trigger workflow failed.")
+            type CreateWorkflowRunResult =  {
+                result : {
+                    workflow_run_id: string,
+                    task_count: number,
+                    success: boolean,
+                    message: string,
+                }
             }
 
-            return id;
+            const createWorkflowRunQuery = `-- name: CreateWorkflowRun :one
+                                            SELECT to_json(r) as result FROM trigger_workflow_run(
+                                                $1::UUID, 
+                                                $2, 
+                                                $3::JSON, 
+                                                $4, 
+                                                $5, 
+                                                $6
+                                            ) as r`;
+
+            const { rows } = await client.query<CreateWorkflowRunResult>({
+                text: createWorkflowRunQuery,
+                values: [triggerArgs.workflowRunId, triggerArgs.workflowName, triggerArgs.args, triggerArgs.queue, triggerArgs.timeoutSeconds, triggerArgs.idempotencyKey],
+            });
+
+            console.log(rows)
+
+            if (rows.length === 0) {
+                throw new Error('Error triggering workflow run: no result returned');
+            }
+
+            if (rows.length > 1) {
+                throw new Error(`Error triggering workflow run: unexpected number of rows returned ${rows}`);
+            }
+
+            const result = rows[0].result;
+
+            if (result == null) {
+                throw new Error('Error triggering workflow run: no result returned');
+            }
+
+            if (!result.success || !result.workflow_run_id) {
+                throw new Error(`Error triggering workflow run: ${result.message}`)
+            }
+
+            return result.workflow_run_id;
         })
     }
 

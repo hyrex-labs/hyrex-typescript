@@ -5,7 +5,7 @@ interface Client {
 }
 
 export const createWorkflowRunQuery = `-- name: CreateWorkflowRun :one
-SELECT result FROM trigger_workflow_run(
+SELECT to_json(result) FROM trigger_workflow_run(
     $1::UUID, 
     $2, 
     $3::JSON, 

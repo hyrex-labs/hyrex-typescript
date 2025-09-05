@@ -1,10 +1,11 @@
 {
   "name": "@hyrex/hyrex",
-  "version": "0.1.55-canary.0",
+  "version": "0.1.55-canary.1",
   "description": "The COLD Task Framework.",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "license": "Apache-2.0",
   "bin": {
     "hyrex": "./dist/cli.js"
   },

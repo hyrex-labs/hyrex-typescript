@@ -3,4 +3,8 @@
 .idea/
 *.db
 *.tsv
-
+node_modules/
+examples/
+dist/
+docs/
+*.DS_Store

@@ -2,32 +2,30 @@
 
 <p align="center">
   <a href="https://hyrex.io" target="_blank" rel="noopener">
-    <img src="https://hyrex.io/logo.png" alt="Hyrex" height="80" />
+    <img src="https://hyrex.io/logo.png" alt="Hyrex" height="300" />
   </a>
   
 </p>
 
-[Website](https://hyrex.io) • [Docs](https://hyrex.io/docs)
-
-Hyrex is a task and workflow orchestration runtime for Node.js. Build observable, durable tasks on Postgres or the Hyrex Cloud using a single TypeScript API.
-
-## Documentation
-
-- Overview: https://hyrex.io/docs/learn/overview.md
-- TypeScript Quick Start: https://hyrex.io/docs/reference/typescript/quickstart.md
-- TypeScript Reference: https://hyrex.io/docs/reference/typescript
-- Production Guides: https://hyrex.io/docs/production
+Hyrex is a task orchestration framework that uses PostgreSQL (or Hyrex Cloud) as a durable task queue. Define tasks in Python or TypeScript, send them to be processed asynchronously, and let Hyrex handle the rest.
 
 ## Get Started
 
 Head to the docs to set up your project, pick Postgres or Hyrex Cloud, and run your first task:
 
-- https://hyrex.io/docs/reference/typescript/quickstart.md
+- [TypeScript Quick Start](hyrex.io/docs/reference/typescript/quickstart.md)
+
+## Documentation
+
+- Overview: [Overview](hyrex.io/docs/learn/overview.md)
+- TypeScript Quick Start: [Quick Start](hyrex.io/docs/reference/typescript/quickstart.md)
+- TypeScript Reference: [TypeScript Reference](hyrex.io/docs/reference/typescript)
+- Production Guides: [Production Guides](hyrex.io/docs/production)
 
 ## Community
 
-- Website: https://hyrex.io
-- Docs: https://hyrex.io/docs
-- Discord: https://discord.gg/hyrex
-- X (Twitter): https://x.com/hyrex_io
-- GitHub: https://github.com/hyrex-labs/hyrex-typescript
+- Website: [hyrex.io](hyrex.io)
+- Docs: [Docs](hyrex.io/docs)
+- Discord: [Discord](discord.gg/hyrex)
+- X (Twitter): [@hyrex_io](x.com/hyrex_io)
+- GitHub: [hyrex-labs/hyrex-typescript](github.com/hyrex-labs/hyrex-typescript)
